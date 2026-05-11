@@ -1,0 +1,15 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "topology": "Topology",
+    "agents": "Agent Runtime",
+    "incidents": "Incidents",
+    "reports": "Reports",
+    "assistant": "Assistant"
+  },
+  "common": {
+    "viewAll": "View All",
+    "cancel": "Cancel",
+    "deploy": "Deploy"
+  }
+}

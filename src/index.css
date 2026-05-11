@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg-base: #0E0E12;
+  --color-bg-card: #161620;
+  --color-bg-elevated: #1E1E2A;
+  --color-brand: #E91E8C;
+  --color-critical: #FF3B3B;
+  --color-warning: #FFB020;
+  --color-mitigating: #4D9EFF;
+  --color-resolved: #2DD4BF;
+  --color-neutral: #6B7280;
+  --color-text-primary: #F4F4F5;
+  --color-text-muted: #71717A;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-ui: 'IBM Plex Sans', sans-serif;
+  --opacity-5: 0.05;
+  --opacity-10: 0.10;
+  --opacity-15: 0.15;
+  --opacity-20: 0.20;
+}
+
+[data-theme="light"] {
+  --color-bg-base: #F4F4F8;
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #EBEBF2;
+  --color-text-primary: #0E0E12;
+  --color-text-muted: #5C5C6E;
+  --color-border: rgba(0, 0, 0, 0.10);
+}
+
+[data-theme="light"] .hover\:bg-white\/5:hover { background-color: rgba(0,0,0,0.04) !important; }
+[data-theme="light"] .hover\:bg-white\/10:hover { background-color: rgba(0,0,0,0.06) !important; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes kpi-shimmer {
+  0%   { transform: translateX(-200%) skewX(-15deg); }
+  100% { transform: translateX(200%)  skewX(-15deg); }
+}
+
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  bottom: -50%;
+  left: 0;
+  width: 50%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.07) 50%, transparent);
+  pointer-events: none;
+  transform: translateX(-200%) skewX(-15deg);
+}
+
+.kpi-card:hover::after {
+  animation: kpi-shimmer 1.1s ease-in-out infinite;
+}
