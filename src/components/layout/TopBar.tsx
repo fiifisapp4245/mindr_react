@@ -1,21 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  AlertTriangle,
-  ArrowRight,
-  BarChart2,
   Bell,
   BookOpen,
-  Bot,
   CheckCircle2,
-  ChevronDown,
   ChevronRight,
   FileText,
-  LayoutDashboard,
   LogOut,
-  MessageSquare,
   Moon,
-  Network,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Settings,
   Shield,
@@ -32,15 +26,6 @@ import { Badge } from "../ui/badge";
 type SystemStatus = "operational" | "degraded" | "critical" | "outage";
 
 // ── Static data ───────────────────────────────────────────────────────────────
-
-const NAV_ITEMS = [
-  { label: "Dashboard",     href: "/dashboard", icon: LayoutDashboard                  },
-  { label: "Topology",      href: "/topology",  icon: Network                           },
-  { label: "Agent Runtime", href: "/agents",    icon: Bot                               },
-  { label: "Incidents",     href: "/incidents", icon: AlertTriangle, badge: "3"         },
-  { label: "Reports",       href: "/reports",   icon: BarChart2                         },
-  { label: "Assistant",     href: "/assistant", icon: MessageSquare                     },
-];
 
 const SEARCH_DATA = [
   { type: "incident", id: "INC-8422", label: "Core Network Overload — EU-West",     href: "/incidents" },
@@ -145,11 +130,13 @@ function GlobalStatusBadge({ status }: { status: SystemStatus }) {
 
 // ── TopBar ────────────────────────────────────────────────────────────────────
 
-interface TopBarProps { status?: SystemStatus; }
+interface TopBarProps {
+  status?: SystemStatus;
+  sidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
+}
 
-export function TopBar({ status = "critical" }: TopBarProps) {
-  const location = useLocation();
-  const pathname = location.pathname;
+export function TopBar({ status = "critical", sidebarCollapsed = false, onToggleSidebar }: TopBarProps) {
   const navigate = useNavigate();
   const { theme, toggle: toggleTheme } = useTheme();
 
@@ -216,16 +203,18 @@ export function TopBar({ status = "critical" }: TopBarProps) {
           className="flex items-center gap-4 px-5 shrink-0"
           style={{ height: 56, borderBottom: "1px solid var(--color-border)" }}
         >
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-7 h-7 rounded flex items-center justify-center" style={{ backgroundColor: "var(--color-brand)" }}>
-              <Zap size={14} strokeWidth={2.5} color="#fff" />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-sm font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>MINDR AI</span>
-              <span className="text-[9px] font-medium tracking-widest uppercase" style={{ color: "var(--color-text-muted)", marginTop: 1 }}>Network Ops Center</span>
-            </div>
-          </div>
+          {/* ── Sidebar toggle ── */}
+          <button
+            onClick={onToggleSidebar}
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors shrink-0"
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {sidebarCollapsed
+              ? <PanelLeftOpen size={18} />
+              : <PanelLeftClose size={18} />
+            }
+          </button>
 
           <div className="w-px h-6 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
 
@@ -481,54 +470,6 @@ export function TopBar({ status = "critical" }: TopBarProps) {
           </div>
         </div>
 
-        {/* ── Row 2: Nav tabs ── */}
-        <div className="flex items-stretch px-4 gap-0" style={{ height: 44 }}>
-          <nav className="flex items-stretch gap-0">
-            {NAV_ITEMS.map(({ label, href, icon: Icon, badge }) => {
-              const isActive = pathname === href || pathname.startsWith(href + "/");
-              return (
-                <Link
-                  key={href}
-                  to={href}
-                  className="relative flex items-center gap-2 px-4 text-[13px] font-medium transition-colors shrink-0"
-                  style={{
-                    color: isActive ? "var(--color-brand)" : "var(--color-text-muted)",
-                    borderBottom: isActive ? "2px solid var(--color-brand)" : "2px solid transparent",
-                  }}
-                >
-                  <Icon size={14} strokeWidth={isActive ? 2.2 : 1.8} className="shrink-0" />
-                  <span>{label}</span>
-                  {badge && (
-                    <span
-                      className="text-[10px] font-bold px-1.5 py-px rounded-full leading-none"
-                      style={{ backgroundColor: "var(--color-critical)", color: "#fff", minWidth: 18, textAlign: "center" }}
-                    >
-                      {badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="flex-1" />
-
-          {/* System Node panel */}
-          <div className="flex items-center gap-4 pl-4" style={{ borderLeft: "1px solid var(--color-border)" }}>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[9px] font-medium uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>Viewing</span>
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: "var(--color-resolved)" }} />
-              <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>LON-01-SEC</span>
-            </div>
-            <div className="w-px h-4 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
-            <button className="flex items-center gap-1 text-xs transition-opacity hover:opacity-80 shrink-0" style={{ color: "var(--color-text-muted)" }}>
-              Global View <ChevronDown size={11} />
-            </button>
-            <Link to="/topology" className="flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-80 shrink-0" style={{ color: "var(--color-brand)" }}>
-              Node Diagnostics <ArrowRight size={11} />
-            </Link>
-          </div>
-        </div>
       </header>
 
       {/* ── Deploy Fix modal ──────────────────────────────────────────────────── */}
