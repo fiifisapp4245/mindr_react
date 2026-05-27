@@ -13,6 +13,7 @@
   --color-resolved: #2DD4BF;
   --color-neutral: #6B7280;
   --color-text-primary: #F4F4F5;
+  --color-text-secondary: #A1A1AA;
   --color-text-muted: #71717A;
   --color-border: rgba(255, 255, 255, 0.06);
   --font-mono: 'IBM Plex Mono', monospace;
@@ -28,6 +29,7 @@
   --color-bg-card: #FFFFFF;
   --color-bg-elevated: #EBEBF2;
   --color-text-primary: #0E0E12;
+  --color-text-secondary: #4B4B5E;
   --color-text-muted: #5C5C6E;
   --color-border: rgba(0, 0, 0, 0.10);
 }

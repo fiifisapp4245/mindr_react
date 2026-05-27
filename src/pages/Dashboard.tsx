@@ -30,7 +30,7 @@ export default function Dashboard() {
           className="kpi-card rounded-lg p-5 flex flex-col gap-2"
           style={{ backgroundColor: "var(--color-bg-card)", borderWidth: 1, borderStyle: "solid" }}
         >
-          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
             System Health
           </p>
           <motion.p className="text-3xl font-bold tabular-nums" variants={kpiValue}>87.2%</motion.p>
@@ -48,7 +48,7 @@ export default function Dashboard() {
           className="kpi-card rounded-lg p-5 flex flex-col gap-2"
           style={{ backgroundColor: "var(--color-bg-card)", borderWidth: 1, borderStyle: "solid" }}
         >
-          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
             Active Incidents
           </p>
           <motion.p className="text-3xl font-bold tabular-nums" variants={kpiValue}>3</motion.p>
@@ -64,11 +64,11 @@ export default function Dashboard() {
           className="kpi-card rounded-lg p-5 flex flex-col gap-2"
           style={{ backgroundColor: "var(--color-bg-card)", borderWidth: 1, borderStyle: "solid" }}
         >
-          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
             MINDR Resolutions
           </p>
           <motion.p className="text-3xl font-bold tabular-nums" variants={kpiValue}>14</motion.p>
-          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Last 24 hours</p>
+          <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Last 24 hours</p>
         </motion.div>
 
         <motion.div
@@ -76,7 +76,7 @@ export default function Dashboard() {
           className="kpi-card rounded-lg p-5 flex flex-col gap-2"
           style={{ backgroundColor: "var(--color-bg-card)", borderWidth: 1, borderStyle: "solid" }}
         >
-          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
             Affected Users
           </p>
           <motion.p className="text-3xl font-bold tabular-nums" variants={kpiValue}>352K</motion.p>
@@ -92,7 +92,7 @@ export default function Dashboard() {
           style={{ backgroundColor: "var(--color-bg-card)", borderWidth: 1, borderStyle: "solid" }}
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+            <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
               AI Confidence
             </p>
             <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{ color: "var(--color-mitigating)", backgroundColor: "rgba(77,158,255,0.12)" }}>
@@ -111,7 +111,7 @@ export default function Dashboard() {
           style={{ backgroundColor: "var(--color-bg-card)", borderWidth: 1, borderStyle: "solid" }}
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+            <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
               MTTR Reduction
             </p>
             <span className="text-[10px] font-medium px-1.5 py-px rounded" style={{ color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }}>
@@ -119,7 +119,7 @@ export default function Dashboard() {
             </span>
           </div>
           <motion.p className="text-3xl font-bold tabular-nums" variants={kpiValue}>68%</motion.p>
-          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Against baseline</p>
+          <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Against baseline</p>
         </motion.div>
       </div>
 
@@ -132,7 +132,7 @@ export default function Dashboard() {
       {/* Recent Incidents */}
       <div className="rounded-lg" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
             Recent Incidents
           </p>
           <Link to="/incidents" className="text-xs font-medium transition-opacity hover:opacity-80" style={{ color: "var(--color-brand)" }}>

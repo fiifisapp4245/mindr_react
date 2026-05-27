@@ -20,14 +20,14 @@ export function AgentActivity() {
     >
       <div className="mb-4">
         <p
-          className="text-xs font-medium uppercase tracking-widest"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-sm font-semibold"
+          style={{ color: "var(--color-text-primary)" }}
         >
           Agent Load
         </p>
         <p
           className="text-xs mt-0.5"
-          style={{ color: "var(--color-text-muted)", opacity: 0.6 }}
+          style={{ color: "var(--color-text-primary)" }}
         >
           % of capacity across active agents
         </p>

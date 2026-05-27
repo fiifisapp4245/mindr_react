@@ -30,14 +30,14 @@ export function HealthTrendChart() {
       <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
         <div>
           <p
-            className="text-xs font-medium uppercase tracking-widest"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-sm font-semibold"
+            style={{ color: "var(--color-text-primary)" }}
           >
             System Health Trend
           </p>
           <p
             className="text-xs mt-0.5"
-            style={{ color: "var(--color-text-muted)", opacity: 0.6 }}
+            style={{ color: "var(--color-text-primary)" }}
           >
             Global network throughput &amp; stability index
           </p>
