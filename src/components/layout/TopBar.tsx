@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronRight,
   FileText,
+  LayoutGrid,
   LogOut,
   Moon,
   PanelLeftClose,
@@ -19,6 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useTheme } from "../../contexts/theme";
+import { useScenario } from "../../contexts/scenario";
 import { Badge } from "../ui/badge";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -139,6 +141,7 @@ interface TopBarProps {
 export function TopBar({ status = "critical", sidebarCollapsed = false, onToggleSidebar }: TopBarProps) {
   const navigate = useNavigate();
   const { theme, toggle: toggleTheme } = useTheme();
+  const { scenarios, activeScenario, activeUser, setScenario, setUser } = useScenario();
 
   const [searchValue,  setSearchValue]  = useState("");
   const [showSearch,   setShowSearch]   = useState(false);
@@ -146,6 +149,7 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile,  setShowProfile]  = useState(false);
   const [showDeploy,   setShowDeploy]   = useState(false);
+  const [showWaffle,   setShowWaffle]   = useState(false);
 
   // Deploy Fix form state
   const [deployIncident, setDeployIncident] = useState(DEPLOY_INCIDENTS[0].id);
@@ -157,11 +161,13 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
   const notifRef    = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const profileRef  = useRef<HTMLDivElement>(null);
+  const waffleRef   = useRef<HTMLDivElement>(null);
 
   useClickOutside(searchRef,   () => setShowSearch(false));
   useClickOutside(notifRef,    () => setShowNotif(false));
   useClickOutside(settingsRef, () => setShowSettings(false));
   useClickOutside(profileRef,  () => setShowProfile(false));
+  useClickOutside(waffleRef,   () => setShowWaffle(false));
 
   const searchResults = searchValue.trim().length > 1
     ? SEARCH_DATA.filter(
@@ -295,6 +301,79 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
           {/* Icon actions */}
           <div className="flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
 
+            {/* ── Waffle / Scenario Switcher ── */}
+            <div className="relative" ref={waffleRef}>
+              <button
+                onClick={() => { setShowWaffle((o) => !o); setShowNotif(false); setShowSettings(false); setShowProfile(false); }}
+                className="relative p-2 rounded-lg hover:bg-white/5 transition-colors"
+                title="Switch Scenario"
+              >
+                <LayoutGrid size={16} />
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2"
+                  style={{
+                    backgroundColor: activeScenario.color,
+                    borderColor: "var(--color-bg-card)",
+                  }}
+                />
+              </button>
+
+              {showWaffle && (
+                <div style={{ ...dropdownBase, right: 0, width: 320 }}>
+                  <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
+                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+                      Switch Scenario
+                    </p>
+                  </div>
+                  <div className="p-3 grid grid-cols-3 gap-2">
+                    {scenarios.map((s) => {
+                      const isActive = s.id === activeScenario.id;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => { setScenario(s.id); setShowWaffle(false); }}
+                          className="flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-colors"
+                          style={{
+                            border: `1px solid ${isActive ? s.color : "var(--color-border)"}`,
+                            backgroundColor: isActive ? `color-mix(in srgb, ${s.color} 10%, transparent)` : "var(--color-bg-card)",
+                          }}
+                        >
+                          <span
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold"
+                            style={{
+                              backgroundColor: isActive ? `color-mix(in srgb, ${s.color} 20%, transparent)` : "var(--color-bg-elevated)",
+                              color: isActive ? s.color : "var(--color-text-muted)",
+                            }}
+                          >
+                            S{s.id.slice(1)}
+                          </span>
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-widest leading-none mb-0.5" style={{ color: isActive ? s.color : "var(--color-text-muted)" }}>
+                              {s.tag}
+                            </p>
+                            <p className="text-[10px] font-medium leading-snug" style={{ color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)" }}>
+                              {s.label}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="px-4 pb-3">
+                    <div
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+                      style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+                    >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: activeScenario.color }} />
+                      <span style={{ color: "var(--color-text-muted)" }}>Active:</span>
+                      <span className="font-medium" style={{ color: "var(--color-text-primary)" }}>{activeScenario.label}</span>
+                      <span className="ml-auto text-[10px]" style={{ color: "var(--color-text-muted)" }}>{activeUser.name}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* ── Notifications ── */}
             <div className="relative" ref={notifRef}>
               <button
@@ -399,44 +478,83 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
               ref={profileRef}
             >
               <button
-                onClick={() => { setShowProfile((o) => !o); setShowNotif(false); setShowSettings(false); }}
+                onClick={() => { setShowProfile((o) => !o); setShowNotif(false); setShowSettings(false); setShowWaffle(false); }}
                 className="flex items-center gap-2.5"
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                  style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
+                  style={{ backgroundColor: activeScenario.color, color: "#fff" }}
                 >
-                  {PROFILE.initials}
+                  {activeUser.initials}
                 </div>
                 <div className="flex flex-col leading-tight text-left">
-                  <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>{PROFILE.name}</span>
-                  <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{PROFILE.role}</span>
+                  <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>{activeUser.name}</span>
+                  <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{activeUser.role}</span>
                 </div>
               </button>
 
               {showProfile && (
-                <div style={{ ...dropdownBase, right: 0, width: 260 }}>
-                  {/* Profile header */}
+                <div style={{ ...dropdownBase, right: 0, width: 280 }}>
+                  {/* Active user header */}
                   <div className="px-4 py-4 flex items-center gap-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
                     <div
                       className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                      style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
+                      style={{ backgroundColor: activeScenario.color, color: "#fff" }}
                     >
-                      {PROFILE.initials}
+                      {activeUser.initials}
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{PROFILE.name}</p>
-                      <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>{PROFILE.email}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{activeUser.name}</p>
+                      <p className="text-[11px] truncate" style={{ color: "var(--color-text-muted)" }}>{activeUser.email}</p>
                       <span
                         className="text-[9px] font-semibold px-1.5 py-px rounded-full uppercase tracking-wider"
-                        style={{ backgroundColor: "rgba(233,30,140,0.12)", color: "var(--color-brand)" }}
+                        style={{ backgroundColor: `color-mix(in srgb, ${activeScenario.color} 15%, transparent)`, color: activeScenario.color }}
                       >
-                        {PROFILE.role}
+                        {activeUser.role}
                       </span>
                     </div>
                   </div>
 
-                  {/* Menu items */}
+                  {/* Scenario users switcher */}
+                  <div className="px-4 pt-3 pb-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--color-text-muted)" }}>
+                      {activeScenario.tag} · Switch User
+                    </p>
+                    <div className="space-y-1">
+                      {activeScenario.users.map((u) => {
+                        const isCurrent = u.id === activeUser.id;
+                        return (
+                          <button
+                            key={u.id}
+                            onClick={() => { setUser(u.id); setShowProfile(false); }}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
+                            style={{
+                              backgroundColor: isCurrent ? `color-mix(in srgb, ${activeScenario.color} 10%, transparent)` : "transparent",
+                              border: `1px solid ${isCurrent ? activeScenario.color : "transparent"}`,
+                            }}
+                          >
+                            <div
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                              style={{ backgroundColor: isCurrent ? activeScenario.color : "var(--color-bg-elevated)", color: isCurrent ? "#fff" : "var(--color-text-muted)" }}
+                            >
+                              {u.initials}
+                            </div>
+                            <div className="flex-1 text-left">
+                              <p className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>{u.name}</p>
+                              <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{u.role}</p>
+                            </div>
+                            {isCurrent && (
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: activeScenario.color }} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ height: 1, margin: "8px 0", backgroundColor: "var(--color-border)" }} />
+
+                  {/* Standard menu items */}
                   <div className="py-1">
                     {PROFILE_MENU.map(({ label, icon: Icon, href }) => (
                       <Link

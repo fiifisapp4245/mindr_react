@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/theme";
+import { ScenarioProvider } from "./contexts/scenario";
 import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Topology from "./pages/Topology";
@@ -13,6 +14,7 @@ import Login from "./pages/Login";
 export default function App() {
   return (
     <ThemeProvider>
+      <ScenarioProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -28,6 +30,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </ScenarioProvider>
     </ThemeProvider>
   );
 }
