@@ -504,188 +504,7 @@ export default function CxiCaseDetail() {
       {/* ════ Two-column layout ════ */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* ── LEFT 35% — Hypothesis + Recommended Action + Review Actions ── */}
-        <div
-          className="overflow-y-auto px-5 py-5 space-y-4 shrink-0"
-          style={{ width: "35%", borderRight: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
-        >
-          {/* Hypothesis */}
-          <div
-            className="rounded-xl p-4"
-            style={{
-              backgroundColor: "var(--mindr-hypothesis-bg)",
-              border: "1px solid var(--color-border)",
-              borderLeft: "3px solid var(--color-brand)",
-            }}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <GitBranch size={13} style={{ color: "var(--color-brand)" }} />
-                <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>CXI Hypothesis</p>
-              </div>
-              <span className="text-[10px] font-semibold px-1.5 py-px rounded-md"
-                style={{ backgroundColor: "var(--color-bg-elevated)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>
-                {classificationLabel(c.classification)}
-              </span>
-            </div>
-
-            <ConfidenceBar value={c.hypothesis.confidence} />
-
-            <p className="text-xs leading-relaxed mt-3 mb-3" style={{ color: "var(--color-text-primary)" }}>
-              {c.hypothesis.text}
-            </p>
-
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--color-text-muted)" }}>
-                Supporting Signals
-              </p>
-              <ul className="space-y-1.5">
-                {c.hypothesis.signals.map((sig, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[11px]" style={{ color: "var(--color-text-secondary)" }}>
-                    <span className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: "var(--color-brand)" }} />
-                    {sig}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <p className="text-[9px] mt-3" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
-              {c.hypothesis.agentVersion}
-            </p>
-          </div>
-
-          {/* Recommended Action */}
-          <div className="rounded-xl p-4" style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Wrench size={13} style={{ color: "var(--color-mitigating)" }} />
-              <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Recommended Action</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 text-xs mb-3">
-              {[
-                { label: "Action",      value: c.recommendation.actionType.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()) },
-                { label: "Target Team", value: c.recommendation.targetTeam },
-                { label: "Ticket Type", value: c.recommendation.ticketType },
-                { label: "One-Click",   value: c.recommendation.oneClickAvailable ? "Available" : "Not available",
-                  color: c.recommendation.oneClickAvailable ? "var(--color-resolved)" : undefined },
-              ].map(({ label, value, color }) => (
-                <div key={label}>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>{label}</p>
-                  <p className="text-xs" style={{ color: color ?? "var(--color-text-primary)" }}>{value}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-              {c.recommendation.rationale}
-            </p>
-          </div>
-
-          {/* Review Actions */}
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--color-text-muted)" }}>
-              Review Actions
-            </p>
-
-            {approveStep === "confirm" && (
-              <div className="rounded-xl px-4 py-4 mb-3"
-                style={{ backgroundColor: "rgba(26,122,74,0.12)", border: "1px solid rgba(26,122,74,0.35)" }}>
-                <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--mindr-approved)" }}>Approve CXI recommendation?</p>
-                <p className="text-[11px] mb-3" style={{ color: "var(--color-text-secondary)" }}>
-                  This will proceed with <strong>{c.recommendation.ticketType}</strong> creation via{" "}
-                  <strong>{c.recommendation.targetTeam}</strong>.
-                </p>
-                <div className="flex gap-2">
-                  <button onClick={() => setApproveStep("idle")}
-                    className="flex-1 py-1.5 rounded-lg text-xs"
-                    style={{ backgroundColor: "var(--color-bg-elevated)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }}>
-                    Cancel
-                  </button>
-                  <button onClick={handleApproveConfirm}
-                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ backgroundColor: "var(--mindr-approved)", color: "#fff" }}>
-                    Confirm
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {approveStep === "acting" && (
-              <div className="flex items-center justify-center gap-2 rounded-xl px-4 py-3 mb-3"
-                style={{ backgroundColor: "rgba(26,122,74,0.12)", border: "1px solid rgba(26,122,74,0.3)" }}>
-                <span className="w-4 h-4 rounded-full border-2 animate-spin shrink-0"
-                  style={{ borderColor: "var(--mindr-approved)", borderTopColor: "transparent" }} />
-                <span className="text-xs font-medium" style={{ color: "var(--mindr-approved)" }}>Approving…</span>
-              </div>
-            )}
-
-            {approveStep === "done" && (
-              <div className="flex items-center gap-2 rounded-xl px-4 py-3 mb-3"
-                style={{ backgroundColor: "rgba(26,122,74,0.12)", border: "1px solid rgba(26,122,74,0.35)" }}>
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: "var(--mindr-approved)" }}>
-                  <Check size={11} color="#fff" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold" style={{ color: "var(--mindr-approved)" }}>Case approved</p>
-                  <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>Recommended action triggered</p>
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={() => approveStep === "idle" ? setApproveStep("confirm") : undefined}
-              disabled={caseIsActioned || approveStep !== "idle"}
-              className="w-full py-2.5 rounded-lg text-sm font-semibold mb-2 transition-opacity"
-              style={{ backgroundColor: "var(--mindr-approved)", color: "#fff", opacity: (caseIsActioned || approveStep !== "idle") ? 0.4 : 1 }}
-            >
-              Approve
-            </button>
-
-            <div className="flex gap-2 mb-2">
-              <button
-                onClick={() => setModal("correct")}
-                disabled={caseIsActioned}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-opacity"
-                style={{ backgroundColor: "rgba(180,80,0,0.2)", color: "var(--color-warning)", border: "1px solid rgba(180,80,0,0.4)", opacity: caseIsActioned ? 0.4 : 1 }}
-              >
-                Correct
-              </button>
-              <button
-                onClick={() => setModal("reject")}
-                disabled={caseIsActioned}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-opacity"
-                style={{ backgroundColor: "transparent", color: "var(--mindr-rejected)", border: "1px solid var(--mindr-rejected)", opacity: caseIsActioned ? 0.4 : 1 }}
-              >
-                Reject
-              </button>
-            </div>
-
-            <button
-              onClick={() => setModal("escalate")}
-              disabled={c.status === "escalated"}
-              className="w-full py-2 rounded-lg text-xs font-medium transition-opacity"
-              style={{
-                backgroundColor: "transparent",
-                color: c.status === "escalated" ? "var(--mindr-escalated)" : "var(--color-text-muted)",
-                border: `1px solid ${c.status === "escalated" ? "var(--mindr-escalated)" : "var(--color-border)"}`,
-                opacity: c.status === "escalated" ? 0.5 : 1,
-              }}
-            >
-              {c.status === "escalated" ? "Already Escalated" : "Escalate to Level 3"}
-            </button>
-
-            {c.correction && (
-              <div className="mt-3 rounded-lg px-3 py-2.5 text-xs"
-                style={{ backgroundColor: "rgba(26,90,138,0.15)", border: "1px solid rgba(26,90,138,0.3)" }}>
-                <p className="font-semibold mb-1" style={{ color: "var(--mindr-corrected)" }}>Override Applied</p>
-                <p style={{ color: "var(--color-text-muted)" }}>
-                  Changed to <span style={{ color: "var(--color-text-primary)" }}>{classificationLabel(c.correction.correctedClassification)}</span>
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── RIGHT 65% — Scope + Chart + Evidence + Audit Trail ── */}
+        {/* ── LEFT flex-1 — Scope + Chart + Evidence + Audit Trail ── */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 min-w-0">
 
           {/* Breadcrumb */}
@@ -941,9 +760,219 @@ export default function CxiCaseDetail() {
           </div>
 
         </div>
+
+        {/* ── RIGHT 35% — Hypothesis + Recommended Action + Review Actions ── */}
+        <div
+          className="overflow-y-auto px-5 py-5 space-y-4 shrink-0"
+          style={{ width: "35%", borderLeft: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
+        >
+          {/* Hypothesis */}
+          <div
+            className="rounded-xl p-4"
+            style={{
+              backgroundColor: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <GitBranch size={13} style={{ color: "var(--color-brand)" }} />
+                <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>CXI Hypothesis</p>
+              </div>
+              <span className="text-[10px] font-semibold px-1.5 py-px rounded-md"
+                style={{ backgroundColor: "var(--color-bg-elevated)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>
+                {classificationLabel(c.classification)}
+              </span>
+            </div>
+
+            <ConfidenceBar value={c.hypothesis.confidence} />
+
+            <p className="text-xs leading-relaxed mt-3 mb-3" style={{ color: "var(--color-text-primary)" }}>
+              {c.hypothesis.text}
+            </p>
+
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--color-text-muted)" }}>
+                Supporting Signals
+              </p>
+              <ul className="space-y-1.5">
+                {c.hypothesis.signals.map((sig, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[11px]" style={{ color: "var(--color-text-secondary)" }}>
+                    <span className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: "var(--color-brand)" }} />
+                    {sig}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <p className="text-[9px] mt-3" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+              {c.hypothesis.agentVersion}
+            </p>
+          </div>
+
+          {/* Recommended Action */}
+          <div className="rounded-xl p-4" style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Wrench size={13} style={{ color: "var(--color-mitigating)" }} />
+              <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Recommended Action</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 text-xs mb-3">
+              {[
+                { label: "Action",      value: c.recommendation.actionType.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()) },
+                { label: "Target Team", value: c.recommendation.targetTeam },
+                { label: "Ticket Type", value: c.recommendation.ticketType },
+                { label: "One-Click",   value: c.recommendation.oneClickAvailable ? "Available" : "Not available",
+                  color: c.recommendation.oneClickAvailable ? "var(--color-resolved)" : undefined },
+              ].map(({ label, value, color }) => (
+                <div key={label}>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+                  <p className="text-xs" style={{ color: color ?? "var(--color-text-primary)" }}>{value}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+              {c.recommendation.rationale}
+            </p>
+          </div>
+
+          {/* Review Actions */}
+          <div className="rounded-xl p-4" style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--color-text-muted)" }}>
+              Review Actions
+            </p>
+
+            {approveStep === "acting" && (
+              <div className="flex items-center justify-center gap-2 rounded-xl px-4 py-3 mb-3"
+                style={{ backgroundColor: "rgba(26,122,74,0.12)", border: "1px solid rgba(26,122,74,0.3)" }}>
+                <span className="w-4 h-4 rounded-full border-2 animate-spin shrink-0"
+                  style={{ borderColor: "var(--mindr-approved)", borderTopColor: "transparent" }} />
+                <span className="text-xs font-medium" style={{ color: "var(--mindr-approved)" }}>Approving…</span>
+              </div>
+            )}
+
+            {approveStep === "done" && (
+              <div className="flex items-center gap-2 rounded-xl px-4 py-3 mb-3"
+                style={{ backgroundColor: "rgba(26,122,74,0.12)", border: "1px solid rgba(26,122,74,0.35)" }}>
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: "var(--mindr-approved)" }}>
+                  <Check size={11} color="#fff" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: "var(--mindr-approved)" }}>Case approved</p>
+                  <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>Recommended action triggered</p>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => !caseIsActioned && approveStep === "idle" ? setModal("approve") : undefined}
+              disabled={caseIsActioned || approveStep !== "idle"}
+              className="w-full py-3.5 rounded-xl text-base font-bold mb-3 transition-opacity"
+              style={{ backgroundColor: "var(--mindr-approved)", color: "#fff", opacity: (caseIsActioned || approveStep !== "idle") ? 0.4 : 1 }}
+            >
+              Approve
+            </button>
+
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setModal("correct")}
+                disabled={caseIsActioned}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity"
+                style={{ backgroundColor: "rgba(180,80,0,0.2)", color: "var(--color-warning)", border: "1px solid rgba(180,80,0,0.4)", opacity: caseIsActioned ? 0.4 : 1 }}
+              >
+                Correct
+              </button>
+              <button
+                onClick={() => setModal("reject")}
+                disabled={caseIsActioned}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity"
+                style={{ backgroundColor: "transparent", color: "var(--mindr-rejected)", border: "1px solid var(--mindr-rejected)", opacity: caseIsActioned ? 0.4 : 1 }}
+              >
+                Reject
+              </button>
+            </div>
+
+            <button
+              onClick={() => setModal("escalate")}
+              disabled={c.status === "escalated"}
+              className="w-full py-2.5 rounded-xl text-sm font-medium transition-opacity"
+              style={{
+                backgroundColor: "transparent",
+                color: c.status === "escalated" ? "var(--mindr-escalated)" : "var(--color-text-muted)",
+                border: `1px solid ${c.status === "escalated" ? "var(--mindr-escalated)" : "var(--color-border)"}`,
+                opacity: c.status === "escalated" ? 0.5 : 1,
+              }}
+            >
+              {c.status === "escalated" ? "Already Escalated" : "Escalate to Level 3"}
+            </button>
+
+            {c.correction && (
+              <div className="mt-3 rounded-lg px-3 py-2.5 text-xs"
+                style={{ backgroundColor: "rgba(26,90,138,0.15)", border: "1px solid rgba(26,90,138,0.3)" }}>
+                <p className="font-semibold mb-1" style={{ color: "var(--mindr-corrected)" }}>Override Applied</p>
+                <p style={{ color: "var(--color-text-muted)" }}>
+                  Changed to <span style={{ color: "var(--color-text-primary)" }}>{classificationLabel(c.correction.correctedClassification)}</span>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
       {/* ════ Modals (Phase 4) ════ */}
+
+      {/* Approve confirmation modal */}
+      {modal === "approve" && (
+        <Modal title="Approve CXI Recommendation" onClose={() => setModal(null)}>
+          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            You are about to approve the CXI recommendation for{" "}
+            <span style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>{c.caseId}</span>.
+          </p>
+          <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: "rgba(26,122,74,0.1)", border: "1px solid rgba(26,122,74,0.3)" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--mindr-approved)" }}>Action Summary</p>
+            <div className="grid grid-cols-2 gap-y-2 text-xs">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>Ticket Type</p>
+                <p style={{ color: "var(--color-text-primary)" }}>{c.recommendation.ticketType}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>Target Team</p>
+                <p style={{ color: "var(--color-text-primary)" }}>{c.recommendation.targetTeam}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>Action</p>
+                <p style={{ color: "var(--color-text-primary)" }}>
+                  {c.recommendation.actionType.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>One-Click</p>
+                <p style={{ color: c.recommendation.oneClickAvailable ? "var(--color-resolved)" : "var(--color-text-muted)" }}>
+                  {c.recommendation.oneClickAvailable ? "Available" : "Not available"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs mb-5" style={{ color: "var(--color-text-muted)" }}>
+            This action cannot be undone. The recommended action will be triggered immediately.
+          </p>
+          <div className="flex gap-2">
+            <button onClick={() => setModal(null)}
+              className="flex-1 py-2.5 rounded-xl text-sm"
+              style={{ backgroundColor: "var(--color-bg-card)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }}>
+              Cancel
+            </button>
+            <button
+              onClick={() => { setModal(null); handleApproveConfirm(); }}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold"
+              style={{ backgroundColor: "var(--mindr-approved)", color: "#fff" }}
+            >
+              Confirm Approval
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* §F-12 — Reject modal */}
       {modal === "reject" && (
