@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronRight, ChevronDown, Map, LayoutList, MapPin, Radio, Server, Users } from "lucide-react";
+import { ChevronRight, ChevronDown, Map as MapIcon, LayoutList, MapPin, Radio, Server, Users } from "lucide-react";
 import { mockCases } from "../../data/cxi-cases";
 import { Link } from "react-router-dom";
 import { statusColor, statusBg } from "../cxi/CaseRow";
@@ -385,7 +385,7 @@ export function CxiTopology() {
             style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
           >
             {([
-              { id: "graph", icon: Map,         label: "Map" },
+              { id: "graph", icon: MapIcon,      label: "Map" },
               { id: "list",  icon: LayoutList, label: "List"  },
             ] as const).map(({ id, icon: Icon, label }) => (
               <button
