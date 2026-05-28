@@ -13,6 +13,7 @@ export interface Scenario {
   tag: string;
   label: string;
   color: string;
+  defaultRoute: string;
   users: ScenarioUser[];
 }
 
@@ -22,6 +23,7 @@ const SCENARIOS: Scenario[] = [
     tag: "Scenario 1",
     label: "Prediction & Reaction",
     color: "var(--color-brand)",
+    defaultRoute: "/dashboard",
     users: [
       { id: "u1", name: "Kwame Asante",  initials: "KA", role: "Level 4 Clearance",  email: "k.asante@mindr.network"  },
       { id: "u2", name: "Sara Chen",     initials: "SC", role: "Senior NOC Engineer", email: "s.chen@mindr.network"    },
@@ -32,6 +34,7 @@ const SCENARIOS: Scenario[] = [
     tag: "Scenario 2",
     label: "CXI Degradation",
     color: "var(--color-warning)",
+    defaultRoute: "/cxi-cases",
     users: [
       { id: "u3", name: "Marcus Webb", initials: "MW", role: "CXI Specialist",     email: "m.webb@mindr.network"  },
       { id: "u4", name: "Priya Nair",  initials: "PN", role: "Operations Manager", email: "p.nair@mindr.network"  },
@@ -42,6 +45,7 @@ const SCENARIOS: Scenario[] = [
     tag: "Scenario 3",
     label: "Autonomous Recovery",
     color: "var(--color-resolved)",
+    defaultRoute: "/dashboard",
     users: [
       { id: "u5", name: "Alex Torres", initials: "AT", role: "Executive",         email: "a.torres@mindr.network" },
       { id: "u6", name: "Jamie Osei",  initials: "JO", role: "Compliance Officer", email: "j.osei@mindr.network"   },

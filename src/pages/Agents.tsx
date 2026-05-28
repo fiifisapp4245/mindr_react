@@ -1,3 +1,5 @@
+import { useScenario } from "../contexts/scenario";
+import { S2AgentRuntime } from "../components/s2/AgentRuntime";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { kpiCard, kpiValue, transFast } from "../lib/animations";
@@ -40,6 +42,9 @@ const AGENT_TYPES = [
 const ZONES = ["EU-WEST", "EU-CENTRAL", "US-EAST", "US-WEST", "APAC", "LATAM", "GLOBAL"];
 
 export default function Agents() {
+  const { activeScenario } = useScenario();
+  if (activeScenario.id === "s2") return <S2AgentRuntime />;
+
   const { agents, perfData } = useAgents();
 
   const [showDeploy,   setShowDeploy]   = useState(false);

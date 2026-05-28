@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import {
+  Activity,
   AlertTriangle,
   BarChart2,
   Bot,
@@ -8,15 +9,43 @@ import {
   Network,
   Zap,
 } from "lucide-react";
+import { useScenario } from "../../contexts/scenario";
+import { mockCases } from "../../data/cxi-cases";
 
-const NAV_ITEMS = [
-  { label: "Dashboard",     href: "/dashboard", icon: LayoutDashboard                  },
-  { label: "Topology",      href: "/topology",  icon: Network                           },
-  { label: "Agent Runtime", href: "/agents",    icon: Bot                               },
-  { label: "Incidents",     href: "/incidents", icon: AlertTriangle, badge: "3"         },
-  { label: "Reports",       href: "/reports",   icon: BarChart2                         },
-  { label: "Assistant",     href: "/assistant", icon: MessageSquare                     },
-];
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  badge?: string;
+}
+
+const S2_PENDING = String(mockCases.filter((c) => c.status === "pending").length);
+
+const SCENARIO_NAV: Record<string, NavItem[]> = {
+  s1: [
+    { label: "Dashboard",     href: "/dashboard",  icon: LayoutDashboard },
+    { label: "Topology",      href: "/topology",   icon: Network },
+    { label: "Agent Runtime", href: "/agents",     icon: Bot },
+    { label: "Incidents",     href: "/incidents",  icon: AlertTriangle, badge: "3" },
+    { label: "Reports",       href: "/reports",    icon: BarChart2 },
+    { label: "Assistant",     href: "/assistant",  icon: MessageSquare },
+  ],
+  s2: [
+    { label: "Dashboard",     href: "/dashboard",  icon: LayoutDashboard },
+    { label: "Topology",      href: "/topology",   icon: Network },
+    { label: "CXI Cases",     href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
+    { label: "Agent Runtime", href: "/agents",     icon: Bot },
+    { label: "Reports",       href: "/reports",    icon: BarChart2 },
+    { label: "Assistant",     href: "/assistant",  icon: MessageSquare },
+  ],
+  s3: [
+    { label: "Dashboard",     href: "/dashboard",  icon: LayoutDashboard },
+    { label: "Topology",      href: "/topology",   icon: Network },
+    { label: "Agent Runtime", href: "/agents",     icon: Bot },
+    { label: "Reports",       href: "/reports",    icon: BarChart2 },
+    { label: "Assistant",     href: "/assistant",  icon: MessageSquare },
+  ],
+};
 
 interface SidebarProps {
   collapsed: boolean;
@@ -25,6 +54,8 @@ interface SidebarProps {
 export function Sidebar({ collapsed }: SidebarProps) {
   const location = useLocation();
   const pathname = location.pathname;
+  const { activeScenario } = useScenario();
+  const navItems: NavItem[] = SCENARIO_NAV[activeScenario.id] ?? SCENARIO_NAV.s1;
 
   return (
     <aside
@@ -63,9 +94,23 @@ export function Sidebar({ collapsed }: SidebarProps) {
         )}
       </div>
 
+      {/* Scenario label */}
+      {!collapsed && (
+        <div
+          className="mx-3 mt-3 mb-1 px-3 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-widest truncate"
+          style={{
+            backgroundColor: `${activeScenario.color}18`,
+            color: activeScenario.color,
+            border: `1px solid ${activeScenario.color}35`,
+          }}
+        >
+          {activeScenario.tag}
+        </div>
+      )}
+
       {/* Nav items */}
-      <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-hidden">
-        {NAV_ITEMS.map(({ label, href, icon: Icon, badge }) => {
+      <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-hidden">
+        {navItems.map(({ label, href, icon: Icon, badge }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link

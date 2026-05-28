@@ -1,3 +1,5 @@
+import { useScenario } from "../contexts/scenario";
+import { CxiTopology } from "../components/s2/CxiTopology";
 import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Link } from "react-router-dom";
@@ -69,6 +71,9 @@ const EVENT_COLOR: Record<string, string> = {
 };
 
 export default function Topology() {
+  const { activeScenario } = useScenario();
+  if (activeScenario.id === "s2") return <CxiTopology />;
+
   const { nodes, edges } = useTopology();
 
   const [selectedId, setSelectedId]   = useState<string | null>("eu-core-01");

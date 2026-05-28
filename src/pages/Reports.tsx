@@ -1,3 +1,5 @@
+import { useScenario } from "../contexts/scenario";
+import { CxiReports } from "../components/s2/CxiReports";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { kpiCard, kpiValue, kpiValueScale } from "../lib/animations";
@@ -88,6 +90,9 @@ function downloadReport(name: string, type: string) {
 }
 
 export default function Reports() {
+  const { activeScenario } = useScenario();
+  if (activeScenario.id === "s2") return <CxiReports />;
+
   const { perfTrend, incidentTrend, generatedReports, aiInsights } = useReports();
   const [timeRange,    setTimeRange]    = useState<TimeRange>("7d");
   const [showAnalysis, setShowAnalysis] = useState(false);

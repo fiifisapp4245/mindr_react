@@ -10,6 +10,8 @@ import IncidentDetail from "./pages/IncidentDetail";
 import Reports from "./pages/Reports";
 import Assistant from "./pages/Assistant";
 import Login from "./pages/Login";
+import CxiCases from "./pages/CxiCases";
+import CxiCaseDetail from "./pages/CxiCaseDetail";
 
 export default function App() {
   return (
@@ -25,6 +27,8 @@ export default function App() {
             <Route path="agents" element={<Agents />} />
             <Route path="incidents" element={<Incidents />} />
             <Route path="incidents/:id" element={<IncidentDetail />} />
+            <Route path="cxi-cases" element={<CxiCases />} />
+            <Route path="cxi-cases/:caseId" element={<CxiCaseDetail />} />
             <Route path="reports" element={<Reports />} />
             <Route path="assistant" element={<Assistant />} />
           </Route>

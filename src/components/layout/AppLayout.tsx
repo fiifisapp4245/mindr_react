@@ -17,7 +17,7 @@ export function AppLayout() {
           onToggleSidebar={() => setSidebarCollapsed((o) => !o)}
         />
         <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="w-full px-6 py-4">
+          <div className="w-full h-full px-6 py-4">
             <Outlet />
           </div>
         </main>

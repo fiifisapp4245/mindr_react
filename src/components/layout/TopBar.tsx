@@ -262,7 +262,7 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
                     return (
                       <button
                         key={s.id}
-                        onClick={() => { setScenario(s.id); setShowWaffle(false); }}
+                        onClick={() => { setScenario(s.id); setShowWaffle(false); navigate(s.defaultRoute); }}
                         className="flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-colors"
                         style={{
                           border: `1px solid ${isActive ? s.color : "var(--color-border)"}`,

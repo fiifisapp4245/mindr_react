@@ -7,8 +7,13 @@ import { useDashboard } from "../hooks/use-dashboard";
 import { HealthTrendChart } from "../components/dashboard/HealthTrendChart";
 import { AgentActivity } from "../components/dashboard/AgentActivity";
 import { IncidentRow } from "../components/dashboard/IncidentRow";
+import { useScenario } from "../contexts/scenario";
+import { CxiDashboard } from "../components/s2/CxiDashboard";
 
 export default function Dashboard() {
+  const { activeScenario } = useScenario();
+  if (activeScenario.id === "s2") return <CxiDashboard />;
+
   const { recentIncidents } = useDashboard();
   const [fabHovered, setFabHovered] = useState(false);
 
