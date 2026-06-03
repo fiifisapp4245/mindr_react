@@ -215,10 +215,10 @@ function TrendTooltip({ active, payload, label }: {
   if (!active || !payload?.length) return null;
   return (
     <div style={TOOLTIP_STYLE}>
-      <p style={{ color: "#A1A1AA", fontSize: 11, marginBottom: 6, fontWeight: 500 }}>{label}</p>
+      <p style={{ color: "#F4F4F5", fontSize: 11, marginBottom: 6, fontWeight: 500 }}>{label}</p>
       {payload.map((p) => (
         <div key={p.name} style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 2 }}>
-          <span style={{ color: "#A1A1AA" }}>{p.name === "score" ? "CXI Score" : "New Cases"}</span>
+          <span style={{ color: "#F4F4F5" }}>{p.name === "score" ? "CXI Score" : "New Cases"}</span>
           <span style={{ color: "#F4F4F5", fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>
             {p.name === "score" ? (p.value as number).toFixed(1) : p.value}
           </span>
@@ -254,11 +254,11 @@ function PieTooltip({ active, payload, total }: {
         <span style={{ color: "#F4F4F5", fontWeight: 600, textTransform: "capitalize" }}>{name}</span>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 3 }}>
-        <span style={{ color: "#A1A1AA" }}>Cases</span>
+        <span style={{ color: "#F4F4F5" }}>Cases</span>
         <span style={{ color: "#F4F4F5", fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{value}</span>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 24 }}>
-        <span style={{ color: "#A1A1AA" }}>Share</span>
+        <span style={{ color: "#F4F4F5" }}>Share</span>
         <span style={{ color: color, fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>{pct}%</span>
       </div>
     </div>

@@ -37,7 +37,7 @@ function ClusterRow({ cluster, expanded, onToggle }: {
         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
       >
-        {expanded ? <ChevronDown size={10} style={{ color: "#71717A", flexShrink: 0 }} /> : <ChevronRight size={10} style={{ color: "#71717A", flexShrink: 0 }} />}
+        {expanded ? <ChevronDown size={10} style={{ color: "#F4F4F5", flexShrink: 0 }} /> : <ChevronRight size={10} style={{ color: "#F4F4F5", flexShrink: 0 }} />}
         <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: isActive ? col : col + "99", flexShrink: 0, animation: isActive ? "cxiPulse 2s ease-in-out infinite" : "none" }} />
         <span style={{ flex: 1, fontSize: 10, fontWeight: 500, color: "#C4C4CC", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {cluster.name}
@@ -53,18 +53,18 @@ function ClusterRow({ cluster, expanded, onToggle }: {
           {/* CXI detail */}
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 24, fontWeight: 700, color: col, fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1 }}>{cluster.cxi.toFixed(1)}</span>
-            <span style={{ fontSize: 11, color: "#52525B" }}>/ 5.0</span>
+            <span style={{ fontSize: 11, color: "#F4F4F5" }}>/ 5.0</span>
             <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, color: col, backgroundColor: `${col}1a`, padding: "2px 7px", borderRadius: 999, textTransform: "capitalize", flexShrink: 0 }}>{getCXIStatus(cluster.cxi)}</span>
           </div>
           <div style={{ height: 5, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 3, overflow: "hidden", marginBottom: 6 }}>
             <div style={{ width: `${pct}%`, height: "100%", backgroundColor: col, borderRadius: 3 }} />
           </div>
-          <p style={{ fontSize: 10, color: "#71717A", marginBottom: cluster.incidents.length ? 10 : 0 }}>{getCXIMessage(cluster.cxi)}</p>
+          <p style={{ fontSize: 10, color: "#F4F4F5", marginBottom: cluster.incidents.length ? 10 : 0 }}>{getCXIMessage(cluster.cxi)}</p>
 
           {/* Incidents */}
           {cluster.incidents.length > 0 && (
             <>
-              <p style={{ fontSize: 9, fontWeight: 700, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
+              <p style={{ fontSize: 9, fontWeight: 700, color: "#F4F4F5", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
                 Linked Incidents
               </p>
               {cluster.incidents.map((inc) => {
@@ -73,11 +73,11 @@ function ClusterRow({ cluster, expanded, onToggle }: {
                   <div key={inc.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 10, fontWeight: 700, color: "#E2007A", fontFamily: "'IBM Plex Mono', monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.id}</p>
-                      <p style={{ fontSize: 9, color: "#52525B", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.description}</p>
+                      <p style={{ fontSize: 9, color: "#F4F4F5", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.description}</p>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <p style={{ fontSize: 9, fontWeight: 700, color: ic.fg, backgroundColor: ic.bg, padding: "2px 6px", borderRadius: 4 }}>{inc.status.replace("_", " ")}</p>
-                      <p style={{ fontSize: 9, color: "#52525B", marginTop: 2, fontFamily: "'IBM Plex Mono', monospace" }}>{inc.cxiDrop.toFixed(1)}</p>
+                      <p style={{ fontSize: 9, color: "#F4F4F5", marginTop: 2, fontFamily: "'IBM Plex Mono', monospace" }}>{inc.cxiDrop.toFixed(1)}</p>
                     </div>
                   </div>
                 );
@@ -116,7 +116,7 @@ function CellRow({ cell, expanded, onToggle, expandedClusterId, onClusterToggle 
         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
       >
-        {expanded ? <ChevronDown size={11} style={{ color: "#71717A", flexShrink: 0 }} /> : <ChevronRight size={11} style={{ color: "#71717A", flexShrink: 0 }} />}
+        {expanded ? <ChevronDown size={11} style={{ color: "#F4F4F5", flexShrink: 0 }} /> : <ChevronRight size={11} style={{ color: "#F4F4F5", flexShrink: 0 }} />}
         <span style={{ flex: 1, fontSize: 11, fontWeight: 500, color: "#D4D4D8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {cell.name}
         </span>
@@ -174,12 +174,12 @@ export function TopologyPanel({ site, onClose }: { site: TopoSite; onClose: () =
       {/* Header */}
       <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #1e1e1e", display: "flex", alignItems: "flex-start", gap: 10, flexShrink: 0 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#52525B" }}>SITE</span>
+          <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#F4F4F5" }}>SITE</span>
           <p style={{ fontSize: 14, fontWeight: 700, color: "#F4F4F5", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {site.name}
           </p>
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#52525B", flexShrink: 0 }}>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#F4F4F5", flexShrink: 0 }}>
           <X size={14} />
         </button>
       </div>
@@ -188,7 +188,7 @@ export function TopologyPanel({ site, onClose }: { site: TopoSite; onClose: () =
       <div style={{ padding: "12px 16px 14px", borderBottom: "1px solid #1e1e1e", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
           <span style={{ fontSize: 36, fontWeight: 700, color: col, fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1 }}>{site.cxi.toFixed(1)}</span>
-          <span style={{ fontSize: 13, color: "#52525B" }}>/ 5.0</span>
+          <span style={{ fontSize: 13, color: "#F4F4F5" }}>/ 5.0</span>
           <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 600, color: col, backgroundColor: `${col}1a`, padding: "3px 8px", borderRadius: 999, flexShrink: 0 }}>{getCXIStatus(site.cxi)}</span>
         </div>
         {/* CXI bar with threshold markers */}
@@ -200,12 +200,12 @@ export function TopologyPanel({ site, onClose }: { site: TopoSite; onClose: () =
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#3f3f46" }}>
           <span>0</span><span style={{ color: "#ef444460" }}>3.0</span><span style={{ color: "#f59e0b60" }}>4.0</span><span>5.0</span>
         </div>
-        <p style={{ fontSize: 11, color: "#71717A", marginTop: 8, lineHeight: 1.5 }}>{getCXIMessage(site.cxi)}</p>
+        <p style={{ fontSize: 11, color: "#F4F4F5", marginTop: 8, lineHeight: 1.5 }}>{getCXIMessage(site.cxi)}</p>
       </div>
 
       {/* Cells */}
       <div style={{ flexShrink: 0, padding: "8px 16px 4px", borderBottom: "1px solid #1e1e1e" }}>
-        <p style={{ fontSize: 9, fontWeight: 700, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        <p style={{ fontSize: 9, fontWeight: 700, color: "#F4F4F5", textTransform: "uppercase", letterSpacing: "0.1em" }}>
           Cells ({site.cells.length})
         </p>
       </div>

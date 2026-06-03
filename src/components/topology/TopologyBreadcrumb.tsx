@@ -37,17 +37,17 @@ export function TopologyBreadcrumb({ region, site, onGoGermany, onGoRegion }: Pr
     >
       {crumbs.map((c, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          {i > 0 && <ChevronRight size={10} style={{ color: "#52525B", flexShrink: 0 }} />}
+          {i > 0 && <ChevronRight size={10} style={{ color: "#F4F4F5", flexShrink: 0 }} />}
           {c.onClick ? (
             <button
               onClick={c.onClick}
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                fontSize: 11, fontWeight: 500, color: "#71717A",
+                fontSize: 11, fontWeight: 500, color: "#F4F4F5",
                 fontFamily: "inherit", padding: 0,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#A1A1AA")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#71717A")}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#FFFFFF")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#F4F4F5")}
             >
               {c.label}
             </button>

@@ -33,7 +33,7 @@ export function SLARing({ value }: { value: number }) {
       <text
         x={cx} y={cy + 14}
         textAnchor="middle"
-        fill="#71717A"
+        fill="#F4F4F5"
         fontSize={10}
         fontFamily="IBM Plex Sans, sans-serif"
         letterSpacing="0.08em"

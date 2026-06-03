@@ -90,10 +90,10 @@ function RegionMarker({ region, onClick }: { region: TopoRegion; onClick: (r: To
           <p style={{ fontSize: 11, fontWeight: 700, color: "#F4F4F5", marginBottom: 3 }}>{region.name}</p>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: col, fontFamily: "'IBM Plex Mono',monospace" }}>{region.cxi.toFixed(1)}</span>
-            <span style={{ fontSize: 10, color: "#71717A" }}>·</span>
+            <span style={{ fontSize: 10, color: "#F4F4F5" }}>·</span>
             <span style={{ fontSize: 10, color: col }}>{getCXIStatus(region.cxi)}</span>
           </div>
-          <p style={{ fontSize: 10, color: "#52525B", marginTop: 3 }}>{region.sites.length} sites · click to drill down</p>
+          <p style={{ fontSize: 10, color: "#F4F4F5", marginTop: 3 }}>{region.sites.length} sites · click to drill down</p>
         </div>
       </Tooltip>
     </Marker>
@@ -114,10 +114,10 @@ function SiteMarker({ site, selected, onClick }: { site: TopoSite; selected: boo
           <p style={{ fontSize: 11, fontWeight: 700, color: "#F4F4F5", marginBottom: 3 }}>{site.name}</p>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: col, fontFamily: "'IBM Plex Mono',monospace" }}>{site.cxi.toFixed(1)}</span>
-            <span style={{ fontSize: 10, color: "#71717A" }}>·</span>
+            <span style={{ fontSize: 10, color: "#F4F4F5" }}>·</span>
             <span style={{ fontSize: 10, color: col }}>{getCXIStatus(site.cxi)}</span>
           </div>
-          <p style={{ fontSize: 10, color: "#52525B", marginTop: 3 }}>{site.cells.length} cells · click for detail</p>
+          <p style={{ fontSize: 10, color: "#F4F4F5", marginTop: 3 }}>{site.cells.length} cells · click for detail</p>
         </div>
       </Tooltip>
     </Marker>
@@ -145,7 +145,7 @@ function FilterBar({ filter, onChange }: { filter: MapFilter; onChange: (f: MapF
             fontFamily: "'IBM Plex Sans', sans-serif",
             backgroundColor: filter === f.id ? (f.color ? `${f.color}22` : "rgba(255,255,255,0.08)") : "rgba(14,14,18,0.88)",
             border: `1px solid ${filter === f.id ? (f.color ?? "rgba(255,255,255,0.2)") : "rgba(255,255,255,0.08)"}`,
-            color: filter === f.id ? (f.color ?? "#F4F4F5") : "#71717A",
+            color: filter === f.id ? (f.color ?? "#F4F4F5") : "#F4F4F5",
             backdropFilter: "blur(8px)",
           }}
         >

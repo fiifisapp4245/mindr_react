@@ -256,7 +256,7 @@ function RegionGroupNode({ data, id, selected }: NodeProps) {
         </span>
         <button
           onClick={(e) => { e.stopPropagation(); _toggle.fn(id); }}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#71717A", padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "#F4F4F5", padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
         >
           {d.collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
         </button>
@@ -330,9 +330,9 @@ function NodeTooltip({ node, x, y }: { node: TopoNode; x: number; y: number }) {
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
         <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: col, backgroundColor: `${col}1a`, padding: "2px 6px", borderRadius: 4 }}>{LL[d.level]}</span>
         <span style={{ fontSize: 10, fontWeight: 700, color: col, fontFamily: "'IBM Plex Mono', monospace" }}>{d.cxi.toFixed(2)}</span>
-        <span style={{ fontSize: 10, color: "#71717A", textTransform: "capitalize" }}>{d.health}</span>
+        <span style={{ fontSize: 10, color: "#F4F4F5", textTransform: "capitalize" }}>{d.health}</span>
       </div>
-      <p style={{ fontSize: 10, color: "#71717A" }}>{d.cases.length} case{d.cases.length !== 1 ? "s" : ""}</p>
+      <p style={{ fontSize: 10, color: "#F4F4F5" }}>{d.cases.length} case{d.cases.length !== 1 ? "s" : ""}</p>
     </div>
   );
 }
@@ -356,13 +356,13 @@ function DetailPanel({ node, onClose }: { node: TopoNode; onClose: () => void })
           <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: col, backgroundColor: `${col}1a`, padding: "2px 7px", borderRadius: 4, display: "inline-block" }}>{LL[d.level]}</span>
           <p style={{ fontSize: 13, fontWeight: 700, color: "#F4F4F5", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.label}</p>
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#52525B", flexShrink: 0, marginTop: 2 }}><X size={13} /></button>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#F4F4F5", flexShrink: 0, marginTop: 2 }}><X size={13} /></button>
       </div>
 
       <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 40, fontWeight: 700, color: col, fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1 }}>{d.cxi.toFixed(1)}</span>
-          <span style={{ fontSize: 13, color: "#52525B" }}>/ 5.0</span>
+          <span style={{ fontSize: 13, color: "#F4F4F5" }}>/ 5.0</span>
           <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 600, color: col, backgroundColor: `${col}1a`, padding: "3px 8px", borderRadius: 999, textTransform: "capitalize", flexShrink: 0 }}>{d.health}</span>
         </div>
         <div style={{ position: "relative", height: 7, backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
@@ -370,14 +370,14 @@ function DetailPanel({ node, onClose }: { node: TopoNode; onClose: () => void })
           <div style={{ position: "absolute", top: 0, left: "60%", width: 1, height: "100%", backgroundColor: "rgba(255,255,255,0.2)" }} />
           <div style={{ position: "absolute", top: 0, left: "70%", width: 1, height: "100%", backgroundColor: "rgba(255,255,255,0.15)" }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#52525B", marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#F4F4F5", marginBottom: 8 }}>
           <span>0</span><span style={{ color: "#FF3B3B80" }}>3.0</span><span style={{ color: "#FFB02080" }}>3.5</span><span>5.0</span>
         </div>
-        <p style={{ fontSize: 11, color: "#71717A", lineHeight: 1.5 }}>{TM[d.health]}</p>
+        <p style={{ fontSize: 11, color: "#F4F4F5", lineHeight: 1.5 }}>{TM[d.health]}</p>
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <p style={{ padding: "10px 16px 6px", fontSize: 10, fontWeight: 600, color: "#52525B", textTransform: "uppercase", letterSpacing: "0.1em", flexShrink: 0 }}>
+        <p style={{ padding: "10px 16px 6px", fontSize: 10, fontWeight: 600, color: "#F4F4F5", textTransform: "uppercase", letterSpacing: "0.1em", flexShrink: 0 }}>
           {d.cases.length} Case{d.cases.length !== 1 ? "s" : ""}
         </p>
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -385,7 +385,7 @@ function DetailPanel({ node, onClose }: { node: TopoNode; onClose: () => void })
             <Link key={c.caseId} to={`/cxi-cases/${c.caseId}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)", textDecoration: "none" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 10, fontWeight: 700, color: "#E2007A", fontFamily: "'IBM Plex Mono', monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.caseId}</p>
-                <p style={{ fontSize: 9, color: "#52525B", marginTop: 2 }}>{c.affectedScope.cellName} · {c.cxiDrop.toFixed(1)} drop</p>
+                <p style={{ fontSize: 9, color: "#F4F4F5", marginTop: 2 }}>{c.affectedScope.cellName} · {c.cxiDrop.toFixed(1)} drop</p>
               </div>
               <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 999, color: statusColor(c.status), backgroundColor: statusBg(c.status), textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>{c.status}</span>
             </Link>
@@ -402,14 +402,14 @@ function Legend() {
   return (
     <div style={{ position: "absolute", bottom: 12, left: 12, zIndex: 5, backgroundColor: "rgba(14,14,18,0.88)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "8px 12px", display: "flex", gap: 14, fontFamily: "'IBM Plex Sans', sans-serif", backdropFilter: "blur(8px)" }}>
       {(["critical", "degraded", "healthy"] as HealthStatus[]).map((h) => (
-        <span key={h} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#71717A" }}>
+        <span key={h} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#F4F4F5" }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: HC[h], display: "inline-block" }} />
           {h.charAt(0).toUpperCase() + h.slice(1)}
         </span>
       ))}
       <span style={{ width: 1, backgroundColor: "rgba(255,255,255,0.08)", alignSelf: "stretch" }} />
       {(["Region", "Site", "Cell", "Cluster"] as const).map((l, i) => (
-        <span key={l} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#71717A" }}>
+        <span key={l} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#F4F4F5" }}>
           <span style={{ width: 7, height: 7, borderRadius: i === 3 ? "50%" : 2, backgroundColor: "rgba(255,255,255,0.15)", display: "inline-block", flexShrink: 0 }} />
           {l}
         </span>
@@ -493,7 +493,7 @@ function TopologyGraphInner() {
               fontFamily: "'IBM Plex Sans', sans-serif",
               backgroundColor: filter === f.id ? (f.color ? `${f.color}22` : "rgba(255,255,255,0.08)") : "rgba(14,14,18,0.88)",
               border: `1px solid ${filter === f.id ? (f.color ?? "rgba(255,255,255,0.2)") : "rgba(255,255,255,0.08)"}`,
-              color: filter === f.id ? (f.color ?? "#F4F4F5") : "#71717A",
+              color: filter === f.id ? (f.color ?? "#F4F4F5") : "#F4F4F5",
               backdropFilter: "blur(8px)",
             }}
           >
