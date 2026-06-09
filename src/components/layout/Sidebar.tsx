@@ -3,6 +3,8 @@ import {
   Activity,
   AlertTriangle,
   BarChart2,
+  Bell,
+  BookOpen,
   Bot,
   LayoutDashboard,
   MessageSquare,
@@ -10,6 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useScenario } from "../../contexts/scenario";
+import { useAuth } from "../../contexts/auth";
 import { mockCases } from "../../data/cxi-cases";
 
 interface NavItem {
@@ -20,6 +23,18 @@ interface NavItem {
 }
 
 const S2_PENDING = String(mockCases.filter((c) => c.status === "pending").length);
+
+const ROLE_NAV: Record<string, NavItem[]> = {
+  flm: [
+    { label: "Dashboard",  href: "/flm-dashboard", icon: LayoutDashboard },
+    { label: "Alarms",     href: "/alarms",         icon: Bell, badge: "6" },
+    { label: "Incidents",  href: "/incidents",      icon: AlertTriangle, badge: "3" },
+    { label: "Topology",   href: "/topology",       icon: Network },
+    { label: "Playbooks",  href: "/playbooks",      icon: BookOpen },
+    { label: "Reports",    href: "/flm-reports",    icon: BarChart2 },
+    { label: "Assistant",  href: "/assistant",      icon: MessageSquare },
+  ],
+};
 
 const SCENARIO_NAV: Record<string, NavItem[]> = {
   s1: [
@@ -55,7 +70,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const location = useLocation();
   const pathname = location.pathname;
   const { activeScenario } = useScenario();
-  const navItems: NavItem[] = SCENARIO_NAV[activeScenario.id] ?? SCENARIO_NAV.s1;
+  const { role } = useAuth();
+  const navItems: NavItem[] = ROLE_NAV[role ?? ""] ?? SCENARIO_NAV[activeScenario.id] ?? SCENARIO_NAV.s1;
 
   return (
     <aside

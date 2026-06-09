@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useScenario } from "../../contexts/scenario";
+import { useAuth } from "../../contexts/auth";
 import { Badge } from "../ui/badge";
 
 function WaffleIcon({ size = 16 }: { size?: number }) {
@@ -120,6 +121,8 @@ interface TopBarProps {
 export function TopBar({ status = "critical", sidebarCollapsed = false, onToggleSidebar }: TopBarProps) {
   const navigate = useNavigate();
   const { scenarios, activeScenario, activeUser, setScenario, setUser } = useScenario();
+  const { signOut, role } = useAuth();
+  const isAdmin = role === "admin";
 
   const [searchValue, setSearchValue] = useState("");
   const [showSearch,  setShowSearch]  = useState(false);
@@ -235,8 +238,8 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
         {/* ── Icon actions ── */}
         <div className="flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
 
-          {/* ── Waffle / Scenario Switcher ── */}
-          <div className="relative" ref={waffleRef}>
+          {/* ── Waffle / Scenario Switcher (admin only) ── */}
+          {isAdmin && <div className="relative" ref={waffleRef}>
             <button
               onClick={() => { setShowWaffle((o) => !o); setShowNotif(false); setShowProfile(false); }}
               className="relative p-2 rounded-lg hover:bg-white/5 transition-colors"
@@ -303,7 +306,7 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* ── Notifications ── */}
           <div className="relative" ref={notifRef}>
@@ -464,7 +467,7 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
                   <button
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/5 transition-colors"
                     style={{ color: "var(--color-critical)" }}
-                    onClick={() => { setShowProfile(false); navigate("/login"); }}
+                    onClick={async () => { setShowProfile(false); await signOut(); navigate("/login", { replace: true }); }}
                   >
                     <LogOut size={14} />
                     Sign Out

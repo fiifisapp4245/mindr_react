@@ -1,30 +1,28 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Lock, Shield, Zap } from "lucide-react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { Lock, Zap } from "lucide-react";
+import { useAuth } from "../contexts/auth";
+import { getRouteForRole } from "../lib/roleRoutes";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { signIn, session, role, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mfaCode, setMfaCode] = useState("");
-  const [step, setStep] = useState<"credentials" | "mfa">("credentials");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  function handleCredentials(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email || !password) { setError("Please enter your credentials."); return; }
-    setError("");
-    setLoading(true);
-    setTimeout(() => { setLoading(false); setStep("mfa"); }, 1200);
-  }
+  if (!loading && session) return <Navigate to={getRouteForRole(role)} replace />;
 
-  function handleMfa(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!mfaCode) { setError("Please enter your MFA code."); return; }
+    if (!email || !password) { setError("Please enter your email and password."); return; }
     setError("");
-    setLoading(true);
-    setTimeout(() => { setLoading(false); navigate("/dashboard"); }, 1200);
+    setSubmitting(true);
+    const { error, role } = await signIn(email, password);
+    setSubmitting(false);
+    if (error) { setError(error); return; }
+    navigate(getRouteForRole(role), { replace: true });
   }
 
   return (
@@ -39,87 +37,48 @@ export default function Login() {
         </div>
 
         <div className="rounded-2xl p-6" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-          {step === "credentials" ? (
-            <>
-              <h2 className="text-sm font-bold mb-5" style={{ color: "var(--color-text-primary)" }}>Sign in to your account</h2>
-              <form onSubmit={handleCredentials} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "var(--color-text-muted)" }}>Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@mindr.network"
-                    className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-                    style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "var(--color-text-muted)" }}>Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-                    style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
-                  />
-                </div>
-                {error && <p className="text-[11px]" style={{ color: "var(--color-critical)" }}>{error}</p>}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-60"
-                  style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-                >
-                  {loading ? "Verifying…" : "Continue"}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "rgba(233,30,140,0.12)" }}>
-                  <Shield size={15} style={{ color: "var(--color-brand)" }} />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>Two-Factor Authentication</h2>
-                  <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>Enter the 6-digit code from your authenticator app</p>
-                </div>
-              </div>
-              <form onSubmit={handleMfa} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "var(--color-text-muted)" }}>MFA Code</label>
-                  <input
-                    type="text"
-                    value={mfaCode}
-                    onChange={(e) => setMfaCode(e.target.value)}
-                    placeholder="000000"
-                    maxLength={6}
-                    className="w-full px-3 py-2.5 rounded-lg text-sm outline-none text-center tracking-widest"
-                    style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}
-                  />
-                </div>
-                {error && <p className="text-[11px]" style={{ color: "var(--color-critical)" }}>{error}</p>}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-60"
-                  style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-                >
-                  {loading ? "Authenticating…" : "Sign In"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep("credentials")}
-                  className="w-full text-center text-xs"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  ← Back to credentials
-                </button>
-              </form>
-            </>
-          )}
+          <h2 className="text-sm font-bold mb-5" style={{ color: "var(--color-text-primary)" }}>Sign in to your account</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "var(--color-text-muted)" }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@mindr.network"
+                autoComplete="email"
+                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "var(--color-text-muted)" }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+              />
+            </div>
+            {error && (
+              <p className="text-[11px]" style={{ color: "var(--color-critical)" }}>{error}</p>
+            )}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
+            >
+              {submitting ? "Signing in…" : "Sign In"}
+            </button>
+          </form>
         </div>
 
         <div className="flex items-center justify-center gap-3 mt-4">
