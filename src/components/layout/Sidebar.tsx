@@ -34,6 +34,14 @@ const ROLE_NAV: Record<string, NavItem[]> = {
     { label: "Reports",    href: "/flm-reports",    icon: BarChart2 },
     { label: "Assistant",  href: "/assistant",      icon: MessageSquare },
   ],
+  cxi: [
+    { label: "Dashboard",        href: "/dashboard",  icon: LayoutDashboard },
+    { label: "Topology",         href: "/topology",   icon: Network },
+    { label: "CXI Cases",        href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
+    { label: "Agent Activity",   href: "/agents",     icon: Bot },
+    { label: "Reports",          href: "/reports",    icon: BarChart2 },
+    { label: "Assistant",        href: "/assistant",  icon: MessageSquare },
+  ],
 };
 
 const SCENARIO_NAV: Record<string, NavItem[]> = {

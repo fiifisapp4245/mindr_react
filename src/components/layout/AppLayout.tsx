@@ -1,11 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { ChatBubble } from "../shared/ChatBubble";
+import { useAuth } from "../../contexts/auth";
+import { useScenario } from "../../contexts/scenario";
 
 export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { role } = useAuth();
+  const { setScenario } = useScenario();
+
+  useEffect(() => {
+    if (role === "cxi") setScenario("s2");
+  }, [role]);
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ backgroundColor: "var(--color-bg-base)" }}>

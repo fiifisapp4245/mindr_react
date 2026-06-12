@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
-import { ChevronRight, ChevronDown, Map as MapIcon, LayoutList, MapPin, Radio, Server, Users } from "lucide-react";
+import { ChevronRight, ChevronDown, Share2, LayoutList, MapPin, Radio, Server, Users } from "lucide-react";
 import { mockCases } from "../../data/cxi-cases";
 import { Link } from "react-router-dom";
 import { statusColor, statusBg } from "../cxi/CaseRow";
 import type { MINDRCase } from "../../types/cxi";
-import { TopologyMap } from "../topology/TopologyMap";
+import { CxiKnowledgeGraph } from "./CxiKnowledgeGraph";
 
 // ── Build hierarchy from mock cases ──────────────────────────────────────────
 
@@ -385,7 +385,7 @@ export function CxiTopology() {
             style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
           >
             {([
-              { id: "graph", icon: MapIcon,      label: "Map" },
+              { id: "graph", icon: Share2,      label: "Graph" },
               { id: "list",  icon: LayoutList, label: "List"  },
             ] as const).map(({ id, icon: Icon, label }) => (
               <button
@@ -415,7 +415,7 @@ export function CxiTopology() {
         </div>
       </div>
 
-      {view === "graph" ? <TopologyMap /> : <ListView />}
+      {view === "graph" ? <CxiKnowledgeGraph /> : <ListView />}
     </div>
   );
 }
