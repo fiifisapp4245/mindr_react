@@ -106,7 +106,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
         {!collapsed && (
           <div className="flex flex-col leading-none whitespace-nowrap">
             <span className="text-sm font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-              MINDR AI
+              MINDR
             </span>
             <span
               className="text-[9px] font-medium tracking-widest uppercase"
