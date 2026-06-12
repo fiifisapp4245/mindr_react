@@ -18,6 +18,8 @@ import FLMDashboard from "./pages/FLMDashboard";
 import Alarms from "./pages/Alarms";
 import Playbooks from "./pages/Playbooks";
 import FLMReports from "./pages/FLMReports";
+import Events from "./pages/Events";
+import EventDetail from "./pages/EventDetail";
 
 export default function App() {
   return (
@@ -42,6 +44,8 @@ export default function App() {
                   <Route path="flm-dashboard" element={<FLMDashboard />} />
                   <Route path="alarms" element={<Alarms />} />
                   <Route path="playbooks" element={<Playbooks />} />
+                  <Route path="events" element={<Events />} />
+                  <Route path="events/:id" element={<EventDetail />} />
                   <Route path="flm-reports" element={<FLMReports />} />
                 </Route>
               </Route>

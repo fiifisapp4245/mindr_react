@@ -4,8 +4,8 @@ import {
   AlertTriangle,
   BarChart2,
   Bell,
-  BookOpen,
   Bot,
+  Calendar,
   LayoutDashboard,
   MessageSquare,
   Network,
@@ -27,10 +27,10 @@ const S2_PENDING = String(mockCases.filter((c) => c.status === "pending").length
 const ROLE_NAV: Record<string, NavItem[]> = {
   flm: [
     { label: "Dashboard",  href: "/flm-dashboard", icon: LayoutDashboard },
+    { label: "Events",     href: "/events",          icon: Calendar },
     { label: "Alarms",     href: "/alarms",         icon: Bell, badge: "6" },
     { label: "Incidents",  href: "/incidents",      icon: AlertTriangle, badge: "3" },
     { label: "Topology",   href: "/topology",       icon: Network },
-    { label: "Playbooks",  href: "/playbooks",      icon: BookOpen },
     { label: "Reports",    href: "/flm-reports",    icon: BarChart2 },
     { label: "Assistant",  href: "/assistant",      icon: MessageSquare },
   ],
@@ -79,6 +79,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = location.pathname;
   const { activeScenario } = useScenario();
   const { role } = useAuth();
+  const isRoleBased = !!ROLE_NAV[role ?? ""];
   const navItems: NavItem[] = ROLE_NAV[role ?? ""] ?? SCENARIO_NAV[activeScenario.id] ?? SCENARIO_NAV.s1;
 
   return (
@@ -118,8 +119,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
         )}
       </div>
 
-      {/* Scenario label */}
-      {!collapsed && (
+      {/* Scenario label — hidden for role-based users (flm, cxi) */}
+      {!collapsed && !isRoleBased && (
         <div
           className="mx-3 mt-3 mb-1 px-3 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-widest truncate"
           style={{
