@@ -404,17 +404,6 @@ export function S2AgentRuntime() {
               7 CXI agents — Degradation detection pipeline
             </p>
           </div>
-          <span
-            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md"
-            style={{
-              backgroundColor: "rgba(255,176,32,0.1)",
-              border: "1px solid rgba(255,176,32,0.2)",
-              color: "var(--color-warning)",
-            }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: "var(--color-warning)" }} />
-            Scenario 2
-          </span>
         </div>
 
         {/* Summary KPIs */}
