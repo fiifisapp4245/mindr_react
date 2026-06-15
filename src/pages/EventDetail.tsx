@@ -803,7 +803,7 @@ export default function EventDetail() {
                   className="flex items-center gap-2.5 px-4 py-3 hover:bg-white/5 transition-colors"
                   style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--color-border)" : "none" }}
                 >
-                  <AlertTriangle size={11} style={{ color: aColor, shrink: 0 }} />
+                  <AlertTriangle size={11} style={{ color: aColor, flexShrink: 0 }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-medium truncate" style={{ color: "var(--color-text-primary)" }}>
                       {alarm.desc}

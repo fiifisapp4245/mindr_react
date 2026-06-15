@@ -512,7 +512,7 @@ function BiggestMovers() {
               {/* Sparkline */}
               <Sparkline data={m.sparkline} color={deltaColor} />
 
-              <ChevronRight size={11} style={{ color: "var(--color-text-muted)", shrink: 0 }} />
+              <ChevronRight size={11} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
             </button>
           );
         })}

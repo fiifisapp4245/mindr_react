@@ -722,7 +722,7 @@ function GermanyMap({
         {/* Site dots */}
         {visibleSites.map((site) => {
           const activeCnt = casesPerSiteRegion.get(site.region) ?? 0;
-          const dotR = isCountry ? 5 + Math.min(site.activeCaseCount * 1.2, 8) : 7 + Math.min(site.activeCaseCount * 1.5, 10);
+          const dotR = isCountry ? 5 + Math.min(activeCnt * 1.2, 8) : 7 + Math.min(activeCnt * 1.5, 10);
           const col = cxiColor(site.cxiScore);
           const selected = site.id === selectedSiteId;
           const hasIncident = site.knownCauses.some((k) => k.type === "incident" && (k.status === "open" || k.status === "active"));
