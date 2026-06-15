@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { kpiCard, kpiValue, kpiValueScale } from "../../lib/animations";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ComposedChart,
@@ -116,26 +118,38 @@ interface KpiCardProps {
 }
 
 function KpiCard({ label, value, sub, state = "normal", extra }: KpiCardProps) {
+  // warning/alert values already carry semantic color — scale only to avoid overriding meaning
+  const valueVariant = state === "normal" ? kpiValue : kpiValueScale;
   return (
-    <div
+    <motion.div
+      initial="rest"
+      whileHover="hover"
+      variants={kpiCard}
       className="rounded-xl p-4 flex flex-col gap-1.5"
       style={{
         backgroundColor: STATE_BG[state],
-        border: `1px solid ${STATE_BORDER[state]}`,
+        borderWidth: 1,
+        borderStyle: "solid",
+        // kpiCard variant animates borderColor — seed it with the correct rest color
+        borderColor: STATE_BORDER[state],
         minWidth: 0,
       }}
     >
       <p className="text-[10px] font-semibold uppercase tracking-widest truncate" style={{ color: "var(--color-text-muted)" }}>
         {label}
       </p>
-      <p className="text-2xl font-bold leading-none" style={{ color: STATE_ACCENT[state], fontFamily: "var(--font-mono)" }}>
+      <motion.p
+        variants={valueVariant}
+        className="text-2xl font-bold leading-none"
+        style={{ color: STATE_ACCENT[state], fontFamily: "var(--font-mono)" }}
+      >
         {value}
-      </p>
+      </motion.p>
       {extra}
       <p className="text-[11px] leading-snug" style={{ color: "var(--color-text-muted)" }}>
         {sub}
       </p>
-    </div>
+    </motion.div>
   );
 }
 
