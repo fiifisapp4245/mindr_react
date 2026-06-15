@@ -557,6 +557,113 @@ function TopCellsStrip({
   );
 }
 
+// ── Node hover tooltip ────────────────────────────────────────────────────────
+
+function NodeTooltip({
+  site,
+  activeCnt,
+  pos,
+}: {
+  site: SiteDetail;
+  activeCnt: number;
+  pos: { x: number; y: number; containerW: number; containerH: number };
+}) {
+  const col = cxiColor(site.cxiScore);
+  const trendIcon = site.cxiTrend === "down" ? "↓" : site.cxiTrend === "up" ? "↑" : "→";
+  const trendColor =
+    site.cxiTrend === "down" ? "var(--color-critical)" :
+    site.cxiTrend === "up"   ? "var(--color-resolved)" :
+                                "var(--color-text-muted)";
+  const hasIncident = site.knownCauses.some(
+    (k) => k.type === "incident" && (k.status === "open" || k.status === "active")
+  );
+  const hasChange = site.knownCauses.some(
+    (k) => k.type === "change" && k.status === "active"
+  );
+
+  // Flip left when near right edge (>60% across), flip up when near bottom (>70%)
+  const offsetX = pos.x > pos.containerW * 0.6 ? -214 : 14;
+  const offsetY = pos.y > pos.containerH * 0.7 ? -150 : -10;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: pos.x + offsetX,
+        top: pos.y + offsetY,
+        width: 200,
+        pointerEvents: "none",
+        zIndex: 50,
+        backgroundColor: "var(--color-bg-card)",
+        border: "1px solid var(--color-border)",
+        borderRadius: 8,
+        padding: "10px 12px",
+        boxShadow: "0 6px 24px rgba(0,0,0,0.45)",
+        fontFamily: "var(--font-ui)",
+      }}
+    >
+      {/* Site name + ID */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[12px] font-bold leading-none" style={{ color: "var(--color-text-primary)" }}>
+          {site.name}
+        </span>
+        <span className="text-[9px]" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+          {site.id}
+        </span>
+      </div>
+
+      {/* CXI score + trend */}
+      <div className="flex items-baseline gap-1.5 mb-2">
+        <span className="text-[20px] font-bold leading-none" style={{ color: col, fontFamily: "var(--font-mono)" }}>
+          {site.cxiScore.toFixed(1)}
+        </span>
+        <span className="text-[13px] font-bold" style={{ color: trendColor }}>{trendIcon}</span>
+        <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>CXI</span>
+      </div>
+
+      {/* Location */}
+      <div className="text-[10px] mb-2.5" style={{ color: "var(--color-text-muted)" }}>
+        {site.city} · {site.region}
+      </div>
+
+      {/* Stats row */}
+      <div
+        className="flex items-center justify-between text-[10px] pt-2"
+        style={{ borderTop: "1px solid var(--color-border)" }}
+      >
+        <span style={{ color: activeCnt > 0 ? "var(--color-warning)" : "var(--color-text-muted)" }}>
+          {activeCnt} active {activeCnt === 1 ? "case" : "cases"}
+        </span>
+        <span style={{ color: "var(--color-text-muted)" }}>
+          ~{site.affectedCustomers.toLocaleString()} affected
+        </span>
+      </div>
+
+      {/* Incident / Change flags */}
+      {(hasIncident || hasChange) && (
+        <div className="flex items-center gap-1.5 mt-2">
+          {hasIncident && (
+            <span
+              className="text-[9px] font-bold px-1.5 py-px rounded"
+              style={{ backgroundColor: "rgba(255,59,59,0.15)", color: "var(--color-critical)" }}
+            >
+              INCIDENT
+            </span>
+          )}
+          {hasChange && (
+            <span
+              className="text-[9px] font-bold px-1.5 py-px rounded"
+              style={{ backgroundColor: "rgba(77,158,255,0.15)", color: "#4D9EFF" }}
+            >
+              CHANGE
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Germany map SVG ───────────────────────────────────────────────────────────
 
 function GermanyMap({
@@ -576,6 +683,9 @@ function GermanyMap({
   cases: MINDRCase[];
   onSiteClick: (id: string) => void;
 }) {
+  const [hoveredSite, setHoveredSite] = useState<SiteDetail | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0, containerW: 0, containerH: 0 });
+
   const viewBox = SCOPE_VIEWBOXES[scopeId] ?? "0 0 288 296";
   const isCountry = scopeId === "germany";
   const currentNode = SCOPE_NODES.find((n) => n.id === scopeId);
@@ -619,6 +729,16 @@ function GermanyMap({
     <div
       className="flex-1 relative flex items-center justify-center"
       style={{ backgroundColor: "var(--color-bg-base)", minHeight: 0 }}
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setTooltipPos({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+          containerW: rect.width,
+          containerH: rect.height,
+        });
+      }}
+      onMouseLeave={() => setHoveredSite(null)}
     >
       <svg
         viewBox={viewBox}
@@ -729,7 +849,13 @@ function GermanyMap({
           const hasChange = site.knownCauses.some((k) => k.type === "change" && k.status === "active");
 
           return (
-            <g key={site.id} onClick={() => onSiteClick(site.id)} style={{ cursor: "pointer" }}>
+            <g
+              key={site.id}
+              onClick={() => onSiteClick(site.id)}
+              onMouseEnter={() => setHoveredSite(site)}
+              onMouseLeave={() => setHoveredSite(null)}
+              style={{ cursor: "pointer" }}
+            >
               {/* Selection ring */}
               {selected && (
                 <circle cx={site.x} cy={site.y} r={dotR + 4} fill="none" stroke="#fff" strokeWidth={1.5} opacity={0.6} />
@@ -811,6 +937,15 @@ function GermanyMap({
           );
         })}
       </svg>
+
+      {/* Node hover tooltip */}
+      {hoveredSite && (
+        <NodeTooltip
+          site={hoveredSite}
+          activeCnt={casesPerSiteRegion.get(hoveredSite.region) ?? 0}
+          pos={tooltipPos}
+        />
+      )}
 
       {/* Map legend */}
       <div
