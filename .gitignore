@@ -18,3 +18,9 @@ set-roles.mjs
 
 # OS
 .DS_Store
+
+# local planning / scratch files — never commit
+PLAN.md
+*.plan.md
+
+.scratch/

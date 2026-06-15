@@ -1,6 +1,9 @@
 import type { MINDRCase, CXIDataPoint } from "../types/cxi";
 
 // ── Timeseries generator ──────────────────────────────────────────────────────
+// Generates raw KPI sub-metric data on a 0-10 scale.
+// These are NOT CXI scores — they are the underlying signal metrics
+// (Voice MOS, Data Throughput, Accessibility, Retainability, Mobility).
 
 function genTimeseries(
   hoursBack = 24,
@@ -47,10 +50,13 @@ function agentPipeline(caseId: string, createdAt: string): MINDRCase["auditTrail
 }
 
 // ── Mock cases ────────────────────────────────────────────────────────────────
+// CXI scores (cxiBaseline / cxiCurrent / cxiDrop) are on the 1–5 composite scale,
+// consistent with SITE_MARKERS and the dashboard "/5" display.
+// cxiTimeseries values are raw KPI sub-metrics on a 0–10 scale (distinct from CXI).
 
 export const mockCases: MINDRCase[] = [
 
-  // ── Additional Cologne/Bonn cases (reconcile map case counts) ──────────────
+  // ── Additional Cologne/Bonn cases ─────────────────────────────────────────
 
   {
     caseId: "CXI-2026-0040",
@@ -60,6 +66,7 @@ export const mockCases: MINDRCase[] = [
     triggerType: "cell_based",
     duration: "0h 42m",
     assignedAgent: "CCA-DRA-CA-RCA-RA-HVA/20260527-016",
+    clusterInfo: { clusterId: "COL-NORTH", region: "Cologne/Bonn", caseCount: 3 },
     affectedScope: {
       cellId: "DEU-COL-NORD-011",
       cellName: "Cologne Nord Sector 1",
@@ -70,9 +77,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 50.9412,
       geoLng: 6.9592,
     },
-    cxiBaseline: 8.2,
-    cxiCurrent: 5.8,
-    cxiDrop: -2.4,
+    cxiBaseline: 4.1,
+    cxiCurrent: 2.9,
+    cxiDrop: -1.2,
     cxiTimeseries: genTimeseries(24, 4, 2.4),
     hypothesis: {
       text: "Sudden drop in Voice MOS and Accessibility Rate on DEU-COL-NORD-011. Pattern suggests potential RF hardware fault or transmission path interruption. No correlated change record in the past 72h. Alarm ALM-COL-5521 confirms signal degradation onset.",
@@ -83,13 +90,20 @@ export const mockCases: MINDRCase[] = [
         "ALM-COL-5521: Radio Transmission Path Degraded — active",
         "No adjacent cell degradation — isolates fault to this sector",
       ],
+      openUncertainties: [
+        "Transmission-path fault vs RF hardware failure not yet distinguished — field inspection required.",
+        "Intermittent vs sustained degradation unclear from 42-minute observation window.",
+      ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "create_ticket",
       targetTeam: "Field Engineering Team",
       ticketType: "Incident",
-      rationale: "Likely hardware fault on DEU-COL-NORD-011 — field inspection of transmission path required.",
+      rationale: "Hardware fault + active alarm ALM-COL-5521, no change record — field action, not optimisation.",
+      proposedAction: "Create incident ticket → Field Engineering for transmission-path inspection at DEU-COL-NORD-011.",
+      expectedEffect: "Restores Voice MOS and Accessibility Rate to baseline (~4.1); resolves ~240 affected subscribers.",
+      alternativesConsidered: "Suppress (rejected — active P1 alarm and abrupt onset rule out monitoring-only).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -116,6 +130,8 @@ export const mockCases: MINDRCase[] = [
     triggerType: "cell_based",
     duration: "1h 28m",
     assignedAgent: "CCA-DRA-CA-RCA-RA-HVA/20260527-015",
+    clusterInfo: { clusterId: "COL-EAST", region: "Cologne/Bonn", caseCount: 2 },
+    duplicateRisk: true,
     affectedScope: {
       cellId: "DEU-COL-OST-033",
       cellName: "Cologne Ost Sector 3",
@@ -126,9 +142,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 50.9628,
       geoLng: 7.0148,
     },
-    cxiBaseline: 7.8,
-    cxiCurrent: 6.4,
-    cxiDrop: -1.4,
+    cxiBaseline: 3.9,
+    cxiCurrent: 3.2,
+    cxiDrop: -0.7,
     cxiTimeseries: genTimeseries(24, 8, 1.4),
     hypothesis: {
       text: "Gradual Data Throughput and Retainability decline on DEU-COL-OST-033 consistent with peak-hour capacity saturation. Change CHG-2026-0902 (capacity threshold update) executed 3 days prior may have inadvertently reduced headroom on this sector.",
@@ -139,13 +155,20 @@ export const mockCases: MINDRCase[] = [
         "CHG-2026-0902 capacity threshold update executed 72h prior",
         "Adjacent cell COL-OST-034 shows 22% available capacity for offload",
       ],
+      openUncertainties: [
+        "Whether CHG-2026-0902 is causally linked or coincidental — correlation only, no direct evidence.",
+        "Peak-hour pattern vs sustained degradation not yet confirmed over a full 24h cycle.",
+      ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "create_ticket",
       targetTeam: "Capacity Planning Team",
       ticketType: "Optimization",
-      rationale: "Peak-hour capacity saturation — recommend load-balancing review and offload to COL-OST-034.",
+      rationale: "Capacity saturation pattern with adjacent offload candidate — optimisation ticket appropriate; no hardware fault indicators.",
+      proposedAction: "Create optimisation ticket → Capacity Planning to review load-balancing configuration and offload to COL-OST-034.",
+      expectedEffect: "Redistributes peak load; restores Data Throughput and Retainability to baseline (~3.9); no subscriber impact after rebalancing.",
+      alternativesConsidered: "One-click reset (rejected — capacity issue, not cell state; reset would not resolve saturation).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -164,7 +187,7 @@ export const mockCases: MINDRCase[] = [
     correction: null,
   },
 
-  // ── Additional Berlin case (reconcile map case counts) ─────────────────────
+  // ── Additional Berlin case ─────────────────────────────────────────────────
 
   {
     caseId: "CXI-2026-0041",
@@ -184,26 +207,33 @@ export const mockCases: MINDRCase[] = [
       geoLat: 52.4729,
       geoLng: 13.4008,
     },
-    cxiBaseline: 7.9,
-    cxiCurrent: 6.6,
-    cxiDrop: -1.3,
+    cxiBaseline: 4.0,
+    cxiCurrent: 3.3,
+    cxiDrop: -0.7,
     cxiTimeseries: genTimeseries(24, 6, 1.3),
     hypothesis: {
       text: "CXI composite score decline on DEU-BER-SUD-019 shows a mixed sub-metric pattern without a dominant degradation vector. No correlated alarms or change records found. Confidence is insufficient for automated classification — may be a transient measurement variation or early-stage interference event.",
       confidence: 44,
       signals: [
-        "CXI drop of 1.3 pts — borderline P2 threshold",
+        "CXI drop of 0.7 pts — borderline P2 threshold",
         "Voice MOS and Mobility Rate mildly affected — no dominant sub-metric",
         "No correlated alarms or change events in 48h window",
         "Adjacent cell BER-SUD-020 shows no degradation — localized pattern",
+      ],
+      openUncertainties: [
+        "Transient measurement artefact vs genuine early-stage interference cannot be distinguished at this observation window.",
+        "No adjacent degradation — could indicate sensor fault on this cell specifically.",
       ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "escalate",
-      targetTeam: "NOC Level 2",
+      targetTeam: "NOC L2",
       ticketType: "Incident",
-      rationale: "Low confidence (44%) with borderline threshold breach — monitor and escalate if degradation worsens or persists beyond 2h.",
+      rationale: "Low confidence (44%) with borderline threshold breach — insufficient evidence for automated classification; L2 monitoring required.",
+      proposedAction: "Route to NOC L2 for extended monitoring and manual assessment; do not create field ticket until pattern clarifies.",
+      expectedEffect: "Prevents premature field dispatch; L2 can confirm or clear within 2h observation window.",
+      alternativesConsidered: "Create ticket (rejected — confidence too low; field dispatch based on 44% confidence wastes resource).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -232,6 +262,7 @@ export const mockCases: MINDRCase[] = [
     triggerType: "cell_based",
     duration: "1h 47m",
     assignedAgent: "CCA-DRA-CA-RCA-RA-HVA/20260527-014",
+    clusterInfo: { clusterId: "BER-NORTH", region: "Berlin Metropolitan", caseCount: 2 },
     affectedScope: {
       cellId: "DEU-BER-NORD-042",
       cellName: "Berlin Nord Tower A",
@@ -242,9 +273,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 52.5328,
       geoLng: 13.3884,
     },
-    cxiBaseline: 8.4,
-    cxiCurrent: 6.1,
-    cxiDrop: -2.3,
+    cxiBaseline: 4.2,
+    cxiCurrent: 3.1,
+    cxiDrop: -1.1,
     cxiTimeseries: genTimeseries(24, 8, 2.3),
     hypothesis: {
       text: "Analysis indicates a sustained radio interference pattern originating from the DEU-BER-NORD-042 sector. Correlation with recent scheduled maintenance on adjacent cell DEU-BER-NORD-041 suggests a configuration drift in the antenna tilt parameters caused cross-sector interference. Voice MOS and Accessibility Rate are the primary degraded sub-metrics, consistent with uplink noise elevation.",
@@ -256,13 +287,19 @@ export const mockCases: MINDRCase[] = [
         "No correlated degradation on site BER-SUD-03 — isolates fault to this cluster",
         "Historical pattern matches Interference Case CXI-2025-0318 (resolved via tilt reset)",
       ],
+      openUncertainties: [
+        "Exact tilt parameter value causing interference not confirmed — field measurement needed to quantify correction.",
+      ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "create_ticket",
       targetTeam: "Network Optimization Team",
       ticketType: "Incident",
-      rationale: "Radio interference from antenna configuration drift — requires field engineer review and tilt parameter correction.",
+      rationale: "Antenna tilt configuration drift correlates directly with post-maintenance onset — optimisation team can correct without field hardware replacement.",
+      proposedAction: "Create incident ticket → Network Optimization to review and correct antenna tilt parameters on DEU-BER-NORD-041 / -042.",
+      expectedEffect: "Resolves uplink noise; restores Voice MOS and Accessibility Rate to baseline (~4.2); ~180 affected subscribers recovered.",
+      alternativesConsidered: "Field Engineering dispatch (deprioritised — configuration drift solvable remotely; hardware fault ruled out).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -305,9 +342,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 48.1277,
       geoLng: 11.6050,
     },
-    cxiBaseline: 8.1,
-    cxiCurrent: 5.7,
-    cxiDrop: -2.4,
+    cxiBaseline: 4.1,
+    cxiCurrent: 2.9,
+    cxiDrop: -1.2,
     cxiTimeseries: genTimeseries(24, 10, 2.4),
     hypothesis: {
       text: "The CXI pipeline was unable to identify a high-confidence root cause for this degradation event. CXI sub-metrics show a broad degradation pattern across all five indicators without a clear correlated alarm or change event. Possible causes include unreported hardware fault, external interference source, or a novel failure mode not represented in the training corpus.",
@@ -318,13 +355,21 @@ export const mockCases: MINDRCase[] = [
         "No active alarms from adjacent cells in same cluster",
         "Weather data shows no RF-impacting precipitation events",
       ],
+      openUncertainties: [
+        "Unreported hardware fault vs external interference source vs novel failure mode — no discriminating evidence available.",
+        "Whether the simultaneous multi-metric collapse is a genuine event or a data collection artefact is unresolved.",
+        "No historical precedent in CXI corpus for this pattern on this cell.",
+      ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "escalate",
-      targetTeam: "Level 3 Network Engineering",
+      targetTeam: "L3 Network Engineering",
       ticketType: "Problem",
-      rationale: "Low confidence (34%) — insufficient evidence for automated classification. Escalate for manual deep-dive investigation.",
+      rationale: "Confidence 34% with P1 severity and multi-vector collapse — mandatory escalation; automated classification would be unreliable.",
+      proposedAction: "Escalate to L3 Network Engineering for manual deep-dive investigation of DEU-MUC-OST-087.",
+      expectedEffect: "L3 investigation expected within 4h; resolution timeline depends on root cause identified.",
+      alternativesConsidered: "Create ticket (rejected — too low confidence to prescribe corrective action; wrong team would receive the work).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -351,6 +396,7 @@ export const mockCases: MINDRCase[] = [
     triggerType: "customer_based",
     duration: "3h 12m",
     assignedAgent: "CCA-DRA-CA-RCA-RA-HVA/20260527-012",
+    duplicateRisk: true,
     affectedScope: {
       cellId: "DEU-HAM-MITTE-031",
       cellName: "Hamburg Mitte Central",
@@ -362,9 +408,9 @@ export const mockCases: MINDRCase[] = [
       geoLng: 10.0068,
       customerId: "DT-ENT-00231",
     },
-    cxiBaseline: 7.6,
-    cxiCurrent: 6.0,
-    cxiDrop: -1.6,
+    cxiBaseline: 3.8,
+    cxiCurrent: 3.0,
+    cxiDrop: -0.8,
     cxiTimeseries: genTimeseries(24, 12, 1.6),
     hypothesis: {
       text: "Customer DT-ENT-00231 is experiencing a gradual CXI decline primarily driven by Data Throughput and Retainability degradation on cell DEU-HAM-MITTE-031. The pattern is consistent with capacity saturation during peak hours. No hardware fault is indicated. Load-balancing optimisation or capacity expansion is the recommended corrective path.",
@@ -375,13 +421,19 @@ export const mockCases: MINDRCase[] = [
         "Adjacent cell DEU-HAM-MITTE-032 shows 18% available capacity",
         "No alarm events — purely performance-based trigger",
       ],
+      openUncertainties: [
+        "Whether existing ticket TKT-2026-4398 already covers this action — possible duplicate ticket risk if CXI recommendation is also actioned.",
+      ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "create_ticket",
       targetTeam: "Capacity Planning Team",
       ticketType: "Optimization",
-      rationale: "Capacity saturation pattern — recommend load-balancing configuration review and possible offload to DEU-HAM-MITTE-032.",
+      rationale: "Capacity saturation pattern — no hardware fault, adjacent offload candidate exists; optimisation ticket is the correct routing.",
+      proposedAction: "Create optimisation ticket → Capacity Planning for load-balancing review and offload configuration to DEU-HAM-MITTE-032.",
+      expectedEffect: "Redistributes peak load for DT-ENT-00231; restores Data Throughput and Retainability to SLA levels (~3.8 CXI).",
+      alternativesConsidered: "Enrich TKT-2026-4398 instead of creating new ticket (reviewer to confirm whether deduplication applies).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -422,9 +474,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 50.1069,
       geoLng: 8.6421,
     },
-    cxiBaseline: 8.6,
-    cxiCurrent: 5.9,
-    cxiDrop: -2.7,
+    cxiBaseline: 4.3,
+    cxiCurrent: 3.0,
+    cxiDrop: -1.3,
     cxiTimeseries: genTimeseries(24, 6, 2.7),
     hypothesis: {
       text: "Hardware fault detected on the primary radio unit of cell DEU-FRA-WEST-019. Power amplifier output is degraded by approximately 40% as indicated by uplink/downlink asymmetry in the sub-metric data. Alarm ALM-FRA-2219 confirms hardware fault categorisation.",
@@ -435,13 +487,19 @@ export const mockCases: MINDRCase[] = [
         "ALM-FRA-2219: Radio Unit Hardware Fault — active",
         "No recent changes within 72h — rules out configuration drift",
       ],
+      openUncertainties: [
+        "Exact component failure (power amplifier vs RF cable) requires on-site inspection to confirm.",
+      ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "create_ticket",
       targetTeam: "Field Engineering Team",
       ticketType: "Incident",
-      rationale: "Hardware radio unit fault — field replacement required. Priority dispatch to site FRA-WEST-02.",
+      rationale: "Hardware fault confirmed at 91% confidence with active P1 alarm and no change record — field replacement is the only corrective path.",
+      proposedAction: "Create incident ticket → Field Engineering for priority dispatch to site FRA-WEST-02 (radio unit inspection / replacement).",
+      expectedEffect: "Restores Voice MOS and all sub-metrics to baseline (~4.3 CXI); resolves ~310 affected subscribers.",
+      alternativesConsidered: "One-click reset (rejected — hardware fault, software reset would not restore amplifier output).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -484,9 +542,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 50.8906,
       geoLng: 6.9617,
     },
-    cxiBaseline: 7.9,
-    cxiCurrent: 6.4,
-    cxiDrop: -1.5,
+    cxiBaseline: 4.0,
+    cxiCurrent: 3.2,
+    cxiDrop: -0.8,
     cxiTimeseries: genTimeseries(24, 14, 1.5),
     hypothesis: {
       text: "This degradation event matches a known recurring interference pattern on the COL-SOUTH-CLUSTER documented in problem record PRB-2025-0194. The degradation correlates with seasonal atmospheric ducting events common to the Rhine valley corridor. The pattern is non-actionable at the radio layer and is managed through problem record monitoring.",
@@ -503,7 +561,9 @@ export const mockCases: MINDRCase[] = [
       actionType: "suppress",
       targetTeam: "Problem Management Team",
       ticketType: "Problem",
-      rationale: "Known recurring pattern PRB-2025-0194. Link to existing problem record and suppress ticket creation.",
+      rationale: "Known recurring pattern PRB-2025-0194 with active atmospheric advisory — suppressing new ticket is correct; problem record already manages this.",
+      proposedAction: "Suppress ticket creation; link case to existing problem record PRB-2025-0194 for tracking.",
+      expectedEffect: "No new tickets created; degradation self-resolves when atmospheric conditions clear (typically 6–12h); problem record updated.",
       oneClickAvailable: false,
     },
     evidence: {
@@ -545,9 +605,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 48.7842,
       geoLng: 9.1814,
     },
-    cxiBaseline: 7.4,
-    cxiCurrent: 6.2,
-    cxiDrop: -1.2,
+    cxiBaseline: 3.7,
+    cxiCurrent: 3.1,
+    cxiDrop: -0.6,
     cxiTimeseries: genTimeseries(24, 16, 1.2),
     hypothesis: {
       text: "Cell DEU-STU-NORD-011 is exhibiting a sleeping cell pattern — transmitting but not actively serving users. Retainability Rate has fallen to near-zero while the cell remains operationally active. This is consistent with a radio scheduler lock requiring a soft reset.",
@@ -564,7 +624,10 @@ export const mockCases: MINDRCase[] = [
       actionType: "one_click_reset",
       targetTeam: "NOC Automation",
       ticketType: "Incident",
-      rationale: "Sleeping cell confirmed at 94% confidence. One-click remote reset available and safe to execute.",
+      rationale: "Sleeping cell confirmed at 94% confidence with no hardware fault — one-click remote reset is safe and sufficient.",
+      proposedAction: "Execute one-click remote reset of DEU-STU-NORD-011 via NOC Automation.",
+      expectedEffect: "Cell recovers within ~4 minutes; Retainability Rate returns to baseline; ~95 affected subscribers restored.",
+      alternativesConsidered: "Field Engineering dispatch (rejected — no hardware fault; remote reset resolves scheduler lock without site visit).",
       oneClickAvailable: true,
     },
     evidence: {
@@ -606,15 +669,15 @@ export const mockCases: MINDRCase[] = [
       geoLat: 51.2093,
       geoLng: 6.8198,
     },
-    cxiBaseline: 8.0,
-    cxiCurrent: 6.6,
-    cxiDrop: -1.4,
+    cxiBaseline: 4.0,
+    cxiCurrent: 3.3,
+    cxiDrop: -0.7,
     cxiTimeseries: genTimeseries(24, 10, 1.4),
     hypothesis: {
       text: "Insufficient correlated evidence to determine root cause with confidence. The degradation pattern does not match known incident signatures in the CXI corpus. Possible temporary measurement artefact or probe collection issue.",
       confidence: 41,
       signals: [
-        "CXI drop of 1.4 pts — borderline threshold trigger",
+        "CXI drop of 0.7 pts — borderline threshold trigger",
         "No correlated alarms or change events",
         "Adjacent cells in DUS-EAST-CLUSTER show no degradation",
       ],
@@ -622,9 +685,11 @@ export const mockCases: MINDRCase[] = [
     },
     recommendation: {
       actionType: "create_ticket",
-      targetTeam: "NOC Level 2",
+      targetTeam: "NOC L2",
       ticketType: "Incident",
-      rationale: "Unknown classification — recommend investigation ticket for manual review.",
+      rationale: "Unknown classification — borderline threshold breach with no supporting alarms; investigation ticket flagged for manual review.",
+      proposedAction: "Create investigation ticket → NOC L2 for manual assessment of DEU-DUS-OST-028.",
+      expectedEffect: "L2 review expected within 1h; ticket closed if alarm self-clears or pattern does not recur.",
       oneClickAvailable: false,
     },
     evidence: {
@@ -654,6 +719,7 @@ export const mockCases: MINDRCase[] = [
     triggerType: "customer_based",
     duration: "2h 55m",
     assignedAgent: "CCA-DRA-CA-RCA-RA-HVA/20260526-028",
+    duplicateRisk: true,
     affectedScope: {
       cellId: "DEU-NUR-MITTE-044",
       cellName: "Nuremberg Mitte Sector 4",
@@ -665,9 +731,9 @@ export const mockCases: MINDRCase[] = [
       geoLng: 11.0773,
       customerId: "DT-SMB-04812",
     },
-    cxiBaseline: 7.3,
-    cxiCurrent: 6.1,
-    cxiDrop: -1.2,
+    cxiBaseline: 3.7,
+    cxiCurrent: 3.1,
+    cxiDrop: -0.6,
     cxiTimeseries: genTimeseries(24, 6, 1.2),
     hypothesis: {
       text: "Customer DT-SMB-04812 shows a CXI decline attributed to Data Throughput optimisation opportunity. The CXI agent classified this as an optimisation case requiring capacity rebalancing.",
@@ -682,7 +748,10 @@ export const mockCases: MINDRCase[] = [
       actionType: "create_ticket",
       targetTeam: "Capacity Planning Team",
       ticketType: "Optimization",
-      rationale: "Capacity rebalancing opportunity for customer DT-SMB-04812.",
+      rationale: "Capacity rebalancing for DT-SMB-04812 — however, TKT-2026-4371 may already cover this action (duplicate risk).",
+      proposedAction: "Create optimisation ticket → Capacity Planning for DT-SMB-04812 throughput rebalancing.",
+      expectedEffect: "Resolves business-hours throughput degradation for customer DT-SMB-04812.",
+      alternativesConsidered: "Enrich TKT-2026-4371 instead of creating new ticket (reviewer rejected due to duplicate).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -724,9 +793,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 53.0481,
       geoLng: 8.7880,
     },
-    cxiBaseline: 8.3,
-    cxiCurrent: 5.8,
-    cxiDrop: -2.5,
+    cxiBaseline: 4.2,
+    cxiCurrent: 2.9,
+    cxiDrop: -1.3,
     cxiTimeseries: genTimeseries(24, 12, 2.5),
     hypothesis: {
       text: "CXI original hypothesis: Radio interference pattern from adjacent site. Reviewer correction: This degradation is a recurrence of the known problem PRB-2026-0011 (airport radar interference on L-band frequency band during specific flight approach corridors). The original hypothesis misclassified this as a novel incident rather than recognising the known problem signature.",
@@ -743,7 +812,9 @@ export const mockCases: MINDRCase[] = [
       actionType: "suppress",
       targetTeam: "Problem Management Team",
       ticketType: "Problem",
-      rationale: "Known airport radar interference — link to PRB-2026-0011 and suppress new ticket.",
+      rationale: "Known airport radar interference — suppress new ticket and link to PRB-2026-0011; no new corrective action required.",
+      proposedAction: "Suppress ticket creation; link to PRB-2026-0011 for tracking.",
+      expectedEffect: "No field action required; pattern self-resolves when approach corridor activity ends.",
       oneClickAvailable: false,
     },
     evidence: {
@@ -801,9 +872,9 @@ export const mockCases: MINDRCase[] = [
       geoLat: 52.3551,
       geoLng: 9.7387,
     },
-    cxiBaseline: 7.8,
-    cxiCurrent: 6.5,
-    cxiDrop: -1.3,
+    cxiBaseline: 3.9,
+    cxiCurrent: 3.3,
+    cxiDrop: -0.6,
     cxiTimeseries: genTimeseries(24, 14, 1.3),
     hypothesis: {
       text: "CXI classified as Known Problem (scheduled maintenance window). Reviewer corrected: maintenance window was completed and verified. Degradation persisted post-maintenance — this is a new incident caused by residual configuration error from the maintenance activity.",
@@ -819,7 +890,9 @@ export const mockCases: MINDRCase[] = [
       actionType: "create_ticket",
       targetTeam: "Network Configuration Team",
       ticketType: "Incident",
-      rationale: "Post-maintenance configuration error — requires parameter rollback or re-verification.",
+      rationale: "Post-maintenance configuration error — degradation persisted 4h after change closure; requires parameter rollback, not a repeat maintenance window.",
+      proposedAction: "Create incident ticket → Network Configuration for parameter rollback or re-verification on HAN-SUD cluster.",
+      expectedEffect: "Restores Accessibility Rate to SLA levels; resolves ~150 affected subscribers.",
       oneClickAvailable: false,
     },
     evidence: {
@@ -879,26 +952,34 @@ export const mockCases: MINDRCase[] = [
       geoLat: 51.3464,
       geoLng: 12.3818,
     },
-    cxiBaseline: 8.5,
-    cxiCurrent: 5.2,
-    cxiDrop: -3.3,
+    cxiBaseline: 4.3,
+    cxiCurrent: 2.6,
+    cxiDrop: -1.7,
     cxiTimeseries: genTimeseries(24, 6, 3.3),
     hypothesis: {
-      text: "Severe multi-metric CXI collapse detected on DEU-LEI-MITTE-003 with no identifiable root cause within the CXI agent corpus. The magnitude of degradation (−3.3 pts) and simultaneous collapse of all 5 sub-metrics is anomalous. CXI confidence is critically low. Immediate human escalation required.",
+      text: "Severe multi-metric CXI collapse detected on DEU-LEI-MITTE-003 with no identifiable root cause within the CXI agent corpus. The magnitude of degradation (−1.7 CXI pts) and simultaneous collapse of all 5 sub-metrics is anomalous. CXI confidence is critically low. Immediate human escalation required.",
       confidence: 22,
       signals: [
         "All 5 sub-metrics dropped simultaneously to critical levels — anomalous multi-vector collapse",
-        "CXI drop of 3.3 pts — highest in current shift across all active cases",
+        "CXI drop of 1.7 pts — highest in current shift across all active cases",
         "No correlated alarm events matching this severity pattern",
         "No recent change records — excludes configuration change as primary cause",
+      ],
+      openUncertainties: [
+        "Root cause completely unidentified — no known pattern match in CXI corpus.",
+        "Whether cell outage risk is imminent requires real-time monitoring by L3 engineer.",
+        "Possible external cause (physical damage, power issue, external interference) cannot be assessed remotely.",
       ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "escalate",
-      targetTeam: "Level 3 Network Engineering + NOC Manager",
+      targetTeam: "L3 Network Engineering + NOC Manager",
       ticketType: "Problem",
-      rationale: "Critical anomalous collapse at 22% confidence — mandatory escalation for immediate manual investigation.",
+      rationale: "Critical anomalous collapse at 22% confidence with P1 severity — mandatory escalation; no automated action is appropriate at this confidence level.",
+      proposedAction: "Escalate immediately to L3 Network Engineering and NOC Manager for manual investigation of DEU-LEI-MITTE-003.",
+      expectedEffect: "L3 team takes ownership; investigation and field dispatch decision within 2h.",
+      alternativesConsidered: "Any automated action (rejected — 22% confidence; wrong action could worsen situation or mask underlying cause).",
       oneClickAvailable: false,
     },
     evidence: {
@@ -940,9 +1021,9 @@ export const mockCases: MINDRCase[] = [
       geoLng: 13.7419,
       customerId: "DT-ENT-00089",
     },
-    cxiBaseline: 8.2,
-    cxiCurrent: 5.5,
-    cxiDrop: -2.7,
+    cxiBaseline: 4.1,
+    cxiCurrent: 2.8,
+    cxiDrop: -1.3,
     cxiTimeseries: genTimeseries(24, 8, 2.7),
     hypothesis: {
       text: "Enterprise customer DT-ENT-00089 is experiencing a severe CXI degradation that the CXI pipeline cannot classify with sufficient confidence. The customer has a platinum SLA. The degradation has been sustained for over 12 hours without auto-recovery. Escalation to L3 and account management is mandatory.",
@@ -952,13 +1033,20 @@ export const mockCases: MINDRCase[] = [
         "Data Throughput and Retainability showing steepest decline curves",
         "No change records, no alarms from adjacent cells — isolated and unexplained",
       ],
+      openUncertainties: [
+        "Root cause unknown — no correlated evidence available to distinguish hardware vs interference vs network configuration.",
+        "SLA breach status depends on exact degradation duration; account management must be engaged immediately regardless.",
+      ],
       agentVersion: "CXI-RCA-v2.4.1",
     },
     recommendation: {
       actionType: "escalate",
-      targetTeam: "Level 3 Engineering + Enterprise Account Management",
+      targetTeam: "L3 Engineering + Enterprise Account Management",
       ticketType: "Incident",
-      rationale: "Platinum SLA customer with 12h+ unexplained degradation — immediate escalation and account engagement required.",
+      rationale: "Platinum SLA customer with 12h+ unexplained degradation — SLA breach risk requires immediate L3 escalation and account engagement regardless of root cause.",
+      proposedAction: "Escalate to L3 Engineering and notify Enterprise Account Management for SLA breach risk on DT-ENT-00089.",
+      expectedEffect: "SLA breach clock paused upon escalation acknowledgement; L3 investigation underway; account manager notifies customer.",
+      alternativesConsidered: "Create ticket only (rejected — ticket without escalation notification would not pause SLA breach clock).",
       oneClickAvailable: false,
     },
     evidence: {

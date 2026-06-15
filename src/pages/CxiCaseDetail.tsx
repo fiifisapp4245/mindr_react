@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   GitBranch,
+  HelpCircle,
   MapPin,
   RotateCcw,
   Zap,
@@ -32,9 +33,11 @@ import {
   severityBg,
   classificationLabel,
 } from "../components/cxi/CaseRow";
+import { useCxiLens } from "../contexts/cxi-lens";
 import type { CaseClassification, ActionType, MINDRCase } from "../types/cxi";
 
-// ── §10.3 — Exact PRD chart colors ───────────────────────────────────────────
+// ── Sub-metric chart colors (PRD §10.3) ──────────────────────────────────────
+// These are raw KPI sub-metrics (0–10 scale), NOT CXI composite scores (1–5).
 
 const METRIC_COLORS = {
   voiceMOS:       "#E2007A",
@@ -84,7 +87,7 @@ function relTime(iso: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// ── §8.2 — Status banner for non-pending cases ────────────────────────────────
+// ── Status banner ─────────────────────────────────────────────────────────────
 
 function StatusBanner({ c }: { c: MINDRCase }) {
   const cfg = {
@@ -100,10 +103,7 @@ function StatusBanner({ c }: { c: MINDRCase }) {
   return (
     <div
       className="flex items-start gap-3 px-6 py-3 shrink-0"
-      style={{
-        backgroundColor: cfg.bg,
-        borderBottom: `1px solid ${cfg.border}`,
-      }}
+      style={{ backgroundColor: cfg.bg, borderBottom: `1px solid ${cfg.border}` }}
     >
       <span style={{ color: cfg.color, marginTop: 1 }}>{cfg.icon}</span>
       <div className="flex-1 min-w-0">
@@ -111,9 +111,7 @@ function StatusBanner({ c }: { c: MINDRCase }) {
           <p className="text-xs font-semibold" style={{ color: cfg.color }}>
             Approved by{" "}
             <span style={{ color: "var(--color-text-primary)" }}>{c.reviewedBy}</span>
-            {c.reviewedAt && (
-              <> · <span style={{ color: "var(--color-text-muted)" }}>{fmtFull(c.reviewedAt)}</span></>
-            )}
+            {c.reviewedAt && <> · <span style={{ color: "var(--color-text-muted)" }}>{fmtFull(c.reviewedAt)}</span></>}
           </p>
         )}
         {c.status === "rejected" && (
@@ -137,11 +135,7 @@ function StatusBanner({ c }: { c: MINDRCase }) {
               Classification corrected by {c.reviewedBy ?? "reviewer"}
             </p>
             <div className="flex items-center gap-2 mt-0.5 text-[11px]">
-              <span style={{ color: "var(--color-text-muted)" }}>
-                {classificationLabel(c.correction.correctedClassification === c.classification
-                  ? c.classification
-                  : c.classification)}
-              </span>
+              <span style={{ color: "var(--color-text-muted)" }}>{classificationLabel(c.classification)}</span>
               <span style={{ color: "var(--color-text-muted)" }}>→</span>
               <span style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>
                 {classificationLabel(c.correction.correctedClassification)}
@@ -151,10 +145,8 @@ function StatusBanner({ c }: { c: MINDRCase }) {
         )}
         {c.status === "escalated" && (
           <p className="text-xs font-semibold" style={{ color: cfg.color }}>
-            Escalated to Level 3 Engineering for manual investigation
-            {c.reviewedBy && (
-              <> · by <span style={{ color: "var(--color-text-primary)" }}>{c.reviewedBy}</span></>
-            )}
+            Escalated to L2/L3 Engineering for manual investigation
+            {c.reviewedBy && <> · by <span style={{ color: "var(--color-text-primary)" }}>{c.reviewedBy}</span></>}
           </p>
         )}
       </div>
@@ -162,9 +154,9 @@ function StatusBanner({ c }: { c: MINDRCase }) {
   );
 }
 
-// ── Chart tooltip ─────────────────────────────────────────────────────────────
+// ── Sub-metric chart tooltip ──────────────────────────────────────────────────
 
-function CxiTooltip({ active, payload, label }: {
+function SubMetricTooltip({ active, payload, label }: {
   active?: boolean;
   payload?: { name: string; value: number; color: string }[];
   label?: string;
@@ -177,10 +169,11 @@ function CxiTooltip({ active, payload, label }: {
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
         boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-        minWidth: 175,
+        minWidth: 200,
       }}
     >
-      <p className="font-semibold mb-1.5" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{label}</p>
+      <p className="font-semibold mb-1" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{label}</p>
+      <p className="text-[9px] mb-1.5 italic" style={{ color: "var(--color-text-muted)" }}>Raw KPI scale (0–10, not CXI)</p>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center justify-between gap-3">
           <span style={{ color: p.color }}>{METRIC_LABELS[p.name as keyof typeof METRIC_COLORS] ?? p.name}</span>
@@ -193,7 +186,7 @@ function CxiTooltip({ active, payload, label }: {
   );
 }
 
-// ── Phase 3 — Confidence progress bar ─────────────────────────────────────────
+// ── Confidence progress bar ───────────────────────────────────────────────────
 
 function ConfidenceBar({ value }: { value: number }) {
   const color = value >= 70 ? "var(--color-resolved)" : value >= 40 ? "var(--color-warning)" : "var(--color-critical)";
@@ -217,7 +210,7 @@ function ConfidenceBar({ value }: { value: number }) {
   );
 }
 
-// ── Phase 6 — Sleeping cell panel ─────────────────────────────────────────────
+// ── Sleeping cell panel ───────────────────────────────────────────────────────
 
 function SleepingCellPanel({ cellId, cellName }: { cellId: string; cellName: string }) {
   const [state, setState] = useState<"idle" | "loading" | "done">("idle");
@@ -288,7 +281,7 @@ function SleepingCellPanel({ cellId, cellName }: { cellId: string; cellName: str
   );
 }
 
-// ── Evidence accordion ─────────────────────────────────────────────────────────
+// ── Evidence accordion ────────────────────────────────────────────────────────
 
 function Accordion({
   title, count, accentColor, isOpen, onToggle, children,
@@ -323,7 +316,7 @@ function Accordion({
   );
 }
 
-// ── Evidence table ─────────────────────────────────────────────────────────────
+// ── Evidence table ────────────────────────────────────────────────────────────
 
 function EvidenceTable({ headers, rows, empty }: {
   headers: string[];
@@ -331,7 +324,15 @@ function EvidenceTable({ headers, rows, empty }: {
   empty: string;
 }) {
   if (rows.length === 0) {
-    return <p className="text-xs py-3 text-center" style={{ color: "var(--color-text-muted)" }}>{empty}</p>;
+    return (
+      <div
+        className="flex items-center gap-2 text-[11px] py-2.5 px-1"
+        style={{ color: "var(--color-text-muted)" }}
+      >
+        <Check size={12} style={{ color: "var(--color-resolved)", flexShrink: 0 }} />
+        {empty}
+      </div>
+    );
   }
   return (
     <table className="w-full text-xs" style={{ borderCollapse: "collapse" }}>
@@ -413,6 +414,7 @@ type TimeRange = "6h" | "24h" | "7d";
 export default function CxiCaseDetail() {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
+  const { lens } = useCxiLens();
   const c = useMemo(() => mockCases.find((m) => m.caseId === caseId), [caseId]);
 
   // Action states
@@ -431,8 +433,13 @@ export default function CxiCaseDetail() {
   const [correctedEvidence, setCorrectedEvidence] = useState("");
   const [correctedAction, setCorrectedAction] = useState<ActionType | "">("");
 
-  // UI state
-  const [openSections, setOpenSections] = useState(new Set<string>(["alarms"]));
+  // B6: role-aware accordion defaults — RAN expands changes; SMC expands alarms + tickets
+  const [openSections, setOpenSections] = useState<Set<string>>(() => {
+    if (lens === "ran") return new Set(["changes"]);
+    if (lens === "smc") return new Set(["alarms", "tickets"]);
+    return new Set(["alarms"]);
+  });
+
   const [timeRange, setTimeRange] = useState<TimeRange>("24h");
 
   useEffect(() => {
@@ -454,7 +461,7 @@ export default function CxiCaseDetail() {
     );
   }
 
-  // §5.3 F-06 — time-range filtered chart data
+  // Time-range filtered chart data
   const chartData = useMemo(() => {
     const pts = c.cxiTimeseries;
     if (timeRange === "6h") return pts.slice(-12).map((p) => ({ ...p, t: fmtHHmm(p.t) }));
@@ -504,7 +511,7 @@ export default function CxiCaseDetail() {
       {/* ════ Two-column layout ════ */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* ── LEFT flex-1 — Scope + Chart + Evidence + Audit Trail ── */}
+        {/* ── LEFT — Scope + Chart + Evidence + Audit Trail ── */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 min-w-0">
 
           {/* Breadcrumb */}
@@ -547,20 +554,24 @@ export default function CxiCaseDetail() {
                 <p style={{ color: "var(--color-text-muted)" }}>Duration: <span style={{ color: "var(--color-text-primary)" }}>{c.duration}</span></p>
               </div>
             </div>
+
+            {/* B1: CXI values on 1–5 scale */}
             <div className="flex items-center gap-6 mt-4 pt-4 flex-wrap" style={{ borderTop: "1px solid var(--color-border)" }}>
               {[
-                { label: "Baseline", value: c.cxiBaseline.toFixed(1), color: "var(--color-text-primary)" },
-                { label: "Current",  value: c.cxiCurrent.toFixed(1),  color: c.cxiCurrent < 7 ? "var(--color-critical)" : "var(--color-warning)" },
-                { label: "Drop",     value: c.cxiDrop.toFixed(1),     color: "var(--color-critical)" },
+                { label: "Baseline CXI",  value: c.cxiBaseline.toFixed(1), color: "var(--color-text-primary)" },
+                { label: "Current CXI",   value: c.cxiCurrent.toFixed(1),  color: c.cxiCurrent < 3.5 ? "var(--color-critical)" : "var(--color-warning)" },
+                { label: "CXI Drop",      value: c.cxiDrop.toFixed(1),     color: "var(--color-critical)" },
               ].map(({ label, value, color }) => (
                 <div key={label}>
                   <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>{label}</p>
                   <p className="text-2xl font-bold leading-none mt-0.5" style={{ color, fontFamily: "var(--font-mono)" }}>{value}</p>
+                  <p className="text-[9px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>/5 scale</p>
                 </div>
               ))}
               <div className="ml-auto text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>Threshold</p>
-                <p className="text-2xl font-bold leading-none mt-0.5" style={{ color: "var(--cxi-threshold-line)", fontFamily: "var(--font-mono)" }}>7.0</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>CXI Threshold</p>
+                <p className="text-2xl font-bold leading-none mt-0.5" style={{ color: "var(--cxi-threshold-line)", fontFamily: "var(--font-mono)" }}>3.5</p>
+                <p className="text-[9px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>/5 scale</p>
               </div>
             </div>
           </div>
@@ -590,13 +601,18 @@ export default function CxiCaseDetail() {
             </div>
           </div>
 
-          {/* CXI sub-metrics chart */}
+          {/* B1: Sub-metric chart — clearly labelled as raw KPI scale, not CXI */}
           <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
             <div className="flex items-center justify-between mb-1 gap-2">
               <div>
-                <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>CXI Sub-Metrics Chart</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                  Sub-metric Trend
+                </p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                  Degradation onset across voice, data, and network sub-metrics
+                  Raw KPI scale (0–10) — Voice, Data, Accessibility, Retainability, Mobility.
+                  <span className="ml-1 font-semibold" style={{ color: "var(--color-warning)" }}>
+                    These are not CXI scores.
+                  </span>
                 </p>
               </div>
               <div className="flex items-center rounded-md overflow-hidden shrink-0" style={{ border: "1px solid var(--color-border)" }}>
@@ -621,7 +637,7 @@ export default function CxiCaseDetail() {
               ))}
               <span className="flex items-center gap-1.5 text-[10px] ml-auto" style={{ color: "var(--cxi-threshold-line)" }}>
                 <span className="w-4 inline-block" style={{ borderTop: "1.5px dashed var(--cxi-threshold-line)" }} />
-                Threshold 7.0
+                Sub-metric threshold 7.0
               </span>
             </div>
             <div style={{ height: 220 }}>
@@ -633,7 +649,7 @@ export default function CxiCaseDetail() {
                   <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]}
                     tick={{ fill: "var(--color-text-muted)", fontSize: 10, fontFamily: "var(--font-ui)" }}
                     axisLine={false} tickLine={false} width={26} />
-                  <Tooltip content={<CxiTooltip />} cursor={{ stroke: "rgba(255,255,255,0.07)", strokeWidth: 1 }} />
+                  <Tooltip content={<SubMetricTooltip />} cursor={{ stroke: "rgba(255,255,255,0.07)", strokeWidth: 1 }} />
                   <ReferenceLine y={7.0} stroke="var(--cxi-threshold-line)" strokeDasharray="4 4" strokeWidth={1.5} />
                   {(Object.keys(METRIC_COLORS) as (keyof typeof METRIC_COLORS)[]).map((key) => (
                     <Line key={key} type="monotone" dataKey={key}
@@ -660,7 +676,8 @@ export default function CxiCaseDetail() {
             <div className="px-5 py-2">
               <Accordion title="Active Alarms" count={c.evidence.alarms.length} accentColor="var(--color-critical)"
                 isOpen={openSections.has("alarms")} onToggle={() => toggleSection("alarms")}>
-                <EvidenceTable headers={["Alarm ID", "Type", "Severity", "Start Time", "Status"]} empty="No active alarms"
+                <EvidenceTable headers={["Alarm ID", "Type", "Severity", "Start Time", "Status"]}
+                  empty="No active alarms found in search window — confirmed absence, not missing data"
                   rows={c.evidence.alarms.map((a) => (
                     <tr key={a.alarmId} style={{ borderBottom: "1px solid var(--color-border)" }}>
                       <td className="py-2 pr-4 font-bold" style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{a.alarmId}</td>
@@ -674,9 +691,11 @@ export default function CxiCaseDetail() {
                   ))} />
               </Accordion>
 
+              {/* B4: Negatives reconciled — empty state now explicitly says "none found in 72h window" */}
               <Accordion title="Recent Changes" count={c.evidence.changes.length} accentColor="var(--color-mitigating)"
                 isOpen={openSections.has("changes")} onToggle={() => toggleSection("changes")}>
-                <EvidenceTable headers={["Change ID", "Description", "Initiated By", "Time", "Status"]} empty="No change records"
+                <EvidenceTable headers={["Change ID", "Description", "Initiated By", "Time", "Status"]}
+                  empty="No change records found in 72h search window — consistent with hypothesis"
                   rows={c.evidence.changes.map((ch) => (
                     <tr key={ch.changeId} style={{ borderBottom: "1px solid var(--color-border)" }}>
                       <td className="py-2 pr-4 font-bold" style={{ color: "var(--color-mitigating)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{ch.changeId}</td>
@@ -690,7 +709,8 @@ export default function CxiCaseDetail() {
 
               <Accordion title="Open Tickets" count={c.evidence.tickets.length} accentColor="var(--color-warning)"
                 isOpen={openSections.has("tickets")} onToggle={() => toggleSection("tickets")}>
-                <EvidenceTable headers={["Ticket ID", "Title", "Team", "Priority", "Created"]} empty="No tickets"
+                <EvidenceTable headers={["Ticket ID", "Title", "Team", "Priority", "Created"]}
+                  empty="No tickets found — no prior incident or problem record linked to this cell"
                   rows={c.evidence.tickets.map((tk) => (
                     <tr key={tk.ticketId} style={{ borderBottom: "1px solid var(--color-border)" }}>
                       <td className="py-2 pr-4 font-bold" style={{ color: "var(--color-warning)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{tk.ticketId}</td>
@@ -705,7 +725,7 @@ export default function CxiCaseDetail() {
             </div>
           </div>
 
-          {/* Audit Trail — flows directly below evidence */}
+          {/* Audit Trail */}
           <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
             <div className="px-5 py-3" style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-elevated)" }}>
               <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Audit Trail</p>
@@ -761,7 +781,7 @@ export default function CxiCaseDetail() {
 
         </div>
 
-        {/* ── RIGHT 35% — Hypothesis + Recommended Action + Review Actions ── */}
+        {/* ── RIGHT — Hypothesis + Remediation Proposal + Review Actions ── */}
         <div
           className="overflow-y-auto px-5 py-5 space-y-4 shrink-0"
           style={{ width: "35%", borderLeft: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
@@ -769,10 +789,7 @@ export default function CxiCaseDetail() {
           {/* Hypothesis */}
           <div
             className="rounded-xl p-4"
-            style={{
-              backgroundColor: "var(--color-bg-elevated)",
-              border: "1px solid var(--color-border)",
-            }}
+            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
           >
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
@@ -791,6 +808,7 @@ export default function CxiCaseDetail() {
               {c.hypothesis.text}
             </p>
 
+            {/* Supporting signals */}
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--color-text-muted)" }}>
                 Supporting Signals
@@ -805,34 +823,129 @@ export default function CxiCaseDetail() {
               </ul>
             </div>
 
+            {/* B2: Open uncertainties */}
+            {c.hypothesis.openUncertainties && c.hypothesis.openUncertainties.length > 0 && (
+              <div
+                className="mt-3 pt-3"
+                style={{ borderTop: "1px solid var(--color-border)" }}
+              >
+                <div className="flex items-center gap-1.5 mb-2">
+                  <HelpCircle size={11} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
+                  <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+                    Open Uncertainties
+                  </p>
+                </div>
+                <ul className="space-y-1.5">
+                  {c.hypothesis.openUncertainties.map((u, i) => (
+                    <li
+                      key={i}
+                      className="text-[11px] leading-snug pl-3"
+                      style={{
+                        color: "var(--color-text-muted)",
+                        borderLeft: "2px solid rgba(255,176,32,0.3)",
+                      }}
+                    >
+                      {u}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <p className="text-[9px] mt-3" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
               {c.hypothesis.agentVersion}
             </p>
           </div>
 
-          {/* Recommended Action */}
+          {/* B3: Structured Remediation Proposal */}
           <div className="rounded-xl p-4" style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
             <div className="flex items-center gap-2 mb-3">
               <Wrench size={13} style={{ color: "var(--color-mitigating)" }} />
-              <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Recommended Action</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Remediation Proposal</p>
             </div>
-            <div className="grid grid-cols-2 gap-2.5 text-xs mb-3">
-              {[
-                { label: "Action",      value: c.recommendation.actionType.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()) },
-                { label: "Target Team", value: c.recommendation.targetTeam },
-                { label: "Ticket Type", value: c.recommendation.ticketType },
-                { label: "One-Click",   value: c.recommendation.oneClickAvailable ? "Available" : "Not available",
-                  color: c.recommendation.oneClickAvailable ? "var(--color-resolved)" : undefined },
-              ].map(({ label, value, color }) => (
-                <div key={label}>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>{label}</p>
-                  <p className="text-xs" style={{ color: color ?? "var(--color-text-primary)" }}>{value}</p>
-                </div>
-              ))}
+
+            {/* Action type chip */}
+            <div className="flex items-center gap-2 mb-3">
+              <span
+                className="text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider"
+                style={{
+                  backgroundColor: "rgba(77,158,255,0.12)",
+                  color: "var(--color-mitigating)",
+                  border: "1px solid rgba(77,158,255,0.25)",
+                }}
+              >
+                {c.recommendation.actionType.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+              </span>
+              <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                → {c.recommendation.targetTeam}
+              </span>
             </div>
-            <p className="text-[11px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-              {c.recommendation.rationale}
-            </p>
+
+            {/* Proposed action */}
+            {c.recommendation.proposedAction && (
+              <div className="mb-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-muted)" }}>
+                  Proposed Action
+                </p>
+                <p className="text-[11px] leading-snug" style={{ color: "var(--color-text-primary)" }}>
+                  {c.recommendation.proposedAction}
+                </p>
+              </div>
+            )}
+
+            {/* Expected effect */}
+            {c.recommendation.expectedEffect && (
+              <div className="mb-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-muted)" }}>
+                  Expected Effect
+                </p>
+                <p className="text-[11px] leading-snug" style={{ color: "var(--color-text-secondary)" }}>
+                  {c.recommendation.expectedEffect}
+                </p>
+              </div>
+            )}
+
+            {/* Routing rationale */}
+            <div className="mb-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-muted)" }}>
+                Why This Routing
+              </p>
+              <p className="text-[11px] leading-snug" style={{ color: "var(--color-text-secondary)" }}>
+                {c.recommendation.rationale}
+              </p>
+            </div>
+
+            {/* Alternatives considered */}
+            {c.recommendation.alternativesConsidered && (
+              <div
+                className="pt-2.5 mt-2.5"
+                style={{ borderTop: "1px solid var(--color-border)" }}
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-muted)" }}>
+                  Alternatives Considered
+                </p>
+                <p className="text-[11px] leading-snug" style={{ color: "var(--color-text-muted)" }}>
+                  {c.recommendation.alternativesConsidered}
+                </p>
+              </div>
+            )}
+
+            {/* Supporting metadata */}
+            <div
+              className="grid grid-cols-2 gap-2 pt-2.5 mt-2.5"
+              style={{ borderTop: "1px solid var(--color-border)" }}
+            >
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>Ticket Type</p>
+                <p className="text-xs" style={{ color: "var(--color-text-primary)" }}>{c.recommendation.ticketType}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-text-muted)" }}>One-Click</p>
+                <p className="text-xs" style={{ color: c.recommendation.oneClickAvailable ? "var(--color-resolved)" : "var(--color-text-muted)" }}>
+                  {c.recommendation.oneClickAvailable ? "Available" : "Not available"}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Review Actions */}
@@ -892,6 +1005,7 @@ export default function CxiCaseDetail() {
               </button>
             </div>
 
+            {/* B5: Consistent escalation label — "Escalate to L2/L3" */}
             <button
               onClick={() => setModal("escalate")}
               disabled={c.status === "escalated"}
@@ -903,7 +1017,7 @@ export default function CxiCaseDetail() {
                 opacity: c.status === "escalated" ? 0.5 : 1,
               }}
             >
-              {c.status === "escalated" ? "Already Escalated" : "Escalate to Level 3"}
+              {c.status === "escalated" ? "Already Escalated" : "Escalate to L2/L3"}
             </button>
 
             {c.correction && (
@@ -920,7 +1034,7 @@ export default function CxiCaseDetail() {
 
       </div>
 
-      {/* ════ Modals (Phase 4) ════ */}
+      {/* ════ Modals ════ */}
 
       {/* Approve confirmation modal */}
       {modal === "approve" && (
@@ -974,7 +1088,7 @@ export default function CxiCaseDetail() {
         </Modal>
       )}
 
-      {/* §F-12 — Reject modal */}
+      {/* Reject modal */}
       {modal === "reject" && (
         <Modal title="Reject MINDR Recommendation" onClose={() => !rejectLoading && setModal(null)}>
           <Field label="Rejection Category">
@@ -1009,14 +1123,21 @@ export default function CxiCaseDetail() {
         </Modal>
       )}
 
-      {/* Escalate modal */}
+      {/* B5: Escalate modal — uses "L2/L3" language consistently */}
       {modal === "escalate" && (
-        <Modal title="Escalate Case" onClose={() => !escalateLoading && setModal(null)}>
+        <Modal title="Escalate Case to L2/L3" onClose={() => !escalateLoading && setModal(null)}>
           <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
             Escalate{" "}
             <span style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>{c.caseId}</span>{" "}
-            to Level 3 Engineering for manual investigation.
+            to L2/L3 Engineering for manual investigation.
           </p>
+          <div className="rounded-lg px-3 py-2 mb-4 text-xs"
+            style={{ backgroundColor: "rgba(107,47,160,0.1)", border: "1px solid rgba(107,47,160,0.25)" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: "var(--mindr-escalated)" }}>
+              MINDR Suggested Team
+            </p>
+            <p style={{ color: "var(--color-text-secondary)" }}>{c.recommendation.targetTeam}</p>
+          </div>
           <Field label="Escalation Note">
             <textarea rows={3} placeholder="Reason for escalation..."
               value={escalateNote} onChange={(e) => setEscalateNote(e.target.value)}
@@ -1040,7 +1161,7 @@ export default function CxiCaseDetail() {
         </Modal>
       )}
 
-      {/* §F-11 — Correction modal: "Correct MINDR Analysis" + 4 fields + re-run state */}
+      {/* Correction modal */}
       {modal === "correct" && (
         <Modal title="Correct MINDR Analysis" onClose={() => correctStep === "form" && setModal(null)}>
           {correctStep === "running" && (

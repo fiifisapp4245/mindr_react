@@ -30,6 +30,7 @@ export interface Hypothesis {
   confidence: number;
   signals: string[];
   agentVersion: string;
+  openUncertainties?: string[];
 }
 
 export interface Recommendation {
@@ -38,6 +39,9 @@ export interface Recommendation {
   ticketType: string;
   rationale: string;
   oneClickAvailable: boolean;
+  proposedAction?: string;
+  expectedEffect?: string;
+  alternativesConsidered?: string;
 }
 
 export interface CaseAlarm {
@@ -91,9 +95,17 @@ export interface Correction {
   correctedAction?: ActionType;
 }
 
+export interface ClusterInfo {
+  clusterId: string;
+  region: string;
+  caseCount: number;
+}
+
 export interface MINDRCase {
   caseId: string;
   status: CaseStatus;
+  clusterInfo?: ClusterInfo;
+  duplicateRisk?: boolean;
   classification: CaseClassification;
   severity: CaseSeverity;
   triggerType: TriggerType;

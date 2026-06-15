@@ -48,7 +48,7 @@ export function StatsBar({ cases }: StatsBarProps) {
     {
       label: "Approval Rate",
       value: `${approvalRate}%`,
-      sub: `${reviewed} reviewed`,
+      sub: `${approved + corrected} of ${reviewed} reviews actioned`,
       accentColor: "var(--color-resolved)",
     },
     {

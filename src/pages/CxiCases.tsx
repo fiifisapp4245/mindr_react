@@ -97,29 +97,16 @@ export default function CxiCases() {
 
         {/* ── Page header ── */}
         <div className="mb-6">
-          <div className="flex items-end justify-between">
-            <div>
-              <h1
-                className="text-2xl font-bold leading-none"
-                style={{ color: "var(--color-text-primary)" }}
-              >
-                CXI Degradation Cases
-              </h1>
-              <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                MINDR-generated cases awaiting reviewer action
-              </p>
-            </div>
-            <span
-              className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md"
-              style={{
-                backgroundColor: "rgba(255,176,32,0.1)",
-                border: "1px solid rgba(255,176,32,0.2)",
-                color: "var(--color-warning)",
-              }}
+          <div>
+            <h1
+              className="text-2xl font-bold leading-none"
+              style={{ color: "var(--color-text-primary)" }}
             >
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: "var(--color-warning)" }} />
-              Scenario 2
-            </span>
+              CXI Degradation Cases
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+              MINDR-generated cases awaiting reviewer action
+            </p>
           </div>
         </div>
 
@@ -209,15 +196,16 @@ export default function CxiCases() {
             className="flex items-center gap-4 px-5 py-2"
             style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-elevated)" }}
           >
-            <span className="text-[10px] font-semibold uppercase tracking-widest w-40" style={{ color: "var(--color-text-muted)" }}>Case ID</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest w-16" style={{ color: "var(--color-text-muted)" }}>Status</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest w-8" style={{ color: "var(--color-text-muted)" }}>Sev</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest w-24" style={{ color: "var(--color-text-muted)" }}>Type</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest flex-1" style={{ color: "var(--color-text-muted)" }}>Affected Scope</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest w-20 text-right" style={{ color: "var(--color-text-muted)" }}>CXI Δ</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest w-16 text-right" style={{ color: "var(--color-text-muted)" }}>Open</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest w-36" style={{ color: "var(--color-text-muted)" }}>Agent</span>
-            <span className="text-[10px] font-semibold uppercase tracking-widest w-16 text-right" style={{ color: "var(--color-text-muted)" }}>Age</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-36" style={{ color: "var(--color-text-muted)" }}>Case ID</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-20" style={{ color: "var(--color-text-muted)" }}>Status</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-8"  style={{ color: "var(--color-text-muted)" }}>Sev</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-20" style={{ color: "var(--color-text-muted)" }}>Type</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest flex-1" style={{ color: "var(--color-text-muted)" }}>Scope · Trigger · Signals</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-36 text-right" style={{ color: "var(--color-text-muted)" }}>CXI Score</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-14 text-right" style={{ color: "var(--color-text-muted)" }}>Open</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-24" style={{ color: "var(--color-text-muted)" }}>Pipeline</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-24" style={{ color: "var(--color-text-muted)" }}>Rec.</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest w-14 text-right" style={{ color: "var(--color-text-muted)" }}>Age</span>
             <span className="w-5" />
           </div>
 
