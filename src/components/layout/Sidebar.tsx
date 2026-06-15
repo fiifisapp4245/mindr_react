@@ -36,7 +36,7 @@ const ROLE_NAV: Record<string, NavItem[]> = {
   ],
   cxi: [
     { label: "Dashboard",        href: "/dashboard",  icon: LayoutDashboard },
-    { label: "Topology",         href: "/topology",   icon: Network },
+    { label: "Network model",    href: "/topology",   icon: Network },
     { label: "CXI Cases",        href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
     { label: "Agent Activity",   href: "/agents",     icon: Bot },
     { label: "Reports",          href: "/reports",    icon: BarChart2 },
@@ -55,7 +55,7 @@ const SCENARIO_NAV: Record<string, NavItem[]> = {
   ],
   s2: [
     { label: "Dashboard",     href: "/dashboard",  icon: LayoutDashboard },
-    { label: "Topology",      href: "/topology",   icon: Network },
+    { label: "Network model", href: "/topology",   icon: Network },
     { label: "CXI Cases",     href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
     { label: "Agent Runtime", href: "/agents",     icon: Bot },
     { label: "Reports",       href: "/reports",    icon: BarChart2 },

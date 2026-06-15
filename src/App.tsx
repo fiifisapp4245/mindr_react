@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/theme";
 import { ScenarioProvider } from "./contexts/scenario";
 import { AuthProvider } from "./contexts/auth";
+import { CxiLensProvider } from "./contexts/cxi-lens";
+import { CxiScopeProvider } from "./contexts/cxi-scope";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -25,6 +27,8 @@ export default function App() {
   return (
     <ThemeProvider>
       <ScenarioProvider>
+        <CxiLensProvider>
+        <CxiScopeProvider>
         <BrowserRouter>
           <AuthProvider>
             <Routes>
@@ -52,6 +56,8 @@ export default function App() {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
+        </CxiScopeProvider>
+        </CxiLensProvider>
       </ScenarioProvider>
     </ThemeProvider>
   );

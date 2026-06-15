@@ -17,6 +17,7 @@ import {
 import { useScenario } from "../../contexts/scenario";
 import { useAuth } from "../../contexts/auth";
 import { Badge } from "../ui/badge";
+import { useCxiLens, LENS_LABEL, type CxiLens } from "../../contexts/cxi-lens";
 
 function WaffleIcon({ size = 16 }: { size?: number }) {
   return (
@@ -123,6 +124,8 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
   const { scenarios, activeScenario, activeUser, setScenario, setUser } = useScenario();
   const { signOut, role } = useAuth();
   const isAdmin = role === "admin";
+  const { lens, setLens } = useCxiLens();
+  const isCxi = activeScenario.id === "s2";
 
   const [searchValue, setSearchValue] = useState("");
   const [showSearch,  setShowSearch]  = useState(false);
@@ -234,6 +237,31 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
 
         <div className="flex-1" />
         <GlobalStatusBadge status={status} />
+
+        {/* ── CXI lens switcher (S2 only) ── */}
+        {isCxi && (
+          <div
+            className="flex items-center gap-px rounded-lg p-px shrink-0"
+            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-widest px-2" style={{ color: "var(--color-text-muted)" }}>
+              View as
+            </span>
+            {(["smc", "ran"] as CxiLens[]).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLens(l)}
+                className="px-3 py-1.5 rounded-md text-[11px] font-semibold transition-colors"
+                style={{
+                  backgroundColor: lens === l ? "rgba(255,255,255,0.10)" : "transparent",
+                  color: lens === l ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                }}
+              >
+                {l === "smc" ? "SMC" : "RAN"}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ── Icon actions ── */}
         <div className="flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>

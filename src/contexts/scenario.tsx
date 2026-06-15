@@ -36,7 +36,7 @@ const SCENARIOS: Scenario[] = [
     color: "var(--color-warning)",
     defaultRoute: "/cxi-cases",
     users: [
-      { id: "u3", name: "Marcus Webb", initials: "MW", role: "CXI Specialist",     email: "m.webb@mindr.network"  },
+      { id: "u3", name: "Marcus Webb", initials: "MW", role: "SMC — Incident Handler", email: "m.webb@mindr.network"  },
       { id: "u4", name: "Priya Nair",  initials: "PN", role: "Operations Manager", email: "p.nair@mindr.network"  },
     ],
   },

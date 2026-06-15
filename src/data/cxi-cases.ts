@@ -50,6 +50,178 @@ function agentPipeline(caseId: string, createdAt: string): MINDRCase["auditTrail
 
 export const mockCases: MINDRCase[] = [
 
+  // ── Additional Cologne/Bonn cases (reconcile map case counts) ──────────────
+
+  {
+    caseId: "CXI-2026-0040",
+    status: "pending",
+    classification: "incident",
+    severity: "P1",
+    triggerType: "cell_based",
+    duration: "0h 42m",
+    assignedAgent: "CCA-DRA-CA-RCA-RA-HVA/20260527-016",
+    affectedScope: {
+      cellId: "DEU-COL-NORD-011",
+      cellName: "Cologne Nord Sector 1",
+      siteId: "COL-NORD-02",
+      siteName: "Köln Hauptbahnhof",
+      cluster: "COL-NORTH-CLUSTER",
+      region: "Cologne/Bonn",
+      geoLat: 50.9412,
+      geoLng: 6.9592,
+    },
+    cxiBaseline: 8.2,
+    cxiCurrent: 5.8,
+    cxiDrop: -2.4,
+    cxiTimeseries: genTimeseries(24, 4, 2.4),
+    hypothesis: {
+      text: "Sudden drop in Voice MOS and Accessibility Rate on DEU-COL-NORD-011. Pattern suggests potential RF hardware fault or transmission path interruption. No correlated change record in the past 72h. Alarm ALM-COL-5521 confirms signal degradation onset.",
+      confidence: 71,
+      signals: [
+        "Voice MOS dropped 2.1 pts at 07:22 UTC — abrupt onset",
+        "Accessibility Rate fell to 6.4 (-1.8 pts) within 20 minutes",
+        "ALM-COL-5521: Radio Transmission Path Degraded — active",
+        "No adjacent cell degradation — isolates fault to this sector",
+      ],
+      agentVersion: "CXI-RCA-v2.4.1",
+    },
+    recommendation: {
+      actionType: "create_ticket",
+      targetTeam: "Field Engineering Team",
+      ticketType: "Incident",
+      rationale: "Likely hardware fault on DEU-COL-NORD-011 — field inspection of transmission path required.",
+      oneClickAvailable: false,
+    },
+    evidence: {
+      alarms: [
+        { alarmId: "ALM-COL-5521", type: "Radio Transmission Path Degraded", severity: "P1", startTime: new Date(Date.now() - 2520000).toISOString(), status: "Active" },
+      ],
+      changes: [],
+      tickets: [],
+    },
+    auditTrail: agentPipeline("CXI-2026-0040", new Date(Date.now() - 2520000).toISOString()),
+    createdAt: new Date(Date.now() - 2520000).toISOString(),
+    updatedAt: new Date(Date.now() - 900000).toISOString(),
+    reviewedBy: null,
+    reviewedAt: null,
+    rejectionReason: null,
+    correction: null,
+  },
+
+  {
+    caseId: "CXI-2026-0036",
+    status: "pending",
+    classification: "optimization",
+    severity: "P2",
+    triggerType: "cell_based",
+    duration: "1h 28m",
+    assignedAgent: "CCA-DRA-CA-RCA-RA-HVA/20260527-015",
+    affectedScope: {
+      cellId: "DEU-COL-OST-033",
+      cellName: "Cologne Ost Sector 3",
+      siteId: "COL-OST-05",
+      siteName: "Köln Mülheim",
+      cluster: "COL-EAST-CLUSTER",
+      region: "Cologne/Bonn",
+      geoLat: 50.9628,
+      geoLng: 7.0148,
+    },
+    cxiBaseline: 7.8,
+    cxiCurrent: 6.4,
+    cxiDrop: -1.4,
+    cxiTimeseries: genTimeseries(24, 8, 1.4),
+    hypothesis: {
+      text: "Gradual Data Throughput and Retainability decline on DEU-COL-OST-033 consistent with peak-hour capacity saturation. Change CHG-2026-0902 (capacity threshold update) executed 3 days prior may have inadvertently reduced headroom on this sector.",
+      confidence: 68,
+      signals: [
+        "Data Throughput degraded 1.3 pts during morning peak (06:00–09:00 UTC)",
+        "Retainability Rate correlates with high concurrent user sessions",
+        "CHG-2026-0902 capacity threshold update executed 72h prior",
+        "Adjacent cell COL-OST-034 shows 22% available capacity for offload",
+      ],
+      agentVersion: "CXI-RCA-v2.4.1",
+    },
+    recommendation: {
+      actionType: "create_ticket",
+      targetTeam: "Capacity Planning Team",
+      ticketType: "Optimization",
+      rationale: "Peak-hour capacity saturation — recommend load-balancing review and offload to COL-OST-034.",
+      oneClickAvailable: false,
+    },
+    evidence: {
+      alarms: [],
+      changes: [
+        { changeId: "CHG-2026-0902", description: "Capacity threshold policy update — Cologne East cluster", initiatedBy: "Capacity-Ops", time: new Date(Date.now() - 259200000).toISOString(), status: "Completed" },
+      ],
+      tickets: [],
+    },
+    auditTrail: agentPipeline("CXI-2026-0036", new Date(Date.now() - 5040000).toISOString()),
+    createdAt: new Date(Date.now() - 5040000).toISOString(),
+    updatedAt: new Date(Date.now() - 2700000).toISOString(),
+    reviewedBy: null,
+    reviewedAt: null,
+    rejectionReason: null,
+    correction: null,
+  },
+
+  // ── Additional Berlin case (reconcile map case counts) ─────────────────────
+
+  {
+    caseId: "CXI-2026-0041",
+    status: "pending",
+    classification: "unknown",
+    severity: "P2",
+    triggerType: "cell_based",
+    duration: "1h 03m",
+    assignedAgent: "CCA-DRA-CA-RCA-RA-HVA/20260527-014",
+    affectedScope: {
+      cellId: "DEU-BER-SUD-019",
+      cellName: "Berlin Süd Tower C",
+      siteId: "BER-SUD-06",
+      siteName: "Berlin Tempelhof",
+      cluster: "BER-SOUTH-CLUSTER",
+      region: "Berlin Metropolitan",
+      geoLat: 52.4729,
+      geoLng: 13.4008,
+    },
+    cxiBaseline: 7.9,
+    cxiCurrent: 6.6,
+    cxiDrop: -1.3,
+    cxiTimeseries: genTimeseries(24, 6, 1.3),
+    hypothesis: {
+      text: "CXI composite score decline on DEU-BER-SUD-019 shows a mixed sub-metric pattern without a dominant degradation vector. No correlated alarms or change records found. Confidence is insufficient for automated classification — may be a transient measurement variation or early-stage interference event.",
+      confidence: 44,
+      signals: [
+        "CXI drop of 1.3 pts — borderline P2 threshold",
+        "Voice MOS and Mobility Rate mildly affected — no dominant sub-metric",
+        "No correlated alarms or change events in 48h window",
+        "Adjacent cell BER-SUD-020 shows no degradation — localized pattern",
+      ],
+      agentVersion: "CXI-RCA-v2.4.1",
+    },
+    recommendation: {
+      actionType: "escalate",
+      targetTeam: "NOC Level 2",
+      ticketType: "Incident",
+      rationale: "Low confidence (44%) with borderline threshold breach — monitor and escalate if degradation worsens or persists beyond 2h.",
+      oneClickAvailable: false,
+    },
+    evidence: {
+      alarms: [
+        { alarmId: "ALM-BER-8102", type: "CXI Score Below Threshold", severity: "P2", startTime: new Date(Date.now() - 3780000).toISOString(), status: "Active" },
+      ],
+      changes: [],
+      tickets: [],
+    },
+    auditTrail: agentPipeline("CXI-2026-0041", new Date(Date.now() - 3780000).toISOString()),
+    createdAt: new Date(Date.now() - 3780000).toISOString(),
+    updatedAt: new Date(Date.now() - 1800000).toISOString(),
+    reviewedBy: null,
+    reviewedAt: null,
+    rejectionReason: null,
+    correction: null,
+  },
+
   // ── Pending × 3 ────────────────────────────────────────────────────────────
 
   {
