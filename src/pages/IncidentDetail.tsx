@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
+import { ConfirmModal } from "../components/shared/ConfirmModal";
 import {
   ResponsiveContainer,
   LineChart,
@@ -178,67 +179,35 @@ function FLMChartTooltip({ active, payload, label }: any) {
   );
 }
 
-// ─── Confirmation overlay ─────────────────────────────────────────────────────
+// ─── Action modal config ──────────────────────────────────────────────────────
 
 type PendingAction = "resolve" | "escalate" | "close" | null;
 
-const ACTION_CFG: Record<NonNullable<PendingAction>, { label: string; desc: string; confirmColor: string; icon: React.ElementType }> = {
-  resolve:  { label: "Resolve",       desc: "Mark this incident as resolved. KPIs will flip to stable state.",           confirmColor: "var(--color-resolved)",   icon: CheckCircle2  },
-  escalate: { label: "Escalate to L2", desc: "Escalate to Level 2 support. Status will update to Escalated.",           confirmColor: "var(--color-mitigating)",  icon: AlertCircle   },
-  close:    { label: "Close",          desc: "Close this incident. It will move to the Resolved filter.",                confirmColor: "var(--color-text-muted)",  icon: X             },
+const MODAL_CFG: Record<NonNullable<PendingAction>, {
+  title: (ref: string) => string;
+  body: string;
+  confirmLabel: string;
+  confirmColor: string;
+}> = {
+  resolve: {
+    title: (ref) => `Resolve ${ref}?`,
+    body: "Marks this incident as Resolved. Port utilization, traffic spike, and congestion KPIs will flip to stable/green state — the Scenario 1 happy path.",
+    confirmLabel: "Resolve",
+    confirmColor: "var(--color-resolved)",
+  },
+  escalate: {
+    title: () => "Escalate to L2?",
+    body: "Escalates this incident to Level 2 support. Status will update to Escalated and the on-call L2 engineer will be notified.",
+    confirmLabel: "Escalate",
+    confirmColor: "var(--color-mitigating)",
+  },
+  close: {
+    title: (ref) => `Close ${ref}?`,
+    body: "Closes this incident without a formal resolution. It will move to the resolved filter and no further action will be taken.",
+    confirmLabel: "Close",
+    confirmColor: "rgba(255,255,255,0.15)",
+  },
 };
-
-function ConfirmOverlay({
-  action,
-  incRef,
-  onConfirm,
-  onCancel,
-}: {
-  action: NonNullable<PendingAction>;
-  incRef: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  const cfg = ACTION_CFG[action];
-  const Icon = cfg.icon;
-  return (
-    <div
-      className="absolute inset-0 flex items-center justify-center rounded-lg z-10"
-      style={{ backgroundColor: "rgba(14,14,18,0.9)", backdropFilter: "blur(4px)" }}
-    >
-      <div
-        className="w-full mx-4 rounded-xl p-5 space-y-3"
-        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-      >
-        <div className="flex items-center gap-2">
-          <Icon size={16} style={{ color: cfg.confirmColor }} />
-          <p className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>
-            {cfg.label} {incRef}?
-          </p>
-        </div>
-        <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
-          {cfg.desc}
-        </p>
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={onConfirm}
-            className="flex-1 py-2 rounded-lg text-sm font-bold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: cfg.confirmColor === "var(--color-text-muted)" ? "rgba(255,255,255,0.12)" : cfg.confirmColor, color: "#fff" }}
-          >
-            Confirm
-          </button>
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors hover:bg-white/5"
-            style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── FLM detail page ──────────────────────────────────────────────────────────
 
@@ -246,6 +215,7 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
   const { resolve, escalate, close, toggleStep, checkedSteps } = useFLMIncidents();
   const [activeTab, setActiveTab] = useState<"evidence" | "activity">("evidence");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [escalateNote, setEscalateNote] = useState("");
 
   const steps = inc.rootCause.steps;
   const myChecked = checkedSteps[inc.id] ?? new Set<number>();
@@ -274,6 +244,12 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
     else if (pendingAction === "escalate") escalate(inc.id);
     else close(inc.id);
     setPendingAction(null);
+    setEscalateNote("");
+  }
+
+  function handleCloseModal() {
+    setPendingAction(null);
+    setEscalateNote("");
   }
 
   return (
@@ -743,7 +719,7 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
 
         {/* ── Right pane: agent hypothesis + actions ──────────────────────── */}
         <div
-          className="w-80 shrink-0 rounded-lg overflow-hidden sticky top-0"
+          className="w-[400px] shrink-0 rounded-lg overflow-hidden sticky top-0"
           style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
         >
           <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
@@ -875,17 +851,9 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
 
           {/* Action decision point */}
           <div
-            className="p-4 space-y-2 relative"
+            className="p-4 space-y-2"
             style={{ borderTop: "1px solid var(--color-border)" }}
           >
-            {pendingAction && (
-              <ConfirmOverlay
-                action={pendingAction}
-                incRef={inc.ref}
-                onConfirm={handleConfirm}
-                onCancel={() => setPendingAction(null)}
-              />
-            )}
             <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--color-text-muted)" }}>
               Action — Human Decision Point
             </p>
@@ -930,6 +898,45 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
         </div>
 
       </div>
+
+      {/* ── Centered confirmation modal (portal, z-50) ─────────────────────── */}
+      {pendingAction && (() => {
+        const cfg = MODAL_CFG[pendingAction];
+        return (
+          <ConfirmModal
+            title={cfg.title(inc.ref)}
+            body={cfg.body}
+            confirmLabel={cfg.confirmLabel}
+            confirmColor={cfg.confirmColor}
+            onConfirm={handleConfirm}
+            onClose={handleCloseModal}
+          >
+            {pendingAction === "escalate" && (
+              <div>
+                <label
+                  className="text-xs font-semibold mb-1.5 block"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  Reason for escalation (optional)
+                </label>
+                <textarea
+                  value={escalateNote}
+                  onChange={(e) => setEscalateNote(e.target.value)}
+                  rows={3}
+                  placeholder="Describe why L2 escalation is needed…"
+                  className="w-full rounded-lg px-3 py-2 text-xs resize-none"
+                  style={{
+                    backgroundColor: "var(--color-bg-card)",
+                    border: "1px solid var(--color-border)",
+                    color: "var(--color-text-primary)",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            )}
+          </ConfirmModal>
+        );
+      })()}
     </div>
   );
 }

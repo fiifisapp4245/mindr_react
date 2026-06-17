@@ -34,6 +34,7 @@ import {
   metricColor,
   type AlarmType,
 } from "../data/alarm-store";
+import { ConfirmModal } from "../components/shared/ConfirmModal";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -46,12 +47,37 @@ const TYPE_ICON: Record<AlarmType, React.ElementType> = {
   sla: AlertTriangle,
 };
 
-const ACTION_META: Record<string, { label: string; message: string }> = {
-  acknowledge:    { label: "Acknowledge",        message: "Mark this alarm as acknowledged?" },
-  snooze:         { label: "Snooze 30m",         message: "Snooze this alarm for 30 minutes?" },
-  createIncident: { label: "Create Incident",    message: "Open a new incident from this alarm?" },
-  addToGroup:     { label: "Add to Group",       message: "Add this alarm to correlation group g1?" },
-  assign:         { label: "Assign to Engineer", message: "Assign this alarm to Jamie Rodriguez?" },
+const ACTION_META: Record<string, { label: string; body: string; confirmLabel: string; confirmColor: string }> = {
+  acknowledge:    {
+    label: "Acknowledge Alarm",
+    body: "Mark this alarm as acknowledged. It stays in the list with an Ack'd status so the team knows it's been seen.",
+    confirmLabel: "Acknowledge",
+    confirmColor: "#2DD4BF",
+  },
+  snooze:         {
+    label: "Snooze 30 Minutes",
+    body: "Suppress this alarm for 30 minutes. It will resume alerting after the snooze period if the condition persists.",
+    confirmLabel: "Snooze",
+    confirmColor: "rgba(255,255,255,0.2)",
+  },
+  createIncident: {
+    label: "Create Incident",
+    body: "Open a new FLM incident from this alarm. The alarm will be linked to the new incident and show its reference number.",
+    confirmLabel: "Create Incident",
+    confirmColor: "#FFB020",
+  },
+  addToGroup:     {
+    label: "Add to Correlation Group",
+    body: "Add this alarm to correlation group g1. It will be grouped with related alarms for joint investigation.",
+    confirmLabel: "Add to Group",
+    confirmColor: "var(--color-mitigating)",
+  },
+  assign:         {
+    label: "Assign to Engineer",
+    body: "Assign this alarm to Jamie Rodriguez. They will be notified and the alarm will show as assigned.",
+    confirmLabel: "Assign",
+    confirmColor: "var(--color-brand)",
+  },
 };
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -373,7 +399,7 @@ export default function AlarmDetail() {
 
         {/* Right pane */}
         <div
-          className="w-80 shrink-0 flex flex-col relative overflow-hidden"
+          className="w-[400px] shrink-0 flex flex-col"
           style={{ borderLeft: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
         >
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
@@ -448,40 +474,20 @@ export default function AlarmDetail() {
             </div>
           </div>
 
-          {/* Confirmation overlay */}
-          {pendingAction && (
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10"
-              style={{ backgroundColor: "rgba(11,14,20,0.92)", backdropFilter: "blur(4px)" }}
-            >
-              <div className="text-center px-6">
-                <p className="text-sm font-semibold mb-1.5" style={{ color: "var(--color-text-primary)" }}>
-                  {ACTION_META[pendingAction]?.label}
-                </p>
-                <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
-                  {ACTION_META[pendingAction]?.message}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => executeAction(pendingAction)}
-                  className="px-5 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-                >
-                  Confirm
-                </button>
-                <button
-                  onClick={() => setPendingAction(null)}
-                  className="px-5 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "var(--color-text-muted)" }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* ── Centered confirmation modal (portal, z-50) ─────────────────────── */}
+      {pendingAction && ACTION_META[pendingAction] && (
+        <ConfirmModal
+          title={ACTION_META[pendingAction].label}
+          body={ACTION_META[pendingAction].body}
+          confirmLabel={ACTION_META[pendingAction].confirmLabel}
+          confirmColor={ACTION_META[pendingAction].confirmColor}
+          onConfirm={() => executeAction(pendingAction)}
+          onClose={() => setPendingAction(null)}
+        />
+      )}
     </div>
   );
 }
