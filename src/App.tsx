@@ -4,6 +4,7 @@ import { ScenarioProvider } from "./contexts/scenario";
 import { AuthProvider } from "./contexts/auth";
 import { CxiLensProvider } from "./contexts/cxi-lens";
 import { CxiScopeProvider } from "./contexts/cxi-scope";
+import { FLMIncidentsProvider } from "./contexts/flm-incidents";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -11,6 +12,7 @@ import Topology from "./pages/Topology";
 import Agents from "./pages/Agents";
 import Incidents from "./pages/Incidents";
 import IncidentDetail from "./pages/IncidentDetail";
+import IncidentCompare from "./pages/IncidentCompare";
 import Reports from "./pages/Reports";
 import Assistant from "./pages/Assistant";
 import Login from "./pages/Login";
@@ -29,6 +31,7 @@ export default function App() {
       <ScenarioProvider>
         <CxiLensProvider>
         <CxiScopeProvider>
+        <FLMIncidentsProvider>
         <BrowserRouter>
           <AuthProvider>
             <Routes>
@@ -40,6 +43,7 @@ export default function App() {
                   <Route path="topology" element={<Topology />} />
                   <Route path="agents" element={<Agents />} />
                   <Route path="incidents" element={<Incidents />} />
+                  <Route path="incidents/compare" element={<IncidentCompare />} />
                   <Route path="incidents/:id" element={<IncidentDetail />} />
                   <Route path="cxi-cases" element={<CxiCases />} />
                   <Route path="cxi-cases/:caseId" element={<CxiCaseDetail />} />
@@ -56,6 +60,7 @@ export default function App() {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
+        </FLMIncidentsProvider>
         </CxiScopeProvider>
         </CxiLensProvider>
       </ScenarioProvider>
