@@ -74,7 +74,7 @@ export default function FLMReports() {
             Shift Report
           </h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            Shift B · M. Weber · 2026-06-04 06:00–14:00 UTC · IP Peering
+            Shift B handover summary — IP Peering · 2026-06-04 06:00–14:00 UTC
           </p>
         </div>
         <button

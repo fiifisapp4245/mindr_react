@@ -42,7 +42,7 @@ export default function FLMDashboard() {
           Dashboard
         </h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-          IP Peering — Shift B — M. Weber — 09:24 UTC
+          Live overview of IP Peering network health — alerts, traffic trends and capacity risk
         </p>
       </div>
 

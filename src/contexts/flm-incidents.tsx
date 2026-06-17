@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { FLM_INCIDENTS, type FLMIncident, type FLMStatus } from '../data/flm-incident-store';
+import { FLM_INCIDENTS, type FLMIncident } from '../data/flm-incident-store';
+import { useScenario } from './scenario';
 
 // ── Types ───────────────────────────────────────────────────────────────────────
 
 interface FLMIncidentsContextValue {
   incidents: FLMIncident[];
-  resolve: (id: string) => void;
-  escalate: (id: string) => void;
+  notifyCdn: (id: string) => void;
   close: (id: string) => void;
   toggleStep: (id: string, stepIndex: number, checked: boolean) => void;
   checkedSteps: Record<string, Set<number>>;
@@ -21,54 +21,53 @@ function nowUtc(): string {
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
 }
 
-function mutateStatus(
+function addActivity(
   prev: FLMIncident[],
   id: string,
-  status: FLMStatus,
-  actorAction: string,
-  kpiFlip = false,
+  actor: string,
+  action: string,
 ): FLMIncident[] {
-  return prev.map((inc) => {
-    if (inc.id !== id) return inc;
-    const updated: FLMIncident = {
-      ...inc,
-      status,
-      activityLog: [
-        ...inc.activityLog,
-        { time: nowUtc(), actor: 'M. Weber', action: actorAction },
-      ],
-    };
-    if (kpiFlip) {
-      return {
-        ...updated,
-        portUtilizationMax: 62,
-        congestedInterfaces: 0,
-        trafficSpikePercent: 4,
-        routeDeviationPercent: 1,
-        altPathHeadroom: 78,
-        linkUtilization: 62,
-      };
-    }
-    return updated;
-  });
+  return prev.map((inc) =>
+    inc.id !== id
+      ? inc
+      : { ...inc, activityLog: [...inc.activityLog, { time: nowUtc(), actor, action }] },
+  );
 }
 
 // ── Provider ────────────────────────────────────────────────────────────────────
 
 export function FLMIncidentsProvider({ children }: { children: ReactNode }) {
+  const { activeUser } = useScenario();
   const [incidents, setIncidents] = useState<FLMIncident[]>(FLM_INCIDENTS);
   const [checkedSteps, setCheckedSteps] = useState<Record<string, Set<number>>>({});
 
-  function resolve(id: string) {
-    setIncidents((prev) => mutateStatus(prev, id, 'Resolved', 'Incident resolved — SLA met. KPIs stable.', true));
-  }
-
-  function escalate(id: string) {
-    setIncidents((prev) => mutateStatus(prev, id, 'Escalated', 'Escalated to L2 — additional triage required.'));
+  function notifyCdn(id: string) {
+    setIncidents((prev) =>
+      addActivity(prev, id, activeUser.name, 'CDN notified — load-balance/reroute traffic per recommended action.'),
+    );
   }
 
   function close(id: string) {
-    setIncidents((prev) => mutateStatus(prev, id, 'Closed', 'Incident closed.'));
+    setIncidents((prev) =>
+      prev.map((inc) => {
+        if (inc.id !== id) return inc;
+        return {
+          ...inc,
+          status: 'Closed',
+          // Scenario-1 happy path: flip KPIs to stable/green
+          portUtilizationMax: 62,
+          congestedInterfaces: 0,
+          trafficSpikePercent: 4,
+          routeDeviationPercent: 1,
+          altPathHeadroom: 78,
+          linkUtilization: 62,
+          activityLog: [
+            ...inc.activityLog,
+            { time: nowUtc(), actor: activeUser.name, action: 'Incident closed — KPIs stable. Scenario-1 happy path applied.' },
+          ],
+        };
+      }),
+    );
   }
 
   function toggleStep(id: string, stepIndex: number, checked: boolean) {
@@ -77,7 +76,6 @@ export function FLMIncidentsProvider({ children }: { children: ReactNode }) {
       if (checked) current.add(stepIndex); else current.delete(stepIndex);
       return { ...prev, [id]: current };
     });
-    // Mirror playbook step completion to activity log
     setIncidents((prevIncs) =>
       prevIncs.map((inc) => {
         if (inc.id !== id) return inc;
@@ -87,15 +85,19 @@ export function FLMIncidentsProvider({ children }: { children: ReactNode }) {
           ...inc,
           activityLog: [
             ...inc.activityLog,
-            { time: nowUtc(), actor: 'M. Weber', action: checked ? `Completed: "${step}"` : `Unchecked: "${step}"` },
+            {
+              time: nowUtc(),
+              actor: activeUser.name,
+              action: checked ? `Completed: "${step}"` : `Unchecked: "${step}"`,
+            },
           ],
         };
-      })
+      }),
     );
   }
 
   return (
-    <FLMIncidentsContext.Provider value={{ incidents, resolve, escalate, close, toggleStep, checkedSteps }}>
+    <FLMIncidentsContext.Provider value={{ incidents, notifyCdn, close, toggleStep, checkedSteps }}>
       {children}
     </FLMIncidentsContext.Provider>
   );

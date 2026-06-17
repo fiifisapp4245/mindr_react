@@ -269,7 +269,7 @@ export const FLM_INCIDENTS: FLMIncident[] = [
     activityLog: [
       { time: '14:28 UTC', actor: 'MINDR AI', action: 'Incident auto-created from ALM-0042 BGP flap detection' },
       { time: '14:30 UTC', actor: 'MINDR AI', action: 'Root cause analysis completed — confidence 87%' },
-      { time: '14:35 UTC', actor: 'M. Weber', action: 'Investigation started — reviewing BGP session logs' },
+      { time: '14:35 UTC', actor: 'Kwame Asante', action: 'Investigation started — reviewing BGP session logs' },
     ],
 
     rootCause: {
@@ -471,7 +471,7 @@ export const FLM_INCIDENTS: FLMIncident[] = [
     activityLog: [
       { time: '10:14 UTC', actor: 'MINDR AI', action: 'Incident auto-created from ALM-0031' },
       { time: '11:48 UTC', actor: 'MINDR AI', action: 'Traffic rebalancing detected — monitoring' },
-      { time: '12:15 UTC', actor: 'M. Weber', action: 'Confirmed resolution — SLA met. Resolved.' },
+      { time: '12:15 UTC', actor: 'Kwame Asante', action: 'Confirmed resolution — SLA met. Resolved.' },
     ],
 
     rootCause: {

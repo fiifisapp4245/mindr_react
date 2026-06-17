@@ -181,7 +181,7 @@ function FLMChartTooltip({ active, payload, label }: any) {
 
 // ─── Action modal config ──────────────────────────────────────────────────────
 
-type PendingAction = "resolve" | "escalate" | "close" | null;
+type PendingAction = "notifyCdn" | "close" | null;
 
 const MODAL_CFG: Record<NonNullable<PendingAction>, {
   title: (ref: string) => string;
@@ -189,33 +189,27 @@ const MODAL_CFG: Record<NonNullable<PendingAction>, {
   confirmLabel: string;
   confirmColor: string;
 }> = {
-  resolve: {
-    title: (ref) => `Resolve ${ref}?`,
-    body: "Marks this incident as Resolved. Port utilization, traffic spike, and congestion KPIs will flip to stable/green state — the Scenario 1 happy path.",
-    confirmLabel: "Resolve",
-    confirmColor: "var(--color-resolved)",
-  },
-  escalate: {
-    title: () => "Escalate to L2?",
-    body: "Escalates this incident to Level 2 support. Status will update to Escalated and the on-call L2 engineer will be notified.",
-    confirmLabel: "Escalate",
-    confirmColor: "var(--color-mitigating)",
+  notifyCdn: {
+    title: (ref) => `Notify CDN for ${ref}?`,
+    body: "This will notify the CDN provider to load-balance and reroute traffic per the recommended action. The CDN will begin redistributing traffic away from the congested peering link.",
+    confirmLabel: "Notify CDN",
+    confirmColor: "var(--color-brand)",
   },
   close: {
     title: (ref) => `Close ${ref}?`,
-    body: "Closes this incident without a formal resolution. It will move to the resolved filter and no further action will be taken.",
-    confirmLabel: "Close",
-    confirmColor: "rgba(255,255,255,0.15)",
+    body: "Closes this incident and applies the Scenario 1 happy path — KPIs will flip to stable/green and the incident will move to the resolved filter.",
+    confirmLabel: "Close Incident",
+    confirmColor: "var(--color-resolved)",
   },
 };
 
 // ─── FLM detail page ──────────────────────────────────────────────────────────
 
 function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
-  const { resolve, escalate, close, toggleStep, checkedSteps } = useFLMIncidents();
-  const [activeTab, setActiveTab] = useState<"evidence" | "activity">("evidence");
+  const { notifyCdn, close, toggleStep, checkedSteps } = useFLMIncidents();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [escalateNote, setEscalateNote] = useState("");
+  const [cdnNote, setCdnNote] = useState("");
+  const [cdnNotified, setCdnNotified] = useState(false);
 
   const steps = inc.rootCause.steps;
   const myChecked = checkedSteps[inc.id] ?? new Set<number>();
@@ -240,16 +234,19 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
 
   function handleConfirm() {
     if (!pendingAction) return;
-    if (pendingAction === "resolve") resolve(inc.id);
-    else if (pendingAction === "escalate") escalate(inc.id);
-    else close(inc.id);
+    if (pendingAction === "notifyCdn") {
+      notifyCdn(inc.id);
+      setCdnNotified(true);
+    } else {
+      close(inc.id);
+    }
     setPendingAction(null);
-    setEscalateNote("");
+    setCdnNote("");
   }
 
   function handleCloseModal() {
     setPendingAction(null);
-    setEscalateNote("");
+    setCdnNote("");
   }
 
   return (
@@ -662,58 +659,6 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
               </Card>
             </div>
 
-            {/* Evidence / Activity tabs */}
-            <div className="rounded-lg overflow-hidden" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-              <div className="flex" style={{ borderBottom: "1px solid var(--color-border)" }}>
-                {(["evidence", "activity"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className="px-4 py-3 text-xs font-semibold capitalize transition-colors"
-                    style={{
-                      color: activeTab === tab ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                      borderBottom: activeTab === tab ? "2px solid var(--color-brand)" : "2px solid transparent",
-                    }}
-                  >
-                    {tab === "evidence" ? "Evidence" : "Activity"}
-                    {tab === "activity" && inc.activityLog.length > 0 && (
-                      <span
-                        className="ml-1.5 text-[9px] font-bold px-1.5 py-px rounded-full"
-                        style={{ backgroundColor: "rgba(226,0,116,0.15)", color: "var(--color-brand)" }}
-                      >
-                        {inc.activityLog.length}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="p-4 space-y-2.5">
-                {activeTab === "evidence" ? (
-                  inc.evidence.map((item, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className="shrink-0 text-xs mt-px" style={{ color: "var(--color-text-muted)" }}>→</span>
-                      <p className="text-xs leading-snug" style={{ color: "var(--color-text-primary)" }}>{item}</p>
-                    </div>
-                  ))
-                ) : (
-                  inc.activityLog.length === 0 ? (
-                    <p className="text-xs py-2" style={{ color: "var(--color-text-muted)" }}>No activity entries recorded yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {[...inc.activityLog].reverse().map((entry, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="text-[10px] shrink-0 mt-0.5" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{entry.time}</span>
-                          <div>
-                            <span className="text-[10px] font-semibold" style={{ color: "var(--color-brand)" }}>{entry.actor}</span>
-                            <p className="text-xs leading-snug" style={{ color: "var(--color-text-primary)" }}>{entry.action}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -859,20 +804,22 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
             </p>
             {isActionable ? (
               <>
-                <button
-                  onClick={() => setPendingAction("resolve")}
-                  className="w-full py-2.5 rounded-lg text-sm font-bold transition-opacity hover:opacity-90 active:scale-[0.98]"
-                  style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-                >
-                  Resolve
-                </button>
-                <button
-                  onClick={() => setPendingAction("escalate")}
-                  className="w-full py-2.5 rounded-lg text-sm font-semibold transition-colors hover:bg-white/5"
-                  style={{ border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
-                >
-                  Escalate to L2
-                </button>
+                {cdnNotified ? (
+                  <div
+                    className="w-full py-2.5 rounded-lg text-sm font-semibold text-center"
+                    style={{ backgroundColor: "rgba(45,212,191,0.10)", border: "1px solid rgba(45,212,191,0.3)", color: "var(--color-resolved)" }}
+                  >
+                    ✓ CDN Notified
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setPendingAction("notifyCdn")}
+                    className="w-full py-2.5 rounded-lg text-sm font-bold transition-opacity hover:opacity-90 active:scale-[0.98]"
+                    style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
+                  >
+                    Notify CDN
+                  </button>
+                )}
                 <button
                   onClick={() => setPendingAction("close")}
                   className="w-full py-2.5 rounded-lg text-sm font-semibold transition-colors hover:bg-white/5"
@@ -886,8 +833,8 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
                 className="px-3 py-2.5 rounded-lg text-center"
                 style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid var(--color-border)" }}
               >
-                <p className="text-xs font-semibold" style={{ color: inc.status === "Resolved" ? "var(--color-resolved)" : "var(--color-mitigating)" }}>
-                  {inc.status === "Resolved" ? "✓ Resolved" : inc.status === "Escalated" ? "↑ Escalated to L2" : "✗ Closed"}
+                <p className="text-xs font-semibold" style={{ color: inc.status === "Closed" ? "var(--color-resolved)" : "var(--color-mitigating)" }}>
+                  {inc.status === "Closed" ? "✓ Closed" : `↑ ${inc.status}`}
                 </p>
                 <p className="text-[10px] mt-1" style={{ color: "var(--color-text-muted)" }}>
                   No further action required
@@ -911,19 +858,19 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
             onConfirm={handleConfirm}
             onClose={handleCloseModal}
           >
-            {pendingAction === "escalate" && (
+            {pendingAction === "notifyCdn" && (
               <div>
                 <label
                   className="text-xs font-semibold mb-1.5 block"
                   style={{ color: "var(--color-text-muted)" }}
                 >
-                  Reason for escalation (optional)
+                  Note (optional)
                 </label>
                 <textarea
-                  value={escalateNote}
-                  onChange={(e) => setEscalateNote(e.target.value)}
+                  value={cdnNote}
+                  onChange={(e) => setCdnNote(e.target.value)}
                   rows={3}
-                  placeholder="Describe why L2 escalation is needed…"
+                  placeholder="Add context for the CDN notification…"
                   className="w-full rounded-lg px-3 py-2 text-xs resize-none"
                   style={{
                     backgroundColor: "var(--color-bg-card)",

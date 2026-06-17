@@ -333,7 +333,7 @@ function FLMView() {
           Incidents
         </h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-          IP Peering — {openIncidents.length} open · M. Weber
+          IP Peering incident log — open and resolved cases tracked by severity and SLA
         </p>
       </div>
 
