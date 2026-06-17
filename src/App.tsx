@@ -5,6 +5,7 @@ import { AuthProvider } from "./contexts/auth";
 import { CxiLensProvider } from "./contexts/cxi-lens";
 import { CxiScopeProvider } from "./contexts/cxi-scope";
 import { FLMIncidentsProvider } from "./contexts/flm-incidents";
+import { AlarmsProvider } from "./contexts/alarms";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -20,6 +21,8 @@ import CxiCases from "./pages/CxiCases";
 import CxiCaseDetail from "./pages/CxiCaseDetail";
 import FLMDashboard from "./pages/FLMDashboard";
 import Alarms from "./pages/Alarms";
+import AlarmDetail from "./pages/AlarmDetail";
+import AlarmCompare from "./pages/AlarmCompare";
 import Playbooks from "./pages/Playbooks";
 import FLMReports from "./pages/FLMReports";
 import Events from "./pages/Events";
@@ -32,6 +35,7 @@ export default function App() {
         <CxiLensProvider>
         <CxiScopeProvider>
         <FLMIncidentsProvider>
+        <AlarmsProvider>
         <BrowserRouter>
           <AuthProvider>
             <Routes>
@@ -51,6 +55,8 @@ export default function App() {
                   <Route path="assistant" element={<Assistant />} />
                   <Route path="flm-dashboard" element={<FLMDashboard />} />
                   <Route path="alarms" element={<Alarms />} />
+                  <Route path="alarms/compare" element={<AlarmCompare />} />
+                  <Route path="alarms/:id" element={<AlarmDetail />} />
                   <Route path="playbooks" element={<Playbooks />} />
                   <Route path="events" element={<Events />} />
                   <Route path="events/:id" element={<EventDetail />} />
@@ -60,6 +66,7 @@ export default function App() {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
+        </AlarmsProvider>
         </FLMIncidentsProvider>
         </CxiScopeProvider>
         </CxiLensProvider>
