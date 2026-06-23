@@ -30,7 +30,7 @@ export const DOMAINS: Record<Exclude<DomainId, "all">, DomainConfig> = {
   "volte": {
     label: "Volte",
     scenarioId: "s3",
-    defaultRoute: "/dashboard",
+    defaultRoute: "/volte",
     color: "#2DD4BF",
     assignedRoles: ["admin"],
   },

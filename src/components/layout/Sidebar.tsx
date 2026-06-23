@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { useScenario } from "../../contexts/scenario";
 import { useDomain } from "../../contexts/domain";
-import { DOMAINS } from "../../data/domains";
 import { mockCases } from "../../data/cxi-cases";
 
 interface NavItem {
@@ -40,14 +39,14 @@ const DOMAIN_NAV: Record<string, NavItem[]> = {
     { label: "Dashboard",      href: "/dashboard",  icon: LayoutDashboard },
     { label: "Network Model",  href: "/topology",   icon: Network },
     { label: "CXI Cases",      href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
-    { label: "Agent Activity", href: "/agents",     icon: Bot },
+    { label: "Agent activity", href: "/agents",     icon: Bot },
     { label: "Reports",        href: "/reports",    icon: BarChart2 },
     { label: "Assistant",      href: "/assistant",  icon: MessageSquare },
   ],
   "volte": [
     { label: "Dashboard",      href: "/dashboard",  icon: LayoutDashboard },
     { label: "Topology",       href: "/topology",   icon: Network },
-    { label: "Agent Runtime",  href: "/agents",     icon: Bot },
+    { label: "Agent activity",  href: "/agents",     icon: Bot },
     { label: "Reports",        href: "/reports",    icon: BarChart2 },
     { label: "Assistant",      href: "/assistant",  icon: MessageSquare },
   ],
@@ -57,28 +56,28 @@ const DOMAIN_NAV: Record<string, NavItem[]> = {
 // reached since GlobalSidebar renders instead, but kept as a safety net).
 const SCENARIO_NAV: Record<string, NavItem[]> = {
   s1: [
-    { label: "Dashboard",     href: "/flm-dashboard", icon: LayoutDashboard },
-    { label: "Events",        href: "/events",         icon: Calendar },
-    { label: "Alarms",        href: "/alarms",         icon: Bell, badge: "6" },
-    { label: "Incidents",     href: "/incidents",      icon: AlertTriangle, badge: "3" },
-    { label: "Topology",      href: "/topology",       icon: Network },
-    { label: "Reports",       href: "/flm-reports",    icon: BarChart2 },
-    { label: "Assistant",     href: "/assistant",      icon: MessageSquare },
+    { label: "Dashboard",      href: "/flm-dashboard", icon: LayoutDashboard },
+    { label: "Events",         href: "/events",         icon: Calendar },
+    { label: "Alarms",         href: "/alarms",         icon: Bell, badge: "6" },
+    { label: "Incidents",      href: "/incidents",      icon: AlertTriangle, badge: "3" },
+    { label: "Topology",       href: "/topology",       icon: Network },
+    { label: "Reports",        href: "/flm-reports",    icon: BarChart2 },
+    { label: "Assistant",      href: "/assistant",      icon: MessageSquare },
   ],
   s2: [
-    { label: "Dashboard",     href: "/dashboard",  icon: LayoutDashboard },
-    { label: "Network Model", href: "/topology",   icon: Network },
-    { label: "CXI Cases",     href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
-    { label: "Agent Runtime", href: "/agents",     icon: Bot },
-    { label: "Reports",       href: "/reports",    icon: BarChart2 },
-    { label: "Assistant",     href: "/assistant",  icon: MessageSquare },
+    { label: "Dashboard",      href: "/dashboard",  icon: LayoutDashboard },
+    { label: "Network Model",  href: "/topology",   icon: Network },
+    { label: "CXI Cases",      href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
+    { label: "Agent activity", href: "/agents",     icon: Bot },
+    { label: "Reports",        href: "/reports",    icon: BarChart2 },
+    { label: "Assistant",      href: "/assistant",  icon: MessageSquare },
   ],
   s3: [
-    { label: "Dashboard",     href: "/dashboard",  icon: LayoutDashboard },
-    { label: "Topology",      href: "/topology",   icon: Network },
-    { label: "Agent Runtime", href: "/agents",     icon: Bot },
-    { label: "Reports",       href: "/reports",    icon: BarChart2 },
-    { label: "Assistant",     href: "/assistant",  icon: MessageSquare },
+    { label: "Dashboard",      href: "/dashboard",  icon: LayoutDashboard },
+    { label: "Topology",       href: "/topology",   icon: Network },
+    { label: "Agent activity", href: "/agents",     icon: Bot },
+    { label: "Reports",        href: "/reports",    icon: BarChart2 },
+    { label: "Assistant",      href: "/assistant",  icon: MessageSquare },
   ],
 };
 
@@ -97,8 +96,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
     activeDomain !== "all" && DOMAIN_NAV[activeDomain]
       ? DOMAIN_NAV[activeDomain]
       : SCENARIO_NAV[activeScenario.id] ?? SCENARIO_NAV.s1;
-
-  const domainConfig = activeDomain !== "all" ? DOMAINS[activeDomain as Exclude<typeof activeDomain, "all">] : null;
 
   return (
     <aside
@@ -136,20 +133,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
           </div>
         )}
       </div>
-
-      {/* Domain scope pill */}
-      {!collapsed && domainConfig && (
-        <div
-          className="mx-3 mt-3 mb-1 px-3 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-widest truncate"
-          style={{
-            backgroundColor: `${domainConfig.color}18`,
-            color: domainConfig.color,
-            border: `1px solid ${domainConfig.color}35`,
-          }}
-        >
-          {domainConfig.label}
-        </div>
-      )}
 
       {/* Nav items */}
       <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-hidden">

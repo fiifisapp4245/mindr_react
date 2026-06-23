@@ -7,6 +7,19 @@ import { ChatBubble } from "../shared/ChatBubble";
 import { useAuth } from "../../contexts/auth";
 import { useScenario } from "../../contexts/scenario";
 import { useDomain } from "../../contexts/domain";
+import { DOMAINS, type DomainId } from "../../data/domains";
+
+// Routes that belong exclusively to a domain — used to re-sync after a cold
+// browser load or history restoration (when React state resets to "all" but
+// the URL is already a domain-specific page).
+const ROUTE_DOMAIN: Array<[string, Exclude<DomainId, "all">]> = [
+  ["/flm-dashboard", "ip-core"],
+  ["/events",        "ip-core"],
+  ["/alarms",        "ip-core"],
+  ["/flm-reports",   "ip-core"],
+  ["/cxi-cases",     "cxi"],
+  ["/volte",         "volte"],
+];
 
 export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -19,9 +32,24 @@ export function AppLayout() {
     if (role === "cxi") setScenario("s2");
   }, [role]);
 
-  // Keep domain in sync with the overview route (e.g. browser back, sidebar link)
+  // Sync domain ↔ URL so browser restores, history navigations, and direct
+  // URL entry always show the correct sidebar.
   useEffect(() => {
-    if (location.pathname === "/overview") setDomain("all");
+    const path = location.pathname;
+    if (path === "/overview") {
+      setDomain("all");
+      return;
+    }
+    // Only auto-correct when domain context has drifted back to "all"
+    // (e.g. fresh page load, machine sleep-resume).
+    if (activeDomain === "all") {
+      const match = ROUTE_DOMAIN.find(([route]) => path === route || path.startsWith(route + "/"));
+      if (match) {
+        const domainId = match[1];
+        setDomain(domainId);
+        setScenario(DOMAINS[domainId].scenarioId);
+      }
+    }
   }, [location.pathname]);
 
   return (

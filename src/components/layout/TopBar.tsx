@@ -108,10 +108,18 @@ interface TopBarProps {
   onToggleSidebar?: () => void;
 }
 
+// Stable per-role persona — avatar never changes when domain switches
+const AUTH_PERSONAS: Record<string, { name: string; initials: string; roleLabel: string; email: string; color: string }> = {
+  flm:   { name: "Kwame Asante", initials: "KA", roleLabel: "FLM Engineer",   email: "k.asante@mindr.network", color: "var(--color-brand)"    },
+  cxi:   { name: "Marcus Webb",  initials: "MW", roleLabel: "CXI Specialist",  email: "m.webb@mindr.network",   color: "var(--color-warning)"  },
+  admin: { name: "Sara Chen",    initials: "SC", roleLabel: "Administrator",   email: "s.chen@mindr.network",   color: "var(--color-resolved)" },
+};
+
 export function TopBar({ status = "critical", sidebarCollapsed = false, onToggleSidebar }: TopBarProps) {
   const navigate = useNavigate();
   const { activeScenario, activeUser, setUser } = useScenario();
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
+  const authPersona = AUTH_PERSONAS[role ?? ""] ?? AUTH_PERSONAS.admin;
   const { lens, setLens } = useCxiLens();
   const isCxi = activeScenario.id === "s2";
 
@@ -318,13 +326,13 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
             >
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                style={{ backgroundColor: activeScenario.color, color: "#fff" }}
+                style={{ backgroundColor: authPersona.color, color: "#fff" }}
               >
-                {activeUser.initials}
+                {authPersona.initials}
               </div>
               <div className="flex flex-col leading-tight text-left">
-                <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>{activeUser.name}</span>
-                <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{activeUser.role}</span>
+                <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>{authPersona.name}</span>
+                <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{authPersona.roleLabel}</span>
               </div>
             </button>
 
@@ -334,18 +342,18 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
                 <div className="px-4 py-4 flex items-center gap-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
                   <div
                     className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                    style={{ backgroundColor: activeScenario.color, color: "#fff" }}
+                    style={{ backgroundColor: authPersona.color, color: "#fff" }}
                   >
-                    {activeUser.initials}
+                    {authPersona.initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{activeUser.name}</p>
-                    <p className="text-[11px] truncate" style={{ color: "var(--color-text-muted)" }}>{activeUser.email}</p>
+                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{authPersona.name}</p>
+                    <p className="text-[11px] truncate" style={{ color: "var(--color-text-muted)" }}>{authPersona.email}</p>
                     <span
                       className="inline-block text-[9px] font-semibold px-1.5 py-px rounded-full uppercase tracking-wider mt-0.5"
-                      style={{ backgroundColor: "rgba(255,255,255,0.08)", color: activeScenario.color }}
+                      style={{ backgroundColor: "rgba(255,255,255,0.08)", color: authPersona.color }}
                     >
-                      {activeUser.role}
+                      {authPersona.roleLabel}
                     </span>
                   </div>
                 </div>

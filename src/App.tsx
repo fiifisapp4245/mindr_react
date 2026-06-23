@@ -29,6 +29,7 @@ import FLMReports from "./pages/FLMReports";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import Overview from "./pages/Overview";
+import VolteComingSoon from "./pages/VolteComingSoon";
 import NetworkModelList from "./pages/NetworkModelList";
 import NetworkModelGraph from "./pages/NetworkModelGraph";
 import NetworkModelChat from "./pages/NetworkModelChat";
@@ -50,6 +51,7 @@ export default function App() {
                 <Route path="/" element={<AppLayout />}>
                   <Route index element={<Navigate to="/overview" replace />} />
                   <Route path="overview" element={<Overview />} />
+                  <Route path="volte" element={<VolteComingSoon />} />
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="topology" element={<Topology />} />
                   <Route path="agents" element={<Agents />} />

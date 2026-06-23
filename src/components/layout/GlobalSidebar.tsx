@@ -18,7 +18,7 @@ const GLOBAL_NAV: NavItem[] = [
   { label: "Overview",  href: "/overview",  icon: LayoutDashboard },
   { label: "Network Model", href: "/network-model", icon: Network },
   { label: "Incidents", href: "/incidents", icon: AlertTriangle },
-  { label: "Agents",    href: "/agents",    icon: Bot },
+  { label: "Agent activity", href: "/agents", icon: Bot },
   { label: "Reports",   href: "/reports",   icon: BarChart2 },
 ];
 
