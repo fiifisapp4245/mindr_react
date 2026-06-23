@@ -52,10 +52,10 @@ const SLA_REGIONS = [
 
 function downloadReport(name: string, type: string) {
   const lines = [
-    `MINDR AI — ${name}`,
+    `MINDR — ${name}`,
     `Report Type: ${type}`,
     `Generated: ${new Date().toUTCString()}`,
-    `Platform: MINDR AI v4.0.0`,
+    `Platform: MINDR v4.0.0`,
     ``,
     `─────────────────────────────────────────`,
     `SUMMARY`,

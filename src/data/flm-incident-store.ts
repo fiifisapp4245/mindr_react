@@ -163,8 +163,8 @@ export const FLM_INCIDENTS: FLMIncident[] = [
     ],
 
     activityLog: [
-      { time: '14:32 UTC', actor: 'MINDR AI', action: 'Incident auto-created from ALM-0038 threshold breach' },
-      { time: '14:33 UTC', actor: 'MINDR AI', action: 'Root cause analysis completed — confidence 91%' },
+      { time: '14:32 UTC', actor: 'MINDR', action: 'Incident auto-created from ALM-0038 threshold breach' },
+      { time: '14:33 UTC', actor: 'MINDR', action: 'Root cause analysis completed — confidence 91%' },
     ],
 
     rootCause: {
@@ -267,8 +267,8 @@ export const FLM_INCIDENTS: FLMIncident[] = [
     ],
 
     activityLog: [
-      { time: '14:28 UTC', actor: 'MINDR AI', action: 'Incident auto-created from ALM-0042 BGP flap detection' },
-      { time: '14:30 UTC', actor: 'MINDR AI', action: 'Root cause analysis completed — confidence 87%' },
+      { time: '14:28 UTC', actor: 'MINDR', action: 'Incident auto-created from ALM-0042 BGP flap detection' },
+      { time: '14:30 UTC', actor: 'MINDR', action: 'Root cause analysis completed — confidence 87%' },
       { time: '14:35 UTC', actor: 'Kwame Asante', action: 'Investigation started — reviewing BGP session logs' },
     ],
 
@@ -370,8 +370,8 @@ export const FLM_INCIDENTS: FLMIncident[] = [
     ],
 
     activityLog: [
-      { time: '13:56 UTC', actor: 'MINDR AI', action: 'Incident auto-created from ALM-0044 utilization threshold breach' },
-      { time: '13:58 UTC', actor: 'MINDR AI', action: 'Root cause analysis completed — confidence 94%' },
+      { time: '13:56 UTC', actor: 'MINDR', action: 'Incident auto-created from ALM-0044 utilization threshold breach' },
+      { time: '13:58 UTC', actor: 'MINDR', action: 'Root cause analysis completed — confidence 94%' },
     ],
 
     rootCause: {
@@ -469,8 +469,8 @@ export const FLM_INCIDENTS: FLMIncident[] = [
     ],
 
     activityLog: [
-      { time: '10:14 UTC', actor: 'MINDR AI', action: 'Incident auto-created from ALM-0031' },
-      { time: '11:48 UTC', actor: 'MINDR AI', action: 'Traffic rebalancing detected — monitoring' },
+      { time: '10:14 UTC', actor: 'MINDR', action: 'Incident auto-created from ALM-0031' },
+      { time: '11:48 UTC', actor: 'MINDR', action: 'Traffic rebalancing detected — monitoring' },
       { time: '12:15 UTC', actor: 'Kwame Asante', action: 'Confirmed resolution — SLA met. Resolved.' },
     ],
 

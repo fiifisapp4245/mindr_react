@@ -86,7 +86,7 @@ export function IncidentDetail({ incident }: { incident: Incident }) {
           </div>
           <div>
             <p className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>
-              MINDR AI Analysis Available
+              MINDR Analysis Available
             </p>
             <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
               {incident.insights.confidence}% confidence · Root cause identified
