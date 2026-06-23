@@ -18,18 +18,7 @@ import { useScenario } from "../../contexts/scenario";
 import { useAuth } from "../../contexts/auth";
 import { Badge } from "../ui/badge";
 import { useCxiLens, LENS_LABEL, type CxiLens } from "../../contexts/cxi-lens";
-
-function WaffleIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="currentColor">
-      {[0, 1, 2].map((row) =>
-        [0, 1, 2].map((col) => (
-          <circle key={`${row}-${col}`} cx={3 + col * 6} cy={3 + row * 6} r={1.6} />
-        ))
-      )}
-    </svg>
-  );
-}
+import { DomainSelector } from "./DomainSelector";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -121,9 +110,8 @@ interface TopBarProps {
 
 export function TopBar({ status = "critical", sidebarCollapsed = false, onToggleSidebar }: TopBarProps) {
   const navigate = useNavigate();
-  const { scenarios, activeScenario, activeUser, setScenario, setUser } = useScenario();
-  const { signOut, role } = useAuth();
-  const isAdmin = role === "admin";
+  const { activeScenario, activeUser, setUser } = useScenario();
+  const { signOut } = useAuth();
   const { lens, setLens } = useCxiLens();
   const isCxi = activeScenario.id === "s2";
 
@@ -131,17 +119,14 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
   const [showSearch,  setShowSearch]  = useState(false);
   const [showNotif,   setShowNotif]   = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showWaffle,  setShowWaffle]  = useState(false);
 
   const searchRef  = useRef<HTMLDivElement>(null);
   const notifRef   = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
-  const waffleRef  = useRef<HTMLDivElement>(null);
 
   useClickOutside(searchRef,  () => setShowSearch(false));
   useClickOutside(notifRef,   () => setShowNotif(false));
   useClickOutside(profileRef, () => setShowProfile(false));
-  useClickOutside(waffleRef,  () => setShowWaffle(false));
 
   const searchResults = searchValue.trim().length > 1
     ? SEARCH_DATA.filter(
@@ -182,6 +167,9 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
         </button>
 
         <div className="w-px h-6 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
+
+        {/* ── Domain selector ── */}
+        <DomainSelector />
 
         {/* ── Search ── */}
         <div className="relative flex-1 max-w-sm" ref={searchRef}>
@@ -266,80 +254,10 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
         {/* ── Icon actions ── */}
         <div className="flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
 
-          {/* ── Waffle / Scenario Switcher (admin only) ── */}
-          {isAdmin && <div className="relative" ref={waffleRef}>
-            <button
-              onClick={() => { setShowWaffle((o) => !o); setShowNotif(false); setShowProfile(false); }}
-              className="relative p-2 rounded-lg hover:bg-white/5 transition-colors"
-              title="Switch Scenario"
-            >
-              <WaffleIcon size={16} />
-              <span
-                className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2"
-                style={{ backgroundColor: activeScenario.color, borderColor: "var(--color-bg-card)" }}
-              />
-            </button>
-
-            {showWaffle && (
-              <div style={{ ...dropdownBase, right: 0, width: 320 }}>
-                <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
-                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
-                    Switch Scenario
-                  </p>
-                </div>
-                <div className="p-3 grid grid-cols-3 gap-2">
-                  {scenarios.map((s) => {
-                    const isActive = s.id === activeScenario.id;
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => { setScenario(s.id); setShowWaffle(false); navigate(s.defaultRoute); }}
-                        className="flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-colors"
-                        style={{
-                          border: `1px solid ${isActive ? s.color : "var(--color-border)"}`,
-                          backgroundColor: isActive ? "rgba(255,255,255,0.04)" : "var(--color-bg-card)",
-                        }}
-                      >
-                        <span
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold"
-                          style={{
-                            backgroundColor: isActive ? "rgba(255,255,255,0.08)" : "var(--color-bg-elevated)",
-                            color: isActive ? s.color : "var(--color-text-muted)",
-                          }}
-                        >
-                          S{s.id.slice(1)}
-                        </span>
-                        <div>
-                          <p className="text-[9px] font-bold uppercase tracking-widest leading-none mb-0.5" style={{ color: isActive ? s.color : "var(--color-text-muted)" }}>
-                            {s.tag}
-                          </p>
-                          <p className="text-[10px] font-medium leading-snug" style={{ color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)" }}>
-                            {s.label}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="px-4 pb-3">
-                  <div
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
-                    style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-                  >
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: activeScenario.color }} />
-                    <span style={{ color: "var(--color-text-muted)" }}>Active:</span>
-                    <span className="font-medium" style={{ color: "var(--color-text-primary)" }}>{activeScenario.label}</span>
-                    <span className="ml-auto text-[10px]" style={{ color: "var(--color-text-muted)" }}>{activeUser.name}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>}
-
           {/* ── Notifications ── */}
           <div className="relative" ref={notifRef}>
             <button
-              onClick={() => { setShowNotif((o) => !o); setShowProfile(false); setShowWaffle(false); }}
+              onClick={() => { setShowNotif((o) => !o); setShowProfile(false); }}
               className="relative p-2 rounded-lg hover:bg-white/5 transition-colors"
             >
               <Bell size={16} />
@@ -395,7 +313,7 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
             ref={profileRef}
           >
             <button
-              onClick={() => { setShowProfile((o) => !o); setShowNotif(false); setShowWaffle(false); }}
+              onClick={() => { setShowProfile((o) => !o); setShowNotif(false); }}
               className="flex items-center gap-2.5"
             >
               <div

@@ -20,7 +20,7 @@ import { kpi } from "../data/peering-store";
 
 // Band 1 card definitions — maps store key → display title → nav destination
 const BAND1_CARDS: { key: keyof typeof kpi; title: string; to: string }[] = [
-  { key: "activeSC1Alerts",       title: "Active SC-1 Alerts",       to: "/alarms"   },
+  { key: "activeSC1Alerts",       title: "Active Alerts",            to: "/alarms"   },
   { key: "highSeverityAlerts",    title: "High Severity Alerts",     to: "/alarms"   },
   { key: "congestedPorts",        title: "Congested Ports",          to: "/topology" },
   { key: "criticalBuildoutPorts", title: "Critical Build-out Ports", to: "/alarms"   },

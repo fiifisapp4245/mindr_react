@@ -6,6 +6,7 @@ import { CxiLensProvider } from "./contexts/cxi-lens";
 import { CxiScopeProvider } from "./contexts/cxi-scope";
 import { FLMIncidentsProvider } from "./contexts/flm-incidents";
 import { AlarmsProvider } from "./contexts/alarms";
+import { DomainProvider } from "./contexts/domain";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -27,6 +28,10 @@ import Playbooks from "./pages/Playbooks";
 import FLMReports from "./pages/FLMReports";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
+import Overview from "./pages/Overview";
+import NetworkModelList from "./pages/NetworkModelList";
+import NetworkModelGraph from "./pages/NetworkModelGraph";
+import NetworkModelChat from "./pages/NetworkModelChat";
 
 export default function App() {
   return (
@@ -36,13 +41,15 @@ export default function App() {
         <CxiScopeProvider>
         <FLMIncidentsProvider>
         <AlarmsProvider>
+        <DomainProvider>
         <BrowserRouter>
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<AppLayout />}>
-                  <Route index element={<Navigate to="/dashboard" replace />} />
+                  <Route index element={<Navigate to="/overview" replace />} />
+                  <Route path="overview" element={<Overview />} />
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="topology" element={<Topology />} />
                   <Route path="agents" element={<Agents />} />
@@ -61,11 +68,16 @@ export default function App() {
                   <Route path="events" element={<Events />} />
                   <Route path="events/:id" element={<EventDetail />} />
                   <Route path="flm-reports" element={<FLMReports />} />
+                  <Route path="network-model" element={<NetworkModelList />} />
+                  <Route path="network-model/:domainId" element={<NetworkModelGraph />} />
+                  <Route path="network-model/:domainId/chat" element={<NetworkModelChat />} />
+                  <Route path="network-model/:domainId/chat/:convId" element={<NetworkModelChat />} />
                 </Route>
               </Route>
             </Routes>
           </AuthProvider>
         </BrowserRouter>
+        </DomainProvider>
         </AlarmsProvider>
         </FLMIncidentsProvider>
         </CxiScopeProvider>

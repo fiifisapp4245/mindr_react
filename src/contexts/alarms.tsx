@@ -24,7 +24,15 @@ export function AlarmsProvider({ children }: { children: ReactNode }) {
   const [alarms, setAlarms] = useState<AlarmRow[]>(INITIAL_ALARMS);
 
   function acknowledge(id: string) {
-    setAlarms((prev) => patchAlarm(prev, id, { status: 'acknowledged' }));
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setAlarms((prev) =>
+      patchAlarm(prev, id, {
+        status: 'acknowledged',
+        acknowledgedAt: timeStr,
+        acknowledgedBy: 'You',
+      })
+    );
   }
 
   function snooze(id: string) {
@@ -33,12 +41,11 @@ export function AlarmsProvider({ children }: { children: ReactNode }) {
 
   function createIncident(id: string): string {
     const incId = nextIncidentId();
-    const incLabel = incId; // e.g. "INC-9001"
     setAlarms((prev) =>
       patchAlarm(prev, id, {
         createdIncidentId: incId,
-        linkedIncident: incLabel,
-        linkedIncidentId: incId.toLowerCase().replace('inc-', 'inc-'), // stays same
+        linkedIncident: incId,
+        linkedIncidentId: incId.toLowerCase().replace('inc-', 'inc-'),
       })
     );
     return incId;

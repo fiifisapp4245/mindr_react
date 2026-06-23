@@ -12,7 +12,8 @@ import {
   Zap,
 } from "lucide-react";
 import { useScenario } from "../../contexts/scenario";
-import { useAuth } from "../../contexts/auth";
+import { useDomain } from "../../contexts/domain";
+import { DOMAINS } from "../../data/domains";
 import { mockCases } from "../../data/cxi-cases";
 
 interface NavItem {
@@ -24,38 +25,49 @@ interface NavItem {
 
 const S2_PENDING = String(mockCases.filter((c) => c.status === "pending").length);
 
-const ROLE_NAV: Record<string, NavItem[]> = {
-  flm: [
+// Domain-keyed nav — drives the sidebar when a specific domain is active in the dropdown.
+const DOMAIN_NAV: Record<string, NavItem[]> = {
+  "ip-core": [
     { label: "Dashboard",  href: "/flm-dashboard", icon: LayoutDashboard },
-    { label: "Events",     href: "/events",          icon: Calendar },
+    { label: "Events",     href: "/events",         icon: Calendar },
     { label: "Alarms",     href: "/alarms",         icon: Bell, badge: "6" },
     { label: "Incidents",  href: "/incidents",      icon: AlertTriangle, badge: "3" },
     { label: "Topology",   href: "/topology",       icon: Network },
     { label: "Reports",    href: "/flm-reports",    icon: BarChart2 },
     { label: "Assistant",  href: "/assistant",      icon: MessageSquare },
   ],
-  cxi: [
-    { label: "Dashboard",        href: "/dashboard",  icon: LayoutDashboard },
-    { label: "Network model",    href: "/topology",   icon: Network },
-    { label: "CXI Cases",        href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
-    { label: "Agent Activity",   href: "/agents",     icon: Bot },
-    { label: "Reports",          href: "/reports",    icon: BarChart2 },
-    { label: "Assistant",        href: "/assistant",  icon: MessageSquare },
+  "cxi": [
+    { label: "Dashboard",      href: "/dashboard",  icon: LayoutDashboard },
+    { label: "Network Model",  href: "/topology",   icon: Network },
+    { label: "CXI Cases",      href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
+    { label: "Agent Activity", href: "/agents",     icon: Bot },
+    { label: "Reports",        href: "/reports",    icon: BarChart2 },
+    { label: "Assistant",      href: "/assistant",  icon: MessageSquare },
+  ],
+  "volte": [
+    { label: "Dashboard",      href: "/dashboard",  icon: LayoutDashboard },
+    { label: "Topology",       href: "/topology",   icon: Network },
+    { label: "Agent Runtime",  href: "/agents",     icon: Bot },
+    { label: "Reports",        href: "/reports",    icon: BarChart2 },
+    { label: "Assistant",      href: "/assistant",  icon: MessageSquare },
   ],
 };
 
+// Fallback nav used only when activeDomain is "all" (shouldn't normally be
+// reached since GlobalSidebar renders instead, but kept as a safety net).
 const SCENARIO_NAV: Record<string, NavItem[]> = {
   s1: [
-    { label: "Dashboard",     href: "/dashboard",  icon: LayoutDashboard },
-    { label: "Topology",      href: "/topology",   icon: Network },
-    { label: "Agent Runtime", href: "/agents",     icon: Bot },
-    { label: "Incidents",     href: "/incidents",  icon: AlertTriangle, badge: "3" },
-    { label: "Reports",       href: "/reports",    icon: BarChart2 },
-    { label: "Assistant",     href: "/assistant",  icon: MessageSquare },
+    { label: "Dashboard",     href: "/flm-dashboard", icon: LayoutDashboard },
+    { label: "Events",        href: "/events",         icon: Calendar },
+    { label: "Alarms",        href: "/alarms",         icon: Bell, badge: "6" },
+    { label: "Incidents",     href: "/incidents",      icon: AlertTriangle, badge: "3" },
+    { label: "Topology",      href: "/topology",       icon: Network },
+    { label: "Reports",       href: "/flm-reports",    icon: BarChart2 },
+    { label: "Assistant",     href: "/assistant",      icon: MessageSquare },
   ],
   s2: [
     { label: "Dashboard",     href: "/dashboard",  icon: LayoutDashboard },
-    { label: "Network model", href: "/topology",   icon: Network },
+    { label: "Network Model", href: "/topology",   icon: Network },
     { label: "CXI Cases",     href: "/cxi-cases",  icon: Activity, badge: S2_PENDING },
     { label: "Agent Runtime", href: "/agents",     icon: Bot },
     { label: "Reports",       href: "/reports",    icon: BarChart2 },
@@ -78,9 +90,15 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const location = useLocation();
   const pathname = location.pathname;
   const { activeScenario } = useScenario();
-  const { role } = useAuth();
-  const isRoleBased = !!ROLE_NAV[role ?? ""];
-  const navItems: NavItem[] = ROLE_NAV[role ?? ""] ?? SCENARIO_NAV[activeScenario.id] ?? SCENARIO_NAV.s1;
+  const { activeDomain } = useDomain();
+
+  // Domain-keyed nav takes priority when a specific domain is active.
+  const navItems: NavItem[] =
+    activeDomain !== "all" && DOMAIN_NAV[activeDomain]
+      ? DOMAIN_NAV[activeDomain]
+      : SCENARIO_NAV[activeScenario.id] ?? SCENARIO_NAV.s1;
+
+  const domainConfig = activeDomain !== "all" ? DOMAINS[activeDomain as Exclude<typeof activeDomain, "all">] : null;
 
   return (
     <aside
@@ -119,17 +137,17 @@ export function Sidebar({ collapsed }: SidebarProps) {
         )}
       </div>
 
-      {/* Scenario label — hidden for role-based users (flm, cxi) */}
-      {!collapsed && !isRoleBased && (
+      {/* Domain scope pill */}
+      {!collapsed && domainConfig && (
         <div
           className="mx-3 mt-3 mb-1 px-3 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-widest truncate"
           style={{
-            backgroundColor: `${activeScenario.color}18`,
-            color: activeScenario.color,
-            border: `1px solid ${activeScenario.color}35`,
+            backgroundColor: `${domainConfig.color}18`,
+            color: domainConfig.color,
+            border: `1px solid ${domainConfig.color}35`,
           }}
         >
-          {activeScenario.tag}
+          {domainConfig.label}
         </div>
       )}
 
