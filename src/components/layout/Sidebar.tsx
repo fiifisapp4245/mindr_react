@@ -44,11 +44,13 @@ const DOMAIN_NAV: Record<string, NavItem[]> = {
     { label: "Assistant",      href: "/assistant",  icon: MessageSquare },
   ],
   "volte": [
-    { label: "Dashboard",      href: "/dashboard",  icon: LayoutDashboard },
-    { label: "Topology",       href: "/topology",   icon: Network },
-    { label: "Agent activity",  href: "/agents",     icon: Bot },
-    { label: "Reports",        href: "/reports",    icon: BarChart2 },
-    { label: "Assistant",      href: "/assistant",  icon: MessageSquare },
+    { label: "Dashboard",     href: "/volte/dashboard",     icon: LayoutDashboard },
+    { label: "Events",        href: "/volte/events",        icon: Calendar },
+    { label: "Alarms",        href: "/volte/alarms",        icon: Bell },
+    { label: "Network model", href: "/volte/network-model", icon: Network },
+    { label: "Incidents",     href: "/volte/incidents",     icon: AlertTriangle },
+    { label: "Reports",       href: "/volte/reports",       icon: BarChart2 },
+    { label: "Assistant",     href: "/assistant",           icon: MessageSquare },
   ],
 };
 

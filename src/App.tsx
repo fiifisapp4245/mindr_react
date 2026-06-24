@@ -29,7 +29,13 @@ import FLMReports from "./pages/FLMReports";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import Overview from "./pages/Overview";
-import VolteComingSoon from "./pages/VolteComingSoon";
+import VolteDashboard from "./pages/volte/VolteDashboard";
+import VolteEvents from "./pages/volte/VolteEvents";
+import VolteAlarms from "./pages/volte/VolteAlarms";
+import VolteServiceChain from "./pages/volte/VolteServiceChain";
+import VolteIncidents from "./pages/volte/VolteIncidents";
+import VolteIncidentDetail from "./pages/volte/VolteIncidentDetail";
+import VolteReports from "./pages/volte/VolteReports";
 import NetworkModelList from "./pages/NetworkModelList";
 import NetworkModelGraph from "./pages/NetworkModelGraph";
 import NetworkModelChat from "./pages/NetworkModelChat";
@@ -51,7 +57,16 @@ export default function App() {
                 <Route path="/" element={<AppLayout />}>
                   <Route index element={<Navigate to="/overview" replace />} />
                   <Route path="overview" element={<Overview />} />
-                  <Route path="volte" element={<VolteComingSoon />} />
+                  <Route path="volte">
+                    <Route index element={<Navigate to="/volte/dashboard" replace />} />
+                    <Route path="dashboard"    element={<VolteDashboard />} />
+                    <Route path="events"       element={<VolteEvents />} />
+                    <Route path="alarms"       element={<VolteAlarms />} />
+                    <Route path="network-model" element={<VolteServiceChain />} />
+                    <Route path="incidents"    element={<VolteIncidents />} />
+                    <Route path="incidents/:id" element={<VolteIncidentDetail />} />
+                    <Route path="reports"      element={<VolteReports />} />
+                  </Route>
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="topology" element={<Topology />} />
                   <Route path="agents" element={<Agents />} />
