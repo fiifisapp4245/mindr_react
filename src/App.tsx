@@ -10,7 +10,6 @@ import { DomainProvider } from "./contexts/domain";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
-import Topology from "./pages/Topology";
 import Agents from "./pages/Agents";
 import Incidents from "./pages/Incidents";
 import IncidentDetail from "./pages/IncidentDetail";
@@ -24,7 +23,6 @@ import FLMDashboard from "./pages/FLMDashboard";
 import Alarms from "./pages/Alarms";
 import AlarmDetail from "./pages/AlarmDetail";
 import AlarmCompare from "./pages/AlarmCompare";
-import Playbooks from "./pages/Playbooks";
 import FLMReports from "./pages/FLMReports";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
@@ -68,7 +66,6 @@ export default function App() {
                     <Route path="reports"      element={<VolteReports />} />
                   </Route>
                   <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="topology" element={<Topology />} />
                   <Route path="agents" element={<Agents />} />
                   <Route path="incidents" element={<Incidents />} />
                   <Route path="incidents/compare" element={<IncidentCompare />} />
@@ -81,7 +78,6 @@ export default function App() {
                   <Route path="alarms" element={<Alarms />} />
                   <Route path="alarms/compare" element={<AlarmCompare />} />
                   <Route path="alarms/:id" element={<AlarmDetail />} />
-                  <Route path="playbooks" element={<Playbooks />} />
                   <Route path="events" element={<Events />} />
                   <Route path="events/:id" element={<EventDetail />} />
                   <Route path="flm-reports" element={<FLMReports />} />

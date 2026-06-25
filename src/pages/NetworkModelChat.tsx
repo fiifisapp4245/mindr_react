@@ -85,10 +85,8 @@ export default function NetworkModelChat() {
     }
   }
 
-  function handleNodeSelect(nodeId: string, domain: string) {
-    // TODO: Node detail panel is a next-phase task; behavior will be designed
-    // per-domain. Wired and ready — no UI action yet.
-    console.log("[NetworkModelChat] node selected:", nodeId, "domain:", domain);
+  function handleNodeSelect(nodeId: string) {
+    console.log("[NetworkModelChat] node selected:", nodeId);
   }
 
   const showGreeting = messages.length === 0 && !isTyping;

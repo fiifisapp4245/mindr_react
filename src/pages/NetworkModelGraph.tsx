@@ -8,6 +8,7 @@ import {
   NODE_COLOR,
   type DomainGraphData,
   type GraphNode,
+  type EdgeStatus,
 } from "../data/network-model-data";
 import DomainGraphCanvas from "../components/network-model/DomainGraphCanvas";
 import NetworkModelLeftPanel from "../components/network-model/NetworkModelLeftPanel";
@@ -59,7 +60,7 @@ function NodeDetailPanel({
       const peer   = data.nodes.find(n => n.id === peerId) as GraphNode | undefined;
       return peer ? { peer, edgeStatus: e.status } : null;
     })
-    .filter((x): x is { peer: GraphNode; edgeStatus: string } => x !== null);
+    .filter((x): x is { peer: GraphNode; edgeStatus: EdgeStatus } => x !== null);
 
   return (
     <div

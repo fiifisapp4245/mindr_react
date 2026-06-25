@@ -11,12 +11,7 @@ import { IncidentRow } from "../components/dashboard/IncidentRow";
 import { useScenario } from "../contexts/scenario";
 import { CxiDashboard } from "../components/s2/CxiDashboard";
 
-export default function Dashboard() {
-  const { activeDomain } = useDomain();
-  const { activeScenario } = useScenario();
-  if (activeDomain === "all") return <Navigate to="/overview" replace />;
-  if (activeScenario.id === "s2") return <CxiDashboard />;
-
+function AdminDashboardView() {
   const { recentIncidents } = useDashboard();
   const [fabHovered, setFabHovered] = useState(false);
 
@@ -175,4 +170,12 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
+
+export default function Dashboard() {
+  const { activeDomain } = useDomain();
+  const { activeScenario } = useScenario();
+  if (activeDomain === "all") return <Navigate to="/overview" replace />;
+  if (activeScenario.id === "s2") return <CxiDashboard />;
+  return <AdminDashboardView />;
 }
