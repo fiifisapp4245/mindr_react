@@ -24,8 +24,8 @@ export function DomainSelector() {
 
   const currentLabel =
     activeDomain === "all"
-      ? "All domains"
-      : (DOMAINS[activeDomain as Exclude<DomainId, "all">]?.label ?? "All domains");
+      ? "All modules"
+      : (DOMAINS[activeDomain as Exclude<DomainId, "all">]?.label ?? "All modules");
 
   function handleSelect(id: DomainId) {
     setOpen(false);
@@ -77,7 +77,7 @@ export function DomainSelector() {
 
       {open && (
         <div style={dropdownStyle}>
-          {/* All domains option */}
+          {/* All modules option */}
           <button
             onClick={() => handleSelect("all")}
             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors"
@@ -91,7 +91,7 @@ export function DomainSelector() {
               size={13}
               style={{ color: activeDomain === "all" ? "var(--color-brand)" : "var(--color-text-muted)" }}
             />
-            <span className="text-[12px] flex-1">All domains</span>
+            <span className="text-[12px] flex-1">All modules</span>
             {activeDomain === "all" && (
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--color-brand)" }} />
             )}

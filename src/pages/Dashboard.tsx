@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useDomain } from "../contexts/domain";
 import { kpiCard, kpiValue } from "../lib/animations";
 import { Activity, TrendingDown, Zap } from "lucide-react";
 import { useDashboard } from "../hooks/use-dashboard";
@@ -11,7 +12,9 @@ import { useScenario } from "../contexts/scenario";
 import { CxiDashboard } from "../components/s2/CxiDashboard";
 
 export default function Dashboard() {
+  const { activeDomain } = useDomain();
   const { activeScenario } = useScenario();
+  if (activeDomain === "all") return <Navigate to="/overview" replace />;
   if (activeScenario.id === "s2") return <CxiDashboard />;
 
   const { recentIncidents } = useDashboard();

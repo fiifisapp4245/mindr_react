@@ -1,8 +1,8 @@
 import { useScenario } from "../contexts/scenario";
-import { CxiTopology } from "../components/s2/CxiTopology";
+import { useDomain } from "../contexts/domain";
 import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import {
   GitFork,
   Maximize2,
@@ -71,8 +71,12 @@ const EVENT_COLOR: Record<string, string> = {
 };
 
 export default function Topology() {
+  const { activeDomain } = useDomain();
   const { activeScenario } = useScenario();
-  if (activeScenario.id === "s2") return <CxiTopology />;
+
+  // Module-based routing: send both CXI and IP Core users to the knowledge graph.
+  if (activeDomain === "cxi")     return <Navigate to="/network-model/cxi"     replace />;
+  if (activeDomain === "ip-core") return <Navigate to="/network-model/ip-core" replace />;
 
   const { nodes, edges } = useTopology();
 

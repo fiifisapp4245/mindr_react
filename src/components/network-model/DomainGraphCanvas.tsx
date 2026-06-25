@@ -4,7 +4,8 @@ import { NODE_COLOR } from "../../data/network-model-data";
 interface Props {
   data: DomainGraphData;
   domainId: string;
-  onNodeSelect: (nodeId: string, domainId: string) => void;
+  onNodeSelect: (nodeId: string) => void;
+  selectedNodeId?: string | null;
 }
 
 function curvedPath(x1: number, y1: number, x2: number, y2: number): string {
@@ -39,14 +40,11 @@ const LEGEND_ITEMS: { status: keyof typeof NODE_COLOR; label: string }[] = [
   { status: "critical", label: "Critical"   },
 ];
 
-export default function DomainGraphCanvas({ data, domainId, onNodeSelect }: Props) {
+export default function DomainGraphCanvas({ data, domainId, onNodeSelect, selectedNodeId }: Props) {
   const nodeMap = new Map(data.nodes.map(n => [n.id, n]));
 
   function handleNodeClick(nodeId: string) {
-    // TODO: Node detail panel is a next-phase task; behavior will be designed
-    // per-domain (IP Core vs CXI vs Volte). For now this hook is wired but
-    // produces no visible side-effect in the UI.
-    onNodeSelect(nodeId, domainId);
+    onNodeSelect(nodeId);
   }
 
   return (
@@ -96,6 +94,7 @@ export default function DomainGraphCanvas({ data, domainId, onNodeSelect }: Prop
       {data.nodes.map(node => {
         const color = NODE_COLOR[node.status];
         const isCritical = node.status === "critical";
+        const isSelected = node.id === selectedNodeId;
         return (
           <div
             key={node.id}
@@ -110,6 +109,25 @@ export default function DomainGraphCanvas({ data, domainId, onNodeSelect }: Prop
               alignItems: "center",
             }}
           >
+            {/* Selection ring */}
+            {isSelected && (
+              <div
+                style={{
+                  position:     "absolute",
+                  left:         "50%",
+                  top:          "50%",
+                  width:        46,
+                  height:       46,
+                  borderRadius: "50%",
+                  border:       "2px solid #fff",
+                  transform:    "translate(-50%,-50%)",
+                  opacity:      0.9,
+                  pointerEvents: "none",
+                  boxShadow:    "0 0 12px rgba(255,255,255,0.4)",
+                }}
+              />
+            )}
+
             {/* Pulse ring for critical nodes */}
             {isCritical && (
               <div

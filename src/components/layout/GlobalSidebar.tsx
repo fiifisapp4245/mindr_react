@@ -76,7 +76,7 @@ export function GlobalSidebar({ collapsed }: GlobalSidebarProps) {
             border: "1px solid var(--color-border)",
           }}
         >
-          All domains
+          All modules
         </div>
       )}
 

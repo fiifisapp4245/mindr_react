@@ -9,7 +9,7 @@ import {
   Square,
   GitCompare,
 } from "lucide-react";
-import { useAuth } from "../contexts/auth";
+import { useDomain } from "../contexts/domain";
 import { useIncidents } from "../hooks/use-incidents";
 import { useFLMIncidents } from "../contexts/flm-incidents";
 import { IncidentListCard } from "../components/incidents/IncidentListCard";
@@ -562,9 +562,9 @@ function FLMView() {
   );
 }
 
-// ─── Route entry — picks view by role ─────────────────────────────────────────
+// ─── Route entry — picks view by module ──────────────────────────────────────
 
 export default function Incidents() {
-  const { role } = useAuth();
-  return role === "flm" ? <FLMView /> : <AdminView />;
+  const { activeDomain } = useDomain();
+  return activeDomain === "ip-core" ? <FLMView /> : <AdminView />;
 }
