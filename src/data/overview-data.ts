@@ -25,8 +25,13 @@ export interface DecisionItem {
 }
 
 export interface TrendDataPoint {
-  throughput: number; // 0–100
-  stability: number;  // 0–100
+  throughput: number;   // 0–100
+  // Renamed from "stability" to "availability" for terminology accuracy.
+  // NOTE: target is currently 90%. Real-world network availability targets are
+  // typically 99.9%+ (five-nines). Confirm with the team whether this series
+  // represents true availability % or a relative health/stability index before
+  // changing the numeric target.
+  availability: number; // 0–100
 }
 
 export interface AgentLoad {
@@ -40,13 +45,16 @@ export interface AgentLoad {
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 
 export const OVERVIEW_KPIS = {
-  activeP1: 2,
-  openIncidents: 14,
-  totalIncidents: 47,
-  autoResolved: 31,
+  // activeP1 must equal severityCritical + severityPredicted + severityMitigating.
+  // The headline is computed from those three in the UI; this value is kept in
+  // sync for any code that reads it directly (e.g. handleApprove logic).
+  activeP1: 14,            // 2 critical + 5 predicted + 7 mitigating
+  openIncidents: 14,       // Active (11) + Escalated (3) — matches donut
+  totalIncidents: 50,      // sum of INCIDENT_DONUT segments (31+11+3+5)
+  autoResolved: 31,        // matches INCIDENT_DONUT "Resolved" segment
   autonomyPct: 66,
-  escalated: 3,
-  mttrReduction: 34,       // % reduction vs pre-MINDR baseline
+  escalated: 3,            // matches INCIDENT_DONUT "Escalated" segment
+  mttrReduction: 34,       // % improvement vs pre-MINDR baseline (positive good news)
   severityCritical: 2,
   severityPredicted: 5,
   severityMitigating: 7,
@@ -54,57 +62,57 @@ export const OVERVIEW_KPIS = {
 
 // ── Network health trend (cross-domain aggregate) ────────────────────────────
 // Each array: 20 evenly-spaced data points over the selected window.
-// throughput = global traffic throughput %, stability = network stability index %.
-// Targets: throughput 85 %, stability 90 %.
+// throughput = global traffic throughput %, availability = network availability %.
+// Targets: throughput 85 %, availability 90 %.
 
 export const HEALTH_TREND: Record<TimeWindow, TrendDataPoint[]> = {
   "1H": [
-    { throughput: 84, stability: 92 }, { throughput: 85, stability: 92 },
-    { throughput: 85, stability: 91 }, { throughput: 84, stability: 91 },
-    { throughput: 83, stability: 90 }, { throughput: 82, stability: 89 },
-    { throughput: 78, stability: 86 }, { throughput: 74, stability: 82 },
-    { throughput: 71, stability: 79 }, { throughput: 73, stability: 81 },
-    { throughput: 76, stability: 85 }, { throughput: 80, stability: 88 },
-    { throughput: 83, stability: 90 }, { throughput: 84, stability: 91 },
-    { throughput: 85, stability: 91 }, { throughput: 85, stability: 91 },
-    { throughput: 86, stability: 92 }, { throughput: 85, stability: 91 },
-    { throughput: 85, stability: 90 }, { throughput: 85, stability: 90 },
+    { throughput: 84, availability: 92 }, { throughput: 85, availability: 92 },
+    { throughput: 85, availability: 91 }, { throughput: 84, availability: 91 },
+    { throughput: 83, availability: 90 }, { throughput: 82, availability: 89 },
+    { throughput: 78, availability: 86 }, { throughput: 74, availability: 82 },
+    { throughput: 71, availability: 79 }, { throughput: 73, availability: 81 },
+    { throughput: 76, availability: 85 }, { throughput: 80, availability: 88 },
+    { throughput: 83, availability: 90 }, { throughput: 84, availability: 91 },
+    { throughput: 85, availability: 91 }, { throughput: 85, availability: 91 },
+    { throughput: 86, availability: 92 }, { throughput: 85, availability: 91 },
+    { throughput: 85, availability: 90 }, { throughput: 85, availability: 90 },
   ],
   "6H": [
-    { throughput: 86, stability: 91 }, { throughput: 86, stability: 90 },
-    { throughput: 85, stability: 90 }, { throughput: 82, stability: 87 },
-    { throughput: 78, stability: 84 }, { throughput: 80, stability: 86 },
-    { throughput: 84, stability: 89 }, { throughput: 86, stability: 91 },
-    { throughput: 85, stability: 92 }, { throughput: 87, stability: 91 },
-    { throughput: 86, stability: 90 }, { throughput: 85, stability: 90 },
-    { throughput: 84, stability: 89 }, { throughput: 83, stability: 88 },
-    { throughput: 80, stability: 85 }, { throughput: 75, stability: 81 },
-    { throughput: 79, stability: 84 }, { throughput: 83, stability: 87 },
-    { throughput: 85, stability: 89 }, { throughput: 85, stability: 90 },
+    { throughput: 86, availability: 91 }, { throughput: 86, availability: 90 },
+    { throughput: 85, availability: 90 }, { throughput: 82, availability: 87 },
+    { throughput: 78, availability: 84 }, { throughput: 80, availability: 86 },
+    { throughput: 84, availability: 89 }, { throughput: 86, availability: 91 },
+    { throughput: 85, availability: 92 }, { throughput: 87, availability: 91 },
+    { throughput: 86, availability: 90 }, { throughput: 85, availability: 90 },
+    { throughput: 84, availability: 89 }, { throughput: 83, availability: 88 },
+    { throughput: 80, availability: 85 }, { throughput: 75, availability: 81 },
+    { throughput: 79, availability: 84 }, { throughput: 83, availability: 87 },
+    { throughput: 85, availability: 89 }, { throughput: 85, availability: 90 },
   ],
   "24H": [
-    { throughput: 84, stability: 90 }, { throughput: 82, stability: 89 },
-    { throughput: 81, stability: 88 }, { throughput: 80, stability: 87 },
-    { throughput: 79, stability: 86 }, { throughput: 82, stability: 88 },
-    { throughput: 85, stability: 91 }, { throughput: 87, stability: 92 },
-    { throughput: 86, stability: 91 }, { throughput: 85, stability: 90 },
-    { throughput: 84, stability: 89 }, { throughput: 83, stability: 88 },
-    { throughput: 79, stability: 84 }, { throughput: 74, stability: 80 },
-    { throughput: 78, stability: 83 }, { throughput: 83, stability: 88 },
-    { throughput: 85, stability: 90 }, { throughput: 86, stability: 91 },
-    { throughput: 85, stability: 90 }, { throughput: 85, stability: 90 },
+    { throughput: 84, availability: 90 }, { throughput: 82, availability: 89 },
+    { throughput: 81, availability: 88 }, { throughput: 80, availability: 87 },
+    { throughput: 79, availability: 86 }, { throughput: 82, availability: 88 },
+    { throughput: 85, availability: 91 }, { throughput: 87, availability: 92 },
+    { throughput: 86, availability: 91 }, { throughput: 85, availability: 90 },
+    { throughput: 84, availability: 89 }, { throughput: 83, availability: 88 },
+    { throughput: 79, availability: 84 }, { throughput: 74, availability: 80 },
+    { throughput: 78, availability: 83 }, { throughput: 83, availability: 88 },
+    { throughput: 85, availability: 90 }, { throughput: 86, availability: 91 },
+    { throughput: 85, availability: 90 }, { throughput: 85, availability: 90 },
   ],
   "7D": [
-    { throughput: 82, stability: 88 }, { throughput: 84, stability: 90 },
-    { throughput: 86, stability: 91 }, { throughput: 85, stability: 90 },
-    { throughput: 83, stability: 89 }, { throughput: 80, stability: 86 },
-    { throughput: 77, stability: 83 }, { throughput: 82, stability: 87 },
-    { throughput: 85, stability: 90 }, { throughput: 86, stability: 91 },
-    { throughput: 87, stability: 92 }, { throughput: 85, stability: 90 },
-    { throughput: 84, stability: 89 }, { throughput: 83, stability: 88 },
-    { throughput: 81, stability: 86 }, { throughput: 78, stability: 83 },
-    { throughput: 81, stability: 86 }, { throughput: 84, stability: 88 },
-    { throughput: 85, stability: 90 }, { throughput: 85, stability: 90 },
+    { throughput: 82, availability: 88 }, { throughput: 84, availability: 90 },
+    { throughput: 86, availability: 91 }, { throughput: 85, availability: 90 },
+    { throughput: 83, availability: 89 }, { throughput: 80, availability: 86 },
+    { throughput: 77, availability: 83 }, { throughput: 82, availability: 87 },
+    { throughput: 85, availability: 90 }, { throughput: 86, availability: 91 },
+    { throughput: 87, availability: 92 }, { throughput: 85, availability: 90 },
+    { throughput: 84, availability: 89 }, { throughput: 83, availability: 88 },
+    { throughput: 81, availability: 86 }, { throughput: 78, availability: 83 },
+    { throughput: 81, availability: 86 }, { throughput: 84, availability: 88 },
+    { throughput: 85, availability: 90 }, { throughput: 85, availability: 90 },
   ],
 };
 
@@ -190,32 +198,32 @@ export const DECISION_QUEUE: DecisionItem[] = [
   {
     id: "dq1",
     title: "Resolve packet loss via secondary path activation",
-    incidentRef: "INC-8422",
+    incidentRef: "INC-2847",
     domainLabel: "IP Core",
     recommendation: "Activate secondary path",
     confidence: 94,
     isLowRisk: true,
-    incidentRoute: "/incidents",
+    incidentRoute: "/incidents/inc-2847",
   },
   {
     id: "dq2",
     title: "Escalate CXI degradation to L2 for RAN optimisation",
-    incidentRef: "INC-8416",
+    incidentRef: "CXI-2026-0040",
     domainLabel: "CXI",
     recommendation: "Escalate to L2",
     confidence: 82,
     isLowRisk: false,
-    incidentRoute: "/incidents",
+    incidentRoute: "/cxi-cases/CXI-2026-0040",
   },
   {
     id: "dq3",
-    title: "Close resolved VoLTE bearer incident",
-    incidentRef: "INC-8419",
+    title: "Approve remediation for IMS P-CSCF signaling cascade",
+    incidentRef: "INC-V001",
     domainLabel: "Volte",
-    recommendation: "Close incident",
-    confidence: 97,
+    recommendation: "Approve remediation",
+    confidence: 91,
     isLowRisk: true,
-    incidentRoute: "/incidents",
+    incidentRoute: "/volte/incidents/inc-v001",
   },
 ];
 
@@ -240,7 +248,10 @@ export const TOPOLOGY_CALLOUT = {
 // ── MINDR performance metrics ─────────────────────────────────────────────────
 
 export const MINDR_PERFORMANCE = {
-  casesManaged:          53,  // total incidents MINDR was involved in this period
+  // casesManaged (53) is intentionally larger than totalIncidents (50): it
+  // includes 3 predicted/pipeline cases that MINDR tracked but that have not
+  // yet been counted as active incidents in the donut breakdown.
+  casesManaged:          53,
   autonomouslyResolved:  31,  // closed with zero human action
   autonomyPct:           66,
   escalatedToMindr:       8,  // cases handed to MINDR from L1 / field teams

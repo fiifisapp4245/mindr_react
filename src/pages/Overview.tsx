@@ -41,6 +41,7 @@ import { DOMAINS, canAccessDomain, type DomainId } from "../data/domains";
 import { useDomain } from "../contexts/domain";
 import { useAuth } from "../contexts/auth";
 import { useScenario } from "../contexts/scenario";
+import { InfoTooltip } from "../components/flm/InfoTooltip";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 
@@ -59,6 +60,12 @@ const STATUS_DOT: Record<"critical" | "warning" | "ok", string> = {
 
 // ── KPI card with hover micro-interaction ──────────────────────────────────────
 
+interface TooltipDef {
+  description: string;
+  source: string;
+  thresholdLabel: string;
+}
+
 interface KpiCardProps {
   label: string;
   value: React.ReactNode;
@@ -67,10 +74,11 @@ interface KpiCardProps {
   iconColor: string;
   iconBg: string;
   border?: string;
+  tooltip?: TooltipDef;
   children?: React.ReactNode;
 }
 
-function KpiCard({ label, value, sub, icon: Icon, iconColor, iconBg, border, children }: KpiCardProps) {
+function KpiCard({ label, value, sub, icon: Icon, iconColor, iconBg, border, tooltip, children }: KpiCardProps) {
   const [hov, setHov] = useState(false);
   return (
     <div
@@ -93,9 +101,12 @@ function KpiCard({ label, value, sub, icon: Icon, iconColor, iconBg, border, chi
         <Icon size={16} style={{ color: iconColor }} strokeWidth={2} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
-          {label}
-        </p>
+        <div className="flex items-center gap-1">
+          <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+            {label}
+          </p>
+          {tooltip && <InfoTooltip {...tooltip} />}
+        </div>
         <div className="text-2xl font-bold tabular-nums mt-0.5" style={{ color: "var(--color-text-primary)" }}>
           {value}
         </div>
@@ -141,7 +152,7 @@ function HealthTrendChart({ window: tw }: { window: TimeWindow }) {
   function toY(v: number) { return TOP + (1 - (v - YMIN) / YRANGE) * CH; }
 
   const tPts = data.map((d, i): [number, number] => [toX(i), toY(d.throughput)]);
-  const sPts = data.map((d, i): [number, number] => [toX(i), toY(d.stability)]);
+  const sPts = data.map((d, i): [number, number] => [toX(i), toY(d.availability)]);
 
   function onMove(e: React.MouseEvent<SVGSVGElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -150,7 +161,10 @@ function HealthTrendChart({ window: tw }: { window: TimeWindow }) {
     setTip({ sx: e.clientX - rect.left, sy: e.clientY - rect.top, idx });
   }
 
-  const tgtT = toY(85), tgtS = toY(90);
+  const tgtT = toY(85);
+  // NOTE: availability target is 90%. Real-world network availability is typically 99.9%+.
+  // Confirm with team whether this represents true availability % or a relative health index.
+  const tgtS = toY(90);
   const last = data[data.length - 1];
   const tipData = tip ? data[tip.idx] : null;
 
@@ -191,7 +205,7 @@ function HealthTrendChart({ window: tw }: { window: TimeWindow }) {
 
         {/* End dots */}
         <circle cx={toX(data.length - 1).toFixed(1)} cy={toY(last.throughput).toFixed(1)} r="4" fill="#E9187C" />
-        <circle cx={toX(data.length - 1).toFixed(1)} cy={toY(last.stability).toFixed(1)}  r="4" fill="#2DD4BF" />
+        <circle cx={toX(data.length - 1).toFixed(1)} cy={toY(last.availability).toFixed(1)}  r="4" fill="#2DD4BF" />
 
         {/* Hover crosshair */}
         {tip && (
@@ -199,7 +213,7 @@ function HealthTrendChart({ window: tw }: { window: TimeWindow }) {
             <line x1={toX(tip.idx).toFixed(1)} y1={TOP} x2={toX(tip.idx).toFixed(1)} y2={H - BOT}
               stroke="rgba(255,255,255,0.22)" strokeWidth="1" strokeDasharray="3 2" />
             <circle cx={toX(tip.idx).toFixed(1)} cy={toY(data[tip.idx].throughput).toFixed(1)} r="4" fill="#E9187C" />
-            <circle cx={toX(tip.idx).toFixed(1)} cy={toY(data[tip.idx].stability).toFixed(1)}  r="4" fill="#2DD4BF" />
+            <circle cx={toX(tip.idx).toFixed(1)} cy={toY(data[tip.idx].availability).toFixed(1)}  r="4" fill="#2DD4BF" />
           </>
         )}
       </svg>
@@ -222,7 +236,7 @@ function HealthTrendChart({ window: tw }: { window: TimeWindow }) {
             Throughput &nbsp;<span className="font-bold">{tipData.throughput}%</span>
           </p>
           <p className="font-semibold" style={{ color: "#2DD4BF" }}>
-            Stability &nbsp;&nbsp;&nbsp;<span className="font-bold">{tipData.stability}%</span>
+            Availability &nbsp;<span className="font-bold">{tipData.availability}%</span>
           </p>
         </div>
       )}
@@ -236,7 +250,7 @@ function HealthTrendChart({ window: tw }: { window: TimeWindow }) {
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-5 h-0.5 inline-block rounded" style={{ backgroundColor: "#2DD4BF" }} />
-          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>Stability</span>
+          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>Availability</span>
           <span className="text-[9px] ml-1" style={{ color: "rgba(255,255,255,0.2)" }}>target 90%</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -423,28 +437,38 @@ export default function Overview() {
           Incident overview
         </p>
         <div className="grid grid-cols-5 gap-3">
-          {/* Active P1 */}
-          <KpiCard
-            label="Active P1"
-            value={liveKpis.activeP1}
-            sub="open Priority-1 incidents"
-            icon={AlertTriangle}
-            iconColor={liveKpis.activeP1 > 0 ? "#FF3B3B" : "#2DD4BF"}
-            iconBg={liveKpis.activeP1 > 0 ? "rgba(255,59,59,0.1)" : "rgba(45,212,191,0.08)"}
-            border={liveKpis.activeP1 > 0 ? "1px solid rgba(255,59,59,0.3)" : undefined}
-          >
-            <div className="flex flex-wrap items-center gap-1 mt-1.5">
-              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,59,59,0.12)", color: "#FF3B3B" }}>
-                {liveKpis.severityCritical} critical
-              </span>
-              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,176,32,0.12)", color: "#FFB020" }}>
-                {liveKpis.severityPredicted} predicted
-              </span>
-              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(45,212,191,0.10)", color: "#2DD4BF" }}>
-                {liveKpis.severityMitigating} mitigating
-              </span>
-            </div>
-          </KpiCard>
+          {/* Total P1 activity — headline is always the chip sum */}
+          {(() => {
+            const p1Total = liveKpis.severityCritical + liveKpis.severityPredicted + liveKpis.severityMitigating;
+            return (
+              <KpiCard
+                label="Total P1 activity"
+                value={p1Total}
+                sub="P1 incidents across all domains"
+                icon={AlertTriangle}
+                iconColor={p1Total > 0 ? "#FF3B3B" : "#2DD4BF"}
+                iconBg={p1Total > 0 ? "rgba(255,59,59,0.1)" : "rgba(45,212,191,0.08)"}
+                border={p1Total > 0 ? "1px solid rgba(255,59,59,0.3)" : undefined}
+                tooltip={{
+                  description: "Total Priority-1 incidents across all domains, broken down by state: critical (active breach), predicted (early-risk detection), and mitigating (remediation in progress). Headline always equals the chip sum.",
+                  source: "Cross-domain incident store",
+                  thresholdLabel: "Target: 0 critical at end of shift",
+                }}
+              >
+                <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,59,59,0.18)", color: "#FF3B3B" }}>
+                    {liveKpis.severityCritical} critical
+                  </span>
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,176,32,0.12)", color: "#FFB020" }}>
+                    {liveKpis.severityPredicted} predicted
+                  </span>
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(45,212,191,0.10)", color: "#2DD4BF" }}>
+                    {liveKpis.severityMitigating} mitigating
+                  </span>
+                </div>
+              </KpiCard>
+            );
+          })()}
 
           {/* Open incidents */}
           <KpiCard
@@ -459,6 +483,11 @@ export default function Overview() {
             icon={Activity}
             iconColor="#4D9EFF"
             iconBg="rgba(77,158,255,0.08)"
+            tooltip={{
+              description: "Active and escalated incidents still open right now, shown against the total logged this period. Total equals the sum of all incident breakdown segments.",
+              source: "Cross-domain incident store",
+              thresholdLabel: "Target: open ratio < 20% of total",
+            }}
           />
 
           {/* Resolved */}
@@ -468,6 +497,11 @@ export default function Overview() {
             icon={ShieldCheck}
             iconColor="#2DD4BF"
             iconBg="rgba(45,212,191,0.08)"
+            tooltip={{
+              description: "Incidents closed by MINDR agents with zero human intervention. Approving a decision in the queue increments this counter and the autonomy rate.",
+              source: "MINDR agent event log",
+              thresholdLabel: "Target: autonomy rate ≥ 70%",
+            }}
           >
             <p className="text-[10px] mt-0.5 font-semibold" style={{ color: "#2DD4BF" }}>
               {liveKpis.autonomyPct}% autonomy rate
@@ -485,17 +519,27 @@ export default function Overview() {
             icon={TrendingDown}
             iconColor="#FFB020"
             iconBg="rgba(255,176,32,0.08)"
+            tooltip={{
+              description: "Incidents that exceeded autonomous resolution capability and were handed to L2 or L3 engineers for manual investigation. Matches the Escalated segment in the incident breakdown donut.",
+              source: "Escalation event log",
+              thresholdLabel: "Target: ≤ 5% of total incidents",
+            }}
           />
 
-          {/* MTTR reduction */}
+          {/* MTTR — positive framing: % faster, no minus sign */}
           <KpiCard
-            label="MTTR reduction"
-            value={<span style={{ color: "#2DD4BF" }}>−{liveKpis.mttrReduction}%</span>}
-            sub="vs pre-MINDR baseline"
+            label="MTTR"
+            value={<span style={{ color: "#2DD4BF" }}>{liveKpis.mttrReduction}%</span>}
+            sub="faster than pre-MINDR baseline"
             icon={Timer}
             iconColor="#2DD4BF"
             iconBg="rgba(45,212,191,0.08)"
             border="1px solid rgba(45,212,191,0.2)"
+            tooltip={{
+              description: "Mean Time To Resolve, expressed as % improvement over the 90-day pre-MINDR baseline. Higher is better — this is good-news metric shown in green.",
+              source: "Incident open/close timestamps",
+              thresholdLabel: "Target: ≥ 30% faster than baseline",
+            }}
           />
         </div>
       </div>
@@ -513,6 +557,11 @@ export default function Overview() {
             icon={Activity}
             iconColor="#4D9EFF"
             iconBg="rgba(77,158,255,0.08)"
+            tooltip={{
+              description: "Composite network health score aggregated across all nodes, links, and domains. Weighted average of throughput utilisation, packet-loss rate, and BGP/signalling stability.",
+              source: "Cross-domain telemetry aggregate",
+              thresholdLabel: "Target: ≥ 90% — amber below 85%",
+            }}
           >
             <p className="text-[10px] mt-0.5 font-semibold" style={{ color: "#2DD4BF" }}>
               {HEALTH_STATS.systemHealthDelta} · {HEALTH_STATS.systemHealthWindow}
@@ -526,6 +575,11 @@ export default function Overview() {
             icon={Users}
             iconColor="#FFB020"
             iconBg="rgba(255,176,32,0.08)"
+            tooltip={{
+              description: "Unique subscriber sessions currently experiencing degraded service across all domains. The delta shows improvement vs. the same window one hour ago — down is good.",
+              source: "Subscriber impact model",
+              thresholdLabel: "Target: < 5K affected subscribers",
+            }}
           >
             <p className="text-[10px] mt-0.5 font-semibold flex items-center gap-1" style={{ color: "#2DD4BF" }}>
               <ArrowDown size={10} />
@@ -540,6 +594,11 @@ export default function Overview() {
             icon={Cpu}
             iconColor="#2DD4BF"
             iconBg="rgba(45,212,191,0.08)"
+            tooltip={{
+              description: "Average RCA (root-cause analysis) confidence score across all active MINDR agents this period. Low confidence triggers a human review request before autonomous action.",
+              source: "MINDR agent telemetry",
+              thresholdLabel: "Target: ≥ 85% — review gate below 70%",
+            }}
           >
             <p className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
               {HEALTH_STATS.aiConfidenceTrend === "up"     && <ArrowUp   size={10} style={{ color: "#2DD4BF" }} />}
@@ -560,10 +619,15 @@ export default function Overview() {
           <KpiCard
             label="Cases managed"
             value={MINDR_PERFORMANCE.casesManaged}
-            sub="total incidents this period"
+            sub="all MINDR-assisted cases, incl. predicted"
             icon={Layers}
             iconColor="var(--color-brand)"
             iconBg="rgba(233,24,124,0.08)"
+            tooltip={{
+              description: "All incidents MINDR was involved in this period — including 3 predicted pipeline cases not yet counted as active incidents in the breakdown donut (50 active + 3 predicted pipeline = 53).",
+              source: "MINDR case log",
+              thresholdLabel: "Includes 3 predicted cases not yet active",
+            }}
           />
           <KpiCard
             label="Autonomously resolved"
@@ -572,6 +636,11 @@ export default function Overview() {
             iconColor="#2DD4BF"
             iconBg="rgba(45,212,191,0.08)"
             border="1px solid rgba(45,212,191,0.2)"
+            tooltip={{
+              description: "Cases closed end-to-end by MINDR with zero human action required — no engineer review, approval, or manual step. This is the primary measure of AI autonomy.",
+              source: "MINDR agent event log",
+              thresholdLabel: "Target: ≥ 70% autonomy rate",
+            }}
           >
             <p className="text-[10px] mt-0.5 font-semibold" style={{ color: "#2DD4BF" }}>
               {MINDR_PERFORMANCE.autonomyPct}% — zero human action
@@ -584,6 +653,11 @@ export default function Overview() {
             icon={ArrowUpRight}
             iconColor="#FFB020"
             iconBg="rgba(255,176,32,0.08)"
+            tooltip={{
+              description: "Cases that L1 engineers or automated field systems could not resolve and handed to MINDR for AI-assisted diagnosis and remediation.",
+              source: "L1 escalation event log",
+              thresholdLabel: "Target: < 10 escalations per period",
+            }}
           />
           <KpiCard
             label="Engineer hours recovered"
@@ -592,6 +666,11 @@ export default function Overview() {
             icon={Clock}
             iconColor="var(--color-brand)"
             iconBg="rgba(233,24,124,0.08)"
+            tooltip={{
+              description: "Estimated engineer hours freed from manual triage, diagnosis, and remediation tasks this period — calculated by comparing MINDR-assisted MTTR against the pre-MINDR manual baseline.",
+              source: "MINDR time-savings model",
+              thresholdLabel: "Target: ≥ 40h recovered per period",
+            }}
           />
         </div>
       </div>
@@ -613,7 +692,7 @@ export default function Overview() {
                 Network Health Trend
               </p>
               <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                Cross-domain throughput &amp; stability — hover to inspect
+                Cross-domain throughput &amp; availability — hover to inspect
               </p>
             </div>
             <div
@@ -802,10 +881,10 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* ── 8. AGENT ACTIVITY (full-width, no load panel) ───────────────── */}
+      {/* ── 8. AGENT TASK FEED (full-width, no load panel) ──────────────── */}
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--color-text-muted)" }}>
-          Agent activity
+          Active agent tasks
         </p>
         <div
           className="rounded-xl overflow-hidden flex flex-col"
@@ -818,7 +897,7 @@ export default function Overview() {
             <div className="flex items-center gap-2.5">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#2DD4BF", animation: "pulse-live 1.6s ease-in-out infinite" }} />
               <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                {AGENT_FEED.length} agents working
+                {AGENT_FEED.length} tasks in progress
               </p>
             </div>
             <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>All domains · live</span>

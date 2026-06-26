@@ -23,7 +23,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { useDomain } from "../contexts/domain";
+import { useAuth } from "../contexts/auth";
 import { INCIDENTS } from "../data/incidents";
 import { IncidentDetail as IncidentDetailComponent } from "../components/incidents/IncidentDetail";
 import { useFLMIncidents } from "../contexts/flm-incidents";
@@ -891,10 +891,10 @@ function FLMIncidentDetailPage({ inc }: { inc: FLMIncident }) {
 // ─── Route entry — forks by module ───────────────────────────────────────────
 
 export default function IncidentDetail() {
-  const { activeDomain } = useDomain();
+  const { role } = useAuth();
   const { id } = useParams() as { id: string };
 
-  if (activeDomain === "ip-core") {
+  if (role === "flm") {
     return <FLMDetail incId={id} />;
   }
   return <AdminIncidentDetail />;
