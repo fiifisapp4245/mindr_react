@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
@@ -31,6 +31,7 @@ import {
 } from "recharts";
 import { EVENTS_FULL } from "../data/events";
 import type { EventFull, EventStatus } from "../data/events";
+import { Breadcrumb } from "../components/shared/Breadcrumb";
 
 // ── Color helpers ────────────────────────────────────────────────────────────
 
@@ -282,6 +283,7 @@ function PathStrip({ nodes }: { nodes: EventFull["affectedPath"] }) {
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const event = EVENTS_FULL.find((e) => e.id === id);
 
   const [validation, setValidation] = useState<"confirmed" | "adjusted" | "dismissed" | null>(null);
@@ -316,26 +318,11 @@ export default function EventDetail() {
         style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
       >
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-xs">
-          <Link
-            to="/events"
-            className="flex items-center gap-1 hover:opacity-80 transition-opacity font-medium"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            Events
-          </Link>
-          <ChevronRight size={11} style={{ color: "var(--color-text-muted)", opacity: 0.5 }} />
-          <span
-            className="font-mono text-[10px] px-1.5 py-px rounded font-semibold"
-            style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}
-          >
-            {event.id}
-          </span>
-          <ChevronRight size={11} style={{ color: "var(--color-text-muted)", opacity: 0.5 }} />
-          <span className="font-medium truncate max-w-[280px]" style={{ color: "var(--color-text-primary)" }}>
-            {event.name}
-          </span>
-        </nav>
+        <Breadcrumb items={[
+          { label: "Events", href: "/events" },
+          { label: event.id, badge: { text: event.id, color: "var(--color-text-muted)", bg: "rgba(255,255,255,0.06)" } },
+          { label: event.name },
+        ]} />
 
         {/* CTA */}
         <button
@@ -689,9 +676,23 @@ export default function EventDetail() {
             <button
               className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold mt-1 hover:opacity-90 transition-opacity"
               style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
+              onClick={() =>
+                navigate("/assistant", {
+                  state: {
+                    eventContext: {
+                      id:         event.id,
+                      name:       event.name,
+                      type:       event.type,
+                      severity:   event.severity,
+                      status:     event.status,
+                      confidence: event.confidence,
+                    },
+                  },
+                })
+              }
             >
               <MessageSquare size={12} />
-              Discuss this event
+              Discuss this event with MINDR
             </button>
           </div>
 

@@ -102,7 +102,7 @@ function KpiCard({ label, value, sub, icon: Icon, iconColor, iconBg, border, too
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
             {label}
           </p>
           {tooltip && <InfoTooltip {...tooltip} />}
@@ -411,6 +411,13 @@ export default function Overview() {
 
   const pendingDecisions = DECISION_QUEUE.filter((d) => !approvedIds.has(d.id));
 
+  // Derive MTTR improvement % from source values so headline and absolutes stay in sync.
+  const mttrCur  = liveKpis.mttrCurrentMinutes;
+  const mttrBase = liveKpis.mttrBaselineMinutes;
+  const mttrPct  = (mttrCur != null && mttrBase != null && mttrBase > 0)
+    ? Math.round((mttrBase - mttrCur) / mttrBase * 100)
+    : null;
+
   return (
     <div className="flex flex-col gap-6 pb-10">
 
@@ -418,7 +425,7 @@ export default function Overview() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-            Operations overview
+            Network &amp; MINDR Dashboard
           </h1>
           <p className="text-sm mt-0.5 flex items-center gap-2" style={{ color: "var(--color-text-muted)" }}>
             All domains · live
@@ -526,21 +533,32 @@ export default function Overview() {
             }}
           />
 
-          {/* MTTR — positive framing: % faster, no minus sign */}
+          {/* MTTR — absolute time is the headline; % is supporting context (derived, not stored) */}
           <KpiCard
             label="MTTR"
-            value={<span style={{ color: "#2DD4BF" }}>{liveKpis.mttrReduction}%</span>}
-            sub="faster than pre-MINDR baseline"
+            value={
+              <span>
+                {mttrCur ?? "??"}
+                <span className="text-lg font-normal" style={{ color: "var(--color-text-muted)" }}> min</span>
+              </span>
+            }
             icon={Timer}
             iconColor="#2DD4BF"
             iconBg="rgba(45,212,191,0.08)"
             border="1px solid rgba(45,212,191,0.2)"
             tooltip={{
-              description: "Mean Time To Resolve, expressed as % improvement over the 90-day pre-MINDR baseline. Higher is better — this is good-news metric shown in green.",
+              description: "Mean Time To Resolve — current average time from incident open to close. % improvement is relative to the 90-day pre-MINDR baseline. Lower is better.",
               source: "Incident open/close timestamps",
               thresholdLabel: "Target: ≥ 30% faster than baseline",
             }}
-          />
+          >
+            <p className="text-[11px] font-semibold mt-0.5" style={{ color: "#2DD4BF" }}>
+              ↓ {mttrPct != null ? `${mttrPct}%` : "—"} faster
+            </p>
+            <p className="text-[9px] mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+              was {mttrBase ?? "??"} min · pre-MINDR baseline
+            </p>
+          </KpiCard>
         </div>
       </div>
 

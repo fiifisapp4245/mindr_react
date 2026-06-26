@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   ChevronRight,
   History,
@@ -31,10 +32,26 @@ const QUICK_PROMPTS = [
 
 export default function Assistant() {
   const { sessions, activeId, setActiveId, activeSession, isTyping, sendMessage } = useAssistant();
+  const location = useLocation();
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
   const prevChartCount = useRef(0);
+  const eventContextFired = useRef(false);
+
+  // If navigated here from an event detail page, auto-send one focused opening
+  // message so the conversation starts with context on that specific event.
+  useEffect(() => {
+    const ctx = (location.state as { eventContext?: { id: string; name: string; type: string; severity: string; status: string; confidence: number } } | null)?.eventContext;
+    if (!ctx || eventContextFired.current) return;
+    eventContextFired.current = true;
+    const prompt =
+      `Summarise event ${ctx.id} — "${ctx.name}". ` +
+      `Type: ${ctx.type}. Severity: ${ctx.severity}. Status: ${ctx.status}. ` +
+      `Forecast confidence: ${ctx.confidence}%. ` +
+      `What is the current network impact, likely root cause, and recommended next steps?`;
+    sendMessage(prompt);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeCharts: ChartCard[] = activeSession.messages
     .filter((m): m is AnalMsg => m.kind === "analysis" && Boolean(m.charts?.length))

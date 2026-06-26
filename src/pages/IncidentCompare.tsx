@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronRight, ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { useFLMIncidents } from "../contexts/flm-incidents";
 import {
   computeBand,
@@ -14,6 +14,7 @@ import {
   CONFIDENCE_THRESHOLDS,
   type FLMIncident,
 } from "../data/flm-incident-store";
+import { Breadcrumb } from "../components/shared/Breadcrumb";
 
 // ── Status config ──────────────────────────────────────────────────────────────
 
@@ -141,13 +142,10 @@ export default function IncidentCompare() {
   if (incidents.length < 2) {
     return (
       <div className="space-y-5">
-        <nav className="flex items-center gap-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
-          <Link to="/incidents" className="font-medium hover:opacity-80 transition-opacity" style={{ color: "var(--color-text-muted)" }}>
-            Incidents
-          </Link>
-          <ChevronRight size={12} style={{ opacity: 0.5 }} />
-          <span style={{ color: "var(--color-text-primary)" }}>Compare</span>
-        </nav>
+        <Breadcrumb items={[
+          { label: "Incidents", href: "/incidents" },
+          { label: "Compare" },
+        ]} />
         <div className="py-24 flex flex-col items-center gap-3">
           <p className="text-base font-semibold" style={{ color: "var(--color-text-primary)" }}>
             Select 2–3 incidents to compare
@@ -170,17 +168,10 @@ export default function IncidentCompare() {
   return (
     <div className="space-y-5">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
-        <Link
-          to="/incidents"
-          className="font-medium hover:opacity-80 transition-opacity flex items-center gap-1"
-          style={{ color: "var(--color-text-muted)" }}
-        >
-          Incidents
-        </Link>
-        <ChevronRight size={12} style={{ opacity: 0.5 }} />
-        <span style={{ color: "var(--color-text-primary)" }}>Compare</span>
-      </nav>
+      <Breadcrumb items={[
+        { label: "Incidents", href: "/incidents" },
+        { label: "Compare" },
+      ]} />
 
       {/* Page header */}
       <div className="flex items-start justify-between gap-4">

@@ -16,6 +16,7 @@ import {
   metricColor,
   type AlarmRow,
 } from "../data/alarm-store";
+import { Breadcrumb } from "../components/shared/Breadcrumb";
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -139,20 +140,14 @@ export default function AlarmCompare() {
         className="flex items-center gap-3 px-6 py-3.5 shrink-0"
         style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
       >
-        <button
-          onClick={() => navigate("/alarms")}
-          className="flex items-center gap-1.5 text-xs hover:opacity-80 transition-opacity shrink-0"
-          style={{ color: "var(--color-text-muted)" }}
-        >
-          <ArrowLeft size={13} />
-          Alarms
-        </button>
-        <span style={{ color: "var(--color-border)" }}>/</span>
-        <h1 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>
-          Compare Alarms
-        </h1>
+        <div className="flex-1 min-w-0">
+          <Breadcrumb items={[
+            { label: "Alarms", href: "/alarms" },
+            { label: "Compare" },
+          ]} />
+        </div>
         <span
-          className="px-2 py-0.5 rounded text-[10px] font-semibold"
+          className="px-2 py-0.5 rounded text-[10px] font-semibold shrink-0"
           style={{ backgroundColor: "rgba(226,0,116,0.1)", color: "var(--color-brand)" }}
         >
           {cols}

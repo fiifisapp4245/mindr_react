@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   AlertTriangle,
-  ArrowLeft,
   Bell,
   BellOff,
   CheckCheck,
@@ -35,6 +34,7 @@ import {
   type AlarmType,
 } from "../data/alarm-store";
 import { ConfirmModal } from "../components/shared/ConfirmModal";
+import { Breadcrumb } from "../components/shared/Breadcrumb";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -183,21 +183,13 @@ export default function AlarmDetail() {
         className="flex items-center gap-3 px-6 py-3.5 shrink-0"
         style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
       >
-        <button
-          onClick={() => navigate("/alarms")}
-          className="flex items-center gap-1.5 text-xs hover:opacity-80 transition-opacity shrink-0"
-          style={{ color: "var(--color-text-muted)" }}
-        >
-          <ArrowLeft size={13} />
-          Alarms
-        </button>
-        <span style={{ color: "var(--color-border)" }}>/</span>
-        <span className="font-mono text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
-          {alarm.ref}
-        </span>
-        <span className="text-xs font-semibold flex-1 truncate" style={{ color: "var(--color-text-primary)" }}>
-          {alarm.name}
-        </span>
+        <div className="flex-1 min-w-0">
+          <Breadcrumb items={[
+            { label: "Alarms", href: "/alarms" },
+            { label: alarm.ref, badge: { text: alarm.ref, color: "var(--color-text-muted)", bg: "rgba(255,255,255,0.06)" } },
+            { label: alarm.name },
+          ]} />
+        </div>
         <span
           className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold shrink-0"
           style={{ backgroundColor: sev.bg, color: sev.color }}

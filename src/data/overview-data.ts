@@ -54,7 +54,10 @@ export const OVERVIEW_KPIS = {
   autoResolved: 31,        // matches INCIDENT_DONUT "Resolved" segment
   autonomyPct: 66,
   escalated: 3,            // matches INCIDENT_DONUT "Escalated" segment
-  mttrReduction: 34,       // % improvement vs pre-MINDR baseline (positive good news)
+  // Source values only — the % improvement is DERIVED in the component, not stored here,
+  // so the headline and the absolute times can never disagree.
+  mttrCurrentMinutes:  66,  // current average MTTR (minutes)
+  mttrBaselineMinutes: 100, // pre-MINDR 90-day baseline MTTR (minutes)
   severityCritical: 2,
   severityPredicted: 5,
   severityMitigating: 7,
