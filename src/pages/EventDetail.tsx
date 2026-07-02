@@ -115,7 +115,7 @@ function ForecastChart({ event }: { event: EventFull }) {
           <AlertTriangle size={12} strokeWidth={2.5} />
           Actual exceeds forecast ({event.actualPeak}% vs {event.predictedPeak}% predicted)
           <Link
-            to="/alarms"
+            to="/alerts"
             className="ml-auto flex items-center gap-1 font-semibold hover:opacity-80 transition-opacity"
             style={{ color: "#FFB020" }}
           >
@@ -800,7 +800,7 @@ export default function EventDetail() {
               return (
                 <Link
                   key={alarm.ref}
-                  to="/alarms"
+                  to="/alerts"
                   className="flex items-center gap-2.5 px-4 py-3 hover:bg-white/5 transition-colors"
                   style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--color-border)" : "none" }}
                 >

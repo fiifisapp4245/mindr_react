@@ -20,11 +20,11 @@ import { kpi } from "../data/peering-store";
 
 // Band 1 card definitions — maps store key → display title → nav destination
 const BAND1_CARDS: { key: keyof typeof kpi; title: string; to: string }[] = [
-  { key: "activeSC1Alerts",       title: "Active Alerts",            to: "/alarms"   },
-  { key: "highSeverityAlerts",    title: "High Severity Alerts",     to: "/alarms"   },
+  { key: "activeSC1Alerts",       title: "Active Alerts",            to: "/alerts"   },
+  { key: "highSeverityAlerts",    title: "High Severity Alerts",     to: "/alerts"   },
   { key: "congestedPorts",        title: "Congested Ports",          to: "/topology" },
-  { key: "criticalBuildoutPorts", title: "Critical Build-out Ports", to: "/alarms"   },
-  { key: "activeChangeTickets",   title: "Active Change Tickets",    to: "/alarms"   },
+  { key: "criticalBuildoutPorts", title: "Critical Build-out Ports", to: "/alerts"   },
+  { key: "activeChangeTickets",   title: "Active Change Tickets",    to: "/alerts"   },
 ];
 
 export default function FLMDashboard() {

@@ -138,7 +138,7 @@ function AdminDashboardView() {
           <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
             Recent Incidents
           </p>
-          <Link to="/incidents" className="text-xs font-medium transition-opacity hover:opacity-80" style={{ color: "var(--color-brand)" }}>
+          <Link to="/alerts" className="text-xs font-medium transition-opacity hover:opacity-80" style={{ color: "var(--color-brand)" }}>
             View All Records →
           </Link>
         </div>

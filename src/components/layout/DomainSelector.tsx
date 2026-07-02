@@ -20,20 +20,19 @@ const SITE_MAP: {
     color: "var(--color-text-muted)",
     pages: [
       { label: "Dashboard",       href: "/overview"       },
-      { label: "Incidents",       href: "/incidents"      },
+      { label: "Alerts",          href: "/alerts"         },
       { label: "Events",          href: "/events"         },
       { label: "Network Model",   href: "/network-model"  },
       { label: "MINDR Assistant", href: "/assistant"      },
     ],
   },
   {
-    sectionLabel: "IP Core",
+    sectionLabel: "IP Peering",
     domainId: "ip-core",
     color: "#E9187C",
     pages: [
       { label: "FLM Dashboard", href: "/flm-dashboard" },
-      { label: "Incidents",     href: "/incidents"     },
-      { label: "Alarms",        href: "/alarms"        },
+      { label: "Alerts",        href: "/alerts"        },
       { label: "Events",        href: "/events"        },
       { label: "Reports",       href: "/flm-reports"   },
     ],

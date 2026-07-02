@@ -28,11 +28,11 @@ export function AttentionList() {
           Needs attention now
         </p>
         <Link
-          to="/alarms"
+          to="/alerts"
           className="text-xs font-medium transition-opacity hover:opacity-80"
           style={{ color: 'var(--color-brand)' }}
         >
-          View all alarms →
+          View all alerts →
         </Link>
       </div>
 
@@ -40,10 +40,8 @@ export function AttentionList() {
         {attentionItems.map((item, i) => {
           const cfg = SEV_CFG[item.severity];
           const isLast = i === attentionItems.length - 1;
-          const dest = item.id.startsWith('INC-')
-            ? '/incidents'
-            : item.id.startsWith('CHG-')
-            ? '/alarms'
+          const dest = item.id.startsWith('INC-') || item.id.startsWith('CHG-')
+            ? '/alerts'
             : '/events';
           return (
             <Link

@@ -133,8 +133,8 @@ export const HEALTH_STATS = {
 // ── Agent load ────────────────────────────────────────────────────────────────
 
 export const AGENT_LOAD: AgentLoad[] = [
-  { id: "al1", name: "SCAN-ALPHA", capacity: 67, status: "healthy",  domain: "IP Core" },
-  { id: "al2", name: "FIX-DELTA",  capacity: 91, status: "critical", domain: "IP Core" },
+  { id: "al1", name: "SCAN-ALPHA", capacity: 67, status: "healthy",  domain: "IP Peering" },
+  { id: "al2", name: "FIX-DELTA",  capacity: 91, status: "critical", domain: "IP Peering" },
   { id: "al3", name: "VFY-GAMMA",  capacity: 45, status: "healthy",  domain: "CXI"     },
   { id: "al4", name: "MON-BETA",   capacity: 78, status: "high",     domain: "CXI"     },
   { id: "al5", name: "PRED-ZETA",  capacity: 12, status: "idle",     domain: "Volte"   },
@@ -146,52 +146,52 @@ export const AGENT_FEED: AgentAction[] = [
   {
     id: "af1", state: "Resolved",
     action: "Rerouted traffic via DE-CIX secondary path after AS3320 prefix withdrawal",
-    incidentRef: "INC-8422", domainLabel: "IP Core", relativeTime: "just now", incidentRoute: "/incidents",
+    incidentRef: "INC-8422", domainLabel: "IP Peering", relativeTime: "just now", incidentRoute: "/alerts",
   },
   {
     id: "af2", state: "Diagnosing",
     action: "Correlating 4 BGP session flaps on AMS-IX — comparing against 30-day baseline",
-    incidentRef: "INC-8431", domainLabel: "IP Core", relativeTime: "2m ago", incidentRoute: "/incidents",
+    incidentRef: "INC-8431", domainLabel: "IP Peering", relativeTime: "2m ago", incidentRoute: "/alerts",
   },
   {
     id: "af3", state: "Monitoring",
     action: "Watching AS1299 link utilization post-reroute — within SLA threshold for 18m",
-    incidentRef: "INC-8422", domainLabel: "IP Core", relativeTime: "3m ago", incidentRoute: "/incidents",
+    incidentRef: "INC-8422", domainLabel: "IP Peering", relativeTime: "3m ago", incidentRoute: "/alerts",
   },
   {
     id: "af4", state: "Escalated",
     action: "Packet loss on EU-CORE-01 above 5% — auto-escalated to L2 for physical investigation",
-    incidentRef: "PRE-2019", domainLabel: "Volte", relativeTime: "5m ago", incidentRoute: "/incidents",
+    incidentRef: "PRE-2019", domainLabel: "Volte", relativeTime: "5m ago", incidentRoute: "/alerts",
   },
   {
     id: "af5", state: "Resolved",
     action: "VoLTE SLA breach prevented — traffic load-balanced across 3 Frankfurt bearers",
-    incidentRef: "INC-8419", domainLabel: "Volte", relativeTime: "9m ago", incidentRoute: "/incidents",
+    incidentRef: "INC-8419", domainLabel: "Volte", relativeTime: "9m ago", incidentRoute: "/alerts",
   },
   {
     id: "af6", state: "Diagnosing",
     action: "Running CXI degradation root-cause analysis for 232 affected subscribers in DE-West region",
-    incidentRef: "INC-8416", domainLabel: "CXI", relativeTime: "11m ago", incidentRoute: "/incidents",
+    incidentRef: "INC-8416", domainLabel: "CXI", relativeTime: "11m ago", incidentRoute: "/alerts",
   },
   {
     id: "af7", state: "Monitoring",
     action: "EU-CENTRAL-B4 transit stabilised — autonomy rate 94% for this window",
-    incidentRef: "INC-8418", domainLabel: "IP Core", relativeTime: "14m ago", incidentRoute: "/incidents",
+    incidentRef: "INC-8418", domainLabel: "IP Peering", relativeTime: "14m ago", incidentRoute: "/alerts",
   },
   {
     id: "af8", state: "Resolved",
     action: "BGP hold-timer resets on Telecom Italia peering link self-healed via configuration push",
-    incidentRef: "INC-8421", domainLabel: "IP Core", relativeTime: "19m ago", incidentRoute: "/incidents",
+    incidentRef: "INC-8421", domainLabel: "IP Peering", relativeTime: "19m ago", incidentRoute: "/alerts",
   },
   {
     id: "af9", state: "Escalated",
     action: "CXI RAN score < 70 persisting beyond 20m threshold — human review required",
-    incidentRef: "INC-8416", domainLabel: "CXI", relativeTime: "22m ago", incidentRoute: "/incidents",
+    incidentRef: "INC-8416", domainLabel: "CXI", relativeTime: "22m ago", incidentRoute: "/alerts",
   },
   {
     id: "af10", state: "Monitoring",
     action: "Tracking SVOD launch traffic surge — EU peering links currently at 78% capacity",
-    incidentRef: "EVT-0121", domainLabel: "IP Core", relativeTime: "31m ago", incidentRoute: "/incidents",
+    incidentRef: "EVT-0121", domainLabel: "IP Peering", relativeTime: "31m ago", incidentRoute: "/alerts",
   },
 ];
 
@@ -202,7 +202,7 @@ export const DECISION_QUEUE: DecisionItem[] = [
     id: "dq1",
     title: "Resolve packet loss via secondary path activation",
     incidentRef: "INC-2847",
-    domainLabel: "IP Core",
+    domainLabel: "IP Peering",
     recommendation: "Activate secondary path",
     confidence: 94,
     isLowRisk: true,

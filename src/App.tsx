@@ -11,18 +11,14 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Agents from "./pages/Agents";
-import Incidents from "./pages/Incidents";
-import IncidentDetail from "./pages/IncidentDetail";
-import IncidentCompare from "./pages/IncidentCompare";
+import Alerts from "./pages/Alerts";
+import AlertDetail from "./pages/AlertDetail";
 import Reports from "./pages/Reports";
 import Assistant from "./pages/Assistant";
 import Login from "./pages/Login";
 import CxiCases from "./pages/CxiCases";
 import CxiCaseDetail from "./pages/CxiCaseDetail";
 import FLMDashboard from "./pages/FLMDashboard";
-import Alarms from "./pages/Alarms";
-import AlarmDetail from "./pages/AlarmDetail";
-import AlarmCompare from "./pages/AlarmCompare";
 import FLMReports from "./pages/FLMReports";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
@@ -67,17 +63,13 @@ export default function App() {
                   </Route>
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="agents" element={<Agents />} />
-                  <Route path="incidents" element={<Incidents />} />
-                  <Route path="incidents/compare" element={<IncidentCompare />} />
-                  <Route path="incidents/:id" element={<IncidentDetail />} />
+                  <Route path="alerts" element={<Alerts />} />
+                  <Route path="alerts/:id" element={<AlertDetail />} />
                   <Route path="cxi-cases" element={<CxiCases />} />
                   <Route path="cxi-cases/:caseId" element={<CxiCaseDetail />} />
                   <Route path="reports" element={<Reports />} />
                   <Route path="assistant" element={<Assistant />} />
                   <Route path="flm-dashboard" element={<FLMDashboard />} />
-                  <Route path="alarms" element={<Alarms />} />
-                  <Route path="alarms/compare" element={<AlarmCompare />} />
-                  <Route path="alarms/:id" element={<AlarmDetail />} />
                   <Route path="events" element={<Events />} />
                   <Route path="events/:id" element={<EventDetail />} />
                   <Route path="flm-reports" element={<FLMReports />} />

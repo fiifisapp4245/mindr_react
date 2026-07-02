@@ -1,12 +1,15 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  AlertTriangle,
   BarChart2,
+  Bell,
   Bot,
   LayoutDashboard,
   Network,
   Zap,
 } from "lucide-react";
+
+// A4 — placeholder for the forthcoming multi-agent product name.
+export const APP_SUBTITLE = "TODO: multi-agent name";
 
 interface NavItem {
   label: string;
@@ -15,11 +18,11 @@ interface NavItem {
 }
 
 const GLOBAL_NAV: NavItem[] = [
-  { label: "Overview",  href: "/overview",  icon: LayoutDashboard },
-  { label: "Network Model", href: "/network-model", icon: Network },
-  { label: "Incidents", href: "/incidents", icon: AlertTriangle },
-  { label: "Agent activity", href: "/agents", icon: Bot },
-  { label: "Reports",   href: "/reports",   icon: BarChart2 },
+  { label: "Overview",      href: "/overview",       icon: LayoutDashboard },
+  { label: "Network Model", href: "/network-model",  icon: Network },
+  { label: "Alerts",        href: "/alerts",         icon: Bell },
+  { label: "Agent activity",href: "/agents",         icon: Bot },
+  { label: "Reports",       href: "/reports",        icon: BarChart2 },
 ];
 
 interface GlobalSidebarProps {

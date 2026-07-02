@@ -14,7 +14,7 @@ export interface DomainConfig {
 
 export const DOMAINS: Record<Exclude<DomainId, "all">, DomainConfig> = {
   "ip-core": {
-    label: "IP Core",
+    label: "IP Peering",
     scenarioId: "s1",
     defaultRoute: "/flm-dashboard",
     color: "#E9187C",

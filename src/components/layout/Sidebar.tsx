@@ -11,6 +11,10 @@ import {
   Network,
   Zap,
 } from "lucide-react";
+
+// A3 — placeholder for the forthcoming multi-agent product name.
+// Replace the value here when the final name is confirmed.
+export const APP_SUBTITLE = "TODO: multi-agent name";
 import { useScenario } from "../../contexts/scenario";
 import { useDomain } from "../../contexts/domain";
 import { mockCases } from "../../data/cxi-cases";
@@ -29,8 +33,7 @@ const DOMAIN_NAV: Record<string, NavItem[]> = {
   "ip-core": [
     { label: "Dashboard",     href: "/flm-dashboard",        icon: LayoutDashboard },
     { label: "Events",        href: "/events",               icon: Calendar },
-    { label: "Alarms",        href: "/alarms",               icon: Bell, badge: "6" },
-    { label: "Incidents",     href: "/incidents",            icon: AlertTriangle, badge: "3" },
+    { label: "Alerts",        href: "/alerts",               icon: Bell, badge: "4" },
     { label: "Network Model", href: "/network-model/ip-core", icon: Network },
     { label: "Reports",       href: "/flm-reports",          icon: BarChart2 },
     { label: "Assistant",     href: "/assistant",            icon: MessageSquare },
@@ -60,8 +63,7 @@ const SCENARIO_NAV: Record<string, NavItem[]> = {
   s1: [
     { label: "Dashboard",     href: "/flm-dashboard",        icon: LayoutDashboard },
     { label: "Events",        href: "/events",               icon: Calendar },
-    { label: "Alarms",        href: "/alarms",               icon: Bell, badge: "6" },
-    { label: "Incidents",     href: "/incidents",            icon: AlertTriangle, badge: "3" },
+    { label: "Alerts",        href: "/alerts",               icon: Bell, badge: "4" },
     { label: "Network Model", href: "/network-model/ip-core", icon: Network },
     { label: "Reports",       href: "/flm-reports",          icon: BarChart2 },
     { label: "Assistant",     href: "/assistant",            icon: MessageSquare },

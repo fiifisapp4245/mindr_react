@@ -27,9 +27,9 @@ type SystemStatus = "operational" | "degraded" | "critical" | "outage";
 // ── Static data ───────────────────────────────────────────────────────────────
 
 const SEARCH_DATA = [
-  { type: "incident", id: "INC-8422", label: "Core Network Overload — EU-West",     href: "/incidents" },
-  { type: "incident", id: "PRE-2019", label: "VoLTE SLA Breach Risk",               href: "/incidents" },
-  { type: "incident", id: "INC-8416", label: "232 Degraded CXI Scores",             href: "/incidents" },
+  { type: "incident", id: "INC-8422", label: "Core Network Overload — EU-West",     href: "/alerts" },
+  { type: "incident", id: "PRE-2019", label: "VoLTE SLA Breach Risk",               href: "/alerts" },
+  { type: "incident", id: "INC-8416", label: "232 Degraded CXI Scores",             href: "/alerts" },
   { type: "node",     id: "EU-CORE-01", label: "EU-CORE-01 — Router",               href: "/topology"  },
   { type: "node",     id: "DC-ALPHA",   label: "DC-ALPHA — Data Center",            href: "/topology"  },
   { type: "node",     id: "CDN-WEST",   label: "CDN-WEST — Content Delivery",       href: "/topology"  },
@@ -286,7 +286,7 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
                 {NOTIFICATIONS.map((n) => (
                   <Link
                     key={n.id}
-                    to="/incidents"
+                    to="/alerts"
                     onClick={() => setShowNotif(false)}
                     className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors"
                     style={{ borderBottom: "1px solid var(--color-border)" }}
@@ -303,7 +303,7 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
                   </Link>
                 ))}
                 <Link
-                  to="/incidents"
+                  to="/alerts"
                   onClick={() => setShowNotif(false)}
                   className="block px-4 py-2.5 text-xs font-medium text-center hover:bg-white/5 transition-colors"
                   style={{ color: "var(--color-brand)" }}

@@ -43,7 +43,7 @@ const STATUS_CFG: Record<AgentStatus, { label: string; color: string; bg: string
 };
 
 const DOMAIN_COLOR: Record<string, string> = {
-  "IP Core": "var(--color-brand)",
+  "IP Peering": "var(--color-brand)",
   "CXI":     "#FFB020",
   "Volte":   "#2DD4BF",
 };
@@ -163,12 +163,12 @@ function MetricCard({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-type DomainFilter = "all" | "IP Core" | "CXI" | "Volte";
+type DomainFilter = "all" | "IP Peering" | "CXI" | "Volte";
 type StateFilter  = "all" | "active" | "idle" | "escalating" | "resolved" | "diagnosing" | "monitoring";
 
 const DOMAIN_OPTS: { label: string; value: DomainFilter }[] = [
   { label: "All domains", value: "all"      },
-  { label: "IP Core",     value: "IP Core"  },
+  { label: "IP Peering",  value: "IP Peering"  },
   { label: "CXI",         value: "CXI"      },
   { label: "Volte",       value: "Volte"    },
 ];

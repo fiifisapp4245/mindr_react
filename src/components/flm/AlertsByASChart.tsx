@@ -86,7 +86,7 @@ export function AlertsByASChart() {
               dataKey="count"
               name="Alerts"
               radius={[3, 3, 0, 0]}
-              onClick={() => navigate('/alarms')}
+              onClick={() => navigate('/alerts')}
               style={{ cursor: 'pointer' }}
             >
               {alertsByAS.map((_, i) => (

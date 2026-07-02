@@ -88,7 +88,7 @@ export const SEV_CFG: Record<"Critical" | "High" | "Medium", { color: string; bg
 export const DOMAIN_META_ROWS: DomainMetaRow[] = [
   {
     domainId:    "ip-core",
-    label:       "IP Core",
+    label:       "IP Peering",
     fullLabel:   "IP Peering Overload Protection",
     severity:    "Critical",
     description: "Real-time BGP peering health monitoring with predictive overload detection across AMS-IX, DE-CIX, and LINX exchange points.",
@@ -310,7 +310,7 @@ export const NODE_DETAILS: Record<string, NodeDetail> = {
   "de-cix": {
     description: "Primary Frankfurt internet exchange point. Handles inter-AS traffic routing for EU-CENTRAL and EU-CORE peers.",
     location: "Frankfurt, DE",
-    team: "Peering Ops — IP Core",
+    team: "Peering Ops — IP Peering",
     kpis: [
       { label: "BGP Sessions", value: "47",      status: "ok" },
       { label: "Traffic In",   value: "312 Gbps", status: "ok" },
@@ -322,7 +322,7 @@ export const NODE_DETAILS: Record<string, NodeDetail> = {
   "ams-ix": {
     description: "AMS-IX Amsterdam peering point. Currently absorbing excess traffic from DE-CIX reconvergence event.",
     location: "Amsterdam, NL",
-    team: "Peering Ops — IP Core",
+    team: "Peering Ops — IP Peering",
     kpis: [
       { label: "BGP Sessions", value: "31",    status: "ok"   },
       { label: "Utilisation",  value: "89%",   status: "warn" },
@@ -336,7 +336,7 @@ export const NODE_DETAILS: Record<string, NodeDetail> = {
   "linx": {
     description: "LINX London exchange. Healthy — acting as standby path for EU-CORE-02 traffic.",
     location: "London, UK",
-    team: "Peering Ops — IP Core",
+    team: "Peering Ops — IP Peering",
     kpis: [
       { label: "BGP Sessions", value: "28",    status: "ok" },
       { label: "Utilisation",  value: "54%",   status: "ok" },
@@ -391,7 +391,7 @@ export const NODE_DETAILS: Record<string, NodeDetail> = {
   "milan-ix": {
     description: "Milan IX exchange. 39% spare capacity — candidate for traffic re-engineering from EU-CENTRAL.",
     location: "Milan, IT",
-    team: "Peering Ops — IP Core",
+    team: "Peering Ops — IP Peering",
     kpis: [
       { label: "Utilisation",  value: "61%", status: "ok"   },
       { label: "BGP Sessions", value: "22",  status: "ok"   },

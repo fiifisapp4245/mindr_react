@@ -15,7 +15,7 @@ import { DOMAINS, type DomainId } from "../../data/domains";
 const ROUTE_DOMAIN: Array<[string, Exclude<DomainId, "all">]> = [
   ["/flm-dashboard", "ip-core"],
   ["/events",        "ip-core"],
-  ["/alarms",        "ip-core"],
+  ["/alerts",        "ip-core"],
   ["/flm-reports",   "ip-core"],
   ["/cxi-cases",     "cxi"],
   ["/volte",         "volte"],

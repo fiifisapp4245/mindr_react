@@ -59,7 +59,7 @@ export function CoordinationDonut() {
                 innerRadius={28}
                 outerRadius={42}
                 strokeWidth={0}
-                onClick={() => navigate('/alarms')}
+                onClick={() => navigate('/alerts')}
               >
                 {coordinationSlices.map((s, i) => (
                   <Cell key={i} fill={s.color} />

@@ -58,7 +58,7 @@ export function CapacityRiskPie() {
                 cy="50%"
                 outerRadius={42}
                 strokeWidth={0}
-                onClick={() => navigate('/alarms')}
+                onClick={() => navigate('/alerts')}
               >
                 {capacityRiskSlices.map((s, i) => (
                   <Cell key={i} fill={s.color} />
