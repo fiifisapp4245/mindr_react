@@ -32,7 +32,6 @@ import VolteIncidentDetail from "./pages/volte/VolteIncidentDetail";
 import VolteReports from "./pages/volte/VolteReports";
 import NetworkModelList from "./pages/NetworkModelList";
 import NetworkModelGraph from "./pages/NetworkModelGraph";
-import NetworkModelChat from "./pages/NetworkModelChat";
 
 export default function App() {
   return (
@@ -75,8 +74,6 @@ export default function App() {
                   <Route path="flm-reports" element={<FLMReports />} />
                   <Route path="network-model" element={<NetworkModelList />} />
                   <Route path="network-model/:domainId" element={<NetworkModelGraph />} />
-                  <Route path="network-model/:domainId/chat" element={<NetworkModelChat />} />
-                  <Route path="network-model/:domainId/chat/:convId" element={<NetworkModelChat />} />
                 </Route>
               </Route>
             </Routes>

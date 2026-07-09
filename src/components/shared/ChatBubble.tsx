@@ -15,8 +15,9 @@ export function ChatBubble() {
   const [open, setOpen]   = useState(false);
   const [input, setInput] = useState("");
 
-  // Hidden on assistant page
+  // Hidden on assistant page and network model (which has its own in-page assistant)
   if (pathname === "/assistant" || pathname.startsWith("/assistant/")) return null;
+  if (pathname === "/network-model" || pathname.startsWith("/network-model/")) return null;
 
   function handleSend(text: string) {
     const q = text.trim();
