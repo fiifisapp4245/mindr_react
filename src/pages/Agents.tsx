@@ -23,6 +23,7 @@ import {
   type FeedState,
   type LifecycleStage,
 } from "../data/agent-activity-data";
+import { Badge } from "@/components/ui/badge";
 
 // ── Feature flag — set true when stakeholders approve the lifecycle lens ───────
 const SHOW_LIFECYCLE_LENS = false;
@@ -595,8 +596,8 @@ export default function Agents() {
 
                       {/* Status pill */}
                       <td className="px-3 py-3">
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
+                        <Badge
+                          className="text-[10px] font-bold whitespace-nowrap"
                           style={{
                             color: statusCfg.color,
                             backgroundColor: statusCfg.bg,
@@ -604,7 +605,7 @@ export default function Agents() {
                           }}
                         >
                           {statusCfg.label}
-                        </span>
+                        </Badge>
                       </td>
 
                       {/* Current task */}
@@ -626,16 +627,16 @@ export default function Agents() {
                       <td className="px-3 py-3">
                         <div className="flex flex-wrap gap-1">
                           {agent.domains.map((d) => (
-                            <span
+                            <Badge
                               key={d}
-                              className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+                              className="px-1.5 text-[9px] font-bold"
                               style={{
                                 color: DOMAIN_COLOR[d] ?? "var(--color-text-muted)",
                                 backgroundColor: `${DOMAIN_COLOR[d] ?? "rgba(255,255,255,0.1)"}15`,
                               }}
                             >
                               {d}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       </td>
@@ -701,8 +702,8 @@ export default function Agents() {
                     onClick={() => navigate(entry.incidentRoute)}
                   >
                     {/* State badge */}
-                    <span
-                      className="text-[9px] font-bold px-2 py-0.5 rounded shrink-0 mt-0.5 whitespace-nowrap"
+                    <Badge
+                      className="text-[9px] font-bold shrink-0 mt-0.5 whitespace-nowrap"
                       style={{
                         color:           cfg.color,
                         backgroundColor: cfg.bg,
@@ -710,7 +711,7 @@ export default function Agents() {
                       }}
                     >
                       {cfg.label}
-                    </span>
+                    </Badge>
 
                     {/* Action text */}
                     <p className="flex-1 text-[12px] leading-snug" style={{ color: "var(--color-text-primary)" }}>

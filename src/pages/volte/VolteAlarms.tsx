@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Bell, Check, RefreshCw } from "lucide-react";
 import { VOLTE_ALARMS, type VolteSeverity, type AlarmState } from "../../data/volte-data";
+import { Badge } from "../../components/ui/badge";
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -185,18 +186,18 @@ export default function VolteAlarms() {
 
                     {/* Severity pill */}
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: SEV_COLOR[alarm.severity], backgroundColor: SEV_BG[alarm.severity] }}>
                         {alarm.severity}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* State pill */}
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: stateCfg.color, backgroundColor: stateCfg.bg, border: stateCfg.border }}>
                         {effectiveState}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Affected */}
@@ -206,10 +207,10 @@ export default function VolteAlarms() {
 
                     {/* Segment */}
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: SEGMENT_COLOR[alarm.segment], backgroundColor: SEGMENT_BG[alarm.segment] }}>
                         {alarm.segment}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Metric + bar */}

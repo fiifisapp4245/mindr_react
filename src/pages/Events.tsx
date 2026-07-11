@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { EVENTS_FULL } from "../data/events";
 import type { EventStatus, EventSeverity } from "../data/events";
+import { Badge } from "@/components/ui/badge";
 
 // ── Color helpers ────────────────────────────────────────────────────────────
 
@@ -29,8 +30,8 @@ const SEVERITY_CFG: Record<EventSeverity, { bg: string; text: string }> = {
 function StatusBadge({ status }: { status: EventStatus }) {
   if (status === "live") {
     return (
-      <span
-        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide"
+      <Badge
+        className="gap-1.5 text-[10px] font-bold uppercase tracking-wide"
         style={{ backgroundColor: "rgba(45,212,191,0.15)", color: "#2DD4BF" }}
       >
         <span className="relative flex h-1.5 w-1.5">
@@ -41,26 +42,26 @@ function StatusBadge({ status }: { status: EventStatus }) {
           <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#2DD4BF" }} />
         </span>
         Live
-      </span>
+      </Badge>
     );
   }
   if (status === "past") {
     return (
-      <span
-        className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+      <Badge
+        className="text-[10px] font-semibold uppercase tracking-wide"
         style={{ backgroundColor: "rgba(148,163,184,0.12)", color: "#94a3b8" }}
       >
         Past
-      </span>
+      </Badge>
     );
   }
   return (
-    <span
-      className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+    <Badge
+      className="text-[10px] font-semibold uppercase tracking-wide"
       style={{ backgroundColor: "rgba(77,158,255,0.12)", color: "#4D9EFF" }}
     >
       Upcoming
-    </span>
+    </Badge>
   );
 }
 
@@ -423,12 +424,12 @@ export default function Events() {
 
                 {/* Severity */}
                 <div>
-                  <span
-                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"
+                  <Badge
+                    className="px-1.5 text-[10px] font-semibold uppercase tracking-wide"
                     style={{ backgroundColor: sev.bg, color: sev.text }}
                   >
                     {evt.severity}
-                  </span>
+                  </Badge>
                 </div>
               </button>
             );

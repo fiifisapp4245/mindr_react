@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { DOMAIN_META_ROWS, SEV_CFG } from "../data/network-model-data";
+import { Badge } from "../components/ui/badge";
 
 export default function NetworkModelList() {
   const navigate = useNavigate();
@@ -70,12 +71,12 @@ export default function NetworkModelList() {
 
               {/* Severity pill */}
               <div style={{ display: "inline-flex", alignSelf: "start", marginTop: 2 }}>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
+                <Badge
+                  className="text-[10px] font-bold whitespace-nowrap"
                   style={{ color: sev.color, backgroundColor: sev.bg }}
                 >
                   {row.severity}
-                </span>
+                </Badge>
               </div>
 
               {/* Description */}

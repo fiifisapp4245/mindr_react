@@ -61,11 +61,26 @@ export interface BorderPlannerSource {
   ports: BorderPort[];
 }
 
+export interface AlarmRecord {
+  ref: string;             // ALM-refs are OK per D3
+  message: string;
+  severity: AlertSeverity;
+  raised: string;
+}
+
+export interface TicketRecord {
+  description: string;    // description only — NO IDs per D3
+  status: "open" | "in_progress" | "resolved";
+  raised: string;
+}
+
 export interface CaemCasmSource {
   alarmCount: number;
   ticketCount: number;
   ticketDesc: string;  // description only — NO IDs per D3
   alarmRefs: string[]; // ALM-refs are OK
+  alarmDetails: AlarmRecord[];
+  ticketDetails: TicketRecord[];
 }
 
 export interface RcaClassification {
@@ -141,9 +156,11 @@ export interface Alert {
   impact: { baseline: number; peak: number; unit: "Gbps" };
   affected: string;         // handover AS / router
   linkedAlarms: number;
+  linkedTeams: number;
   linkedTickets: number;
   linkedAlarmRefs: string[];   // OK per D3
   ticketDesc: string;          // description only, no IDs
+  voiceChannel: boolean;       // true = a dedicated voice bridge has been designated
   eta: string;
   age: string;
   raised: string;
@@ -152,6 +169,19 @@ export interface Alert {
   predict: AlertPredict;
   actions: AlertAction[];
 }
+
+// ── Feedback (Feedback tab — 1-5 star ratings per question) ──────────────────
+
+export type FeedbackQuestionKey = "solutionAlignment" | "remediationUsefulness" | "overallGuidance";
+
+export const FEEDBACK_QUESTIONS: { key: FeedbackQuestionKey; question: string }[] = [
+  { key: "solutionAlignment",     question: "How well was the suggested solution aligned to the issue?" },
+  { key: "remediationUsefulness", question: "How useful was the recommended remediation?" },
+  { key: "overallGuidance",       question: "How effective was the overall guidance for resolving this alert?" },
+];
+
+export const FEEDBACK_SCALE_HELP =
+  "1 star = Not useful / incorrect, 2 stars = Slightly useful, 3 stars = Partly useful, 4 stars = Mostly useful and 5 stars = Very useful / accurate";
 
 // ── Severity / status design tokens ──────────────────────────────────────────
 
@@ -197,9 +227,11 @@ export const ALERTS: Alert[] = [
     impact: { baseline: 7.1, peak: 9.4, unit: "Gbps" },
     affected: "AMS-SC1 / ams-ix-rtr-01",
     linkedAlarms: 6,
+    linkedTeams: 2,
     linkedTickets: 3,
     linkedAlarmRefs: ["ALM-0042", "ALM-0043", "ALM-0044", "ALM-0045", "ALM-0046", "ALM-0047"],
     ticketDesc: "3 customer tickets — voice degradation on AMS-SC1 path, raised by Tele2 NL and KPN ops teams",
+    voiceChannel: true,
     eta: "Immediate operator review",
     age: "14m",
     raised: "14:23 UTC",
@@ -244,6 +276,19 @@ export const ALERTS: Alert[] = [
         ticketCount: 3,
         ticketDesc: "3 customer tickets — voice degradation on AMS-SC1 path, raised by Tele2 NL and KPN ops teams",
         alarmRefs: ["ALM-0042", "ALM-0043", "ALM-0044", "ALM-0045", "ALM-0046", "ALM-0047"],
+        alarmDetails: [
+          { ref: "ALM-0042", message: "Critical: ams-ix-rtr-01 xe-0/0/0 ingress exceeds 90% threshold", severity: "critical", raised: "14:23 UTC" },
+          { ref: "ALM-0043", message: "High: AS3320 handover anomaly score 94.2 on ams-ix-rtr-01",       severity: "high",     raised: "14:23 UTC" },
+          { ref: "ALM-0044", message: "Medium: fra-rtr-01 xe-0/0/0 ingress at 91% — secondary path watch", severity: "medium",   raised: "14:24 UTC" },
+          { ref: "ALM-0045", message: "Critical: SLA breach risk projected — AMS-SC1 path",               severity: "critical", raised: "14:25 UTC" },
+          { ref: "ALM-0046", message: "High: voice quality degradation reported — Tele2 NL",               severity: "high",     raised: "14:30 UTC" },
+          { ref: "ALM-0047", message: "High: voice quality degradation reported — KPN",                    severity: "high",     raised: "14:31 UTC" },
+        ],
+        ticketDetails: [
+          { description: "Voice degradation on AMS-SC1 path — raised by Tele2 NL ops team",                  status: "open",        raised: "14:28 UTC" },
+          { description: "Voice degradation on AMS-SC1 path — raised by KPN ops team",                       status: "open",        raised: "14:32 UTC" },
+          { description: "Customer escalation — packet loss reported on VoIP trunk via AMS-SC1",             status: "in_progress", raised: "14:35 UTC" },
+        ],
       },
       benocsRca: {
         classifications: [
@@ -364,9 +409,11 @@ export const ALERTS: Alert[] = [
     impact: { baseline: 6.2, peak: 8.1, unit: "Gbps" },
     affected: "FRA-RTR-01 / fra-rtr-01",
     linkedAlarms: 4,
+    linkedTeams: 2,
     linkedTickets: 2,
     linkedAlarmRefs: ["ALM-0043", "ALM-0050", "ALM-0051", "ALM-0052"],
     ticketDesc: "2 customer tickets — elevated latency on Frankfurt peering path, raised by Cogent and Lumen teams",
+    voiceChannel: false,
     eta: "Review within 30 min",
     age: "31m",
     raised: "14:06 UTC",
@@ -377,7 +424,21 @@ export const ALERTS: Alert[] = [
       benocs: { sourceAS: "AS6453", baseline: 6.2, peak: 8.1, spikePercent: 31, direction: "DE-CIX Frankfurt → EU-CORE-02" },
       snmp: { utilization: 91, threshold: 85, capacity: "10 Gbps", router: "fra-rtr-01", iface: "xe-0/0/0" },
       borderPlanner: { congestedPorts: 3, buildoutFlag: "CRITICAL", worstPort: "fra-rtr-01 xe-0/0/0", ports: BORDER_PORTS.filter(p => p.port.startsWith("fra")) },
-      caemCasm: { alarmCount: 4, ticketCount: 2, ticketDesc: "2 customer tickets — elevated latency on Frankfurt peering path, raised by Cogent and Lumen teams", alarmRefs: ["ALM-0043", "ALM-0050", "ALM-0051", "ALM-0052"] },
+      caemCasm: {
+        alarmCount: 4, ticketCount: 2,
+        ticketDesc: "2 customer tickets — elevated latency on Frankfurt peering path, raised by Cogent and Lumen teams",
+        alarmRefs: ["ALM-0043", "ALM-0050", "ALM-0051", "ALM-0052"],
+        alarmDetails: [
+          { ref: "ALM-0043", message: "High: fra-rtr-01 congestion — AS6453 sustained ingress above threshold", severity: "high",   raised: "14:06 UTC" },
+          { ref: "ALM-0050", message: "High: DE-CIX Frankfurt sustained ingress above 80% for 28+ minutes",     severity: "high",   raised: "14:08 UTC" },
+          { ref: "ALM-0051", message: "Medium: fra-rtr-01 xe-0/0/1 link flap detected",                          severity: "medium", raised: "14:08 UTC" },
+          { ref: "ALM-0052", message: "High: Cogent (AS6453) upstream reroute event detected",                   severity: "high",   raised: "14:06 UTC" },
+        ],
+        ticketDetails: [
+          { description: "Elevated latency on Frankfurt peering path — raised by Cogent ops team", status: "open", raised: "14:10 UTC" },
+          { description: "Elevated latency on Frankfurt peering path — raised by Lumen ops team",  status: "open", raised: "14:15 UTC" },
+        ],
+      },
       benocsRca: {
         classifications: [
           { name: "Indirect Overflow", matches: true, confirms: "Indirect Overflow — AS6453 receiving redirected volume from Cogent re-routing event" },
@@ -421,9 +482,11 @@ export const ALERTS: Alert[] = [
     impact: { baseline: 5.8, peak: 9.1, unit: "Gbps" },
     affected: "AMS-RTR-02 / ams-ix-rtr-02",
     linkedAlarms: 3,
+    linkedTeams: 1,
     linkedTickets: 1,
     linkedAlarmRefs: ["ALM-0045", "ALM-0048", "ALM-0049"],
     ticketDesc: "1 capacity planning ticket — AMS-RTR-02 flagged for Q3 upgrade review",
+    voiceChannel: false,
     eta: "Breach in ~3 hrs",
     age: "2h 14m",
     raised: "12:23 UTC",
@@ -434,7 +497,19 @@ export const ALERTS: Alert[] = [
       benocs: { sourceAS: "AS6453", baseline: 5.8, peak: 9.1, spikePercent: 57, direction: "AMS-IX → EU-CORE-01" },
       snmp: { utilization: 85, threshold: 85, capacity: "10 Gbps", router: "ams-ix-rtr-02", iface: "xe-1/0/0" },
       borderPlanner: { congestedPorts: 2, buildoutFlag: "SOON", worstPort: "ams-ix-rtr-02 xe-1/0/0", ports: BORDER_PORTS.filter(p => p.port.startsWith("ams-ix-rtr-02")) },
-      caemCasm: { alarmCount: 3, ticketCount: 1, ticketDesc: "1 capacity planning ticket — AMS-RTR-02 flagged for Q3 upgrade review", alarmRefs: ["ALM-0045", "ALM-0048", "ALM-0049"] },
+      caemCasm: {
+        alarmCount: 3, ticketCount: 1,
+        ticketDesc: "1 capacity planning ticket — AMS-RTR-02 flagged for Q3 upgrade review",
+        alarmRefs: ["ALM-0045", "ALM-0048", "ALM-0049"],
+        alarmDetails: [
+          { ref: "ALM-0045", message: "High: forecast breach projected on ams-ix-rtr-02 within 3 hours", severity: "high",   raised: "12:23 UTC" },
+          { ref: "ALM-0048", message: "Medium: ams-ix-rtr-02 xe-1/0/0 approaching threshold (85%)",       severity: "medium", raised: "12:30 UTC" },
+          { ref: "ALM-0049", message: "Medium: SVOD traffic pattern match — Thursday evening peak forecast", severity: "medium", raised: "12:35 UTC" },
+        ],
+        ticketDetails: [
+          { description: "Capacity planning ticket — AMS-RTR-02 flagged for Q3 upgrade review", status: "open", raised: "12:20 UTC" },
+        ],
+      },
       benocsRca: {
         classifications: [
           { name: "Organic-Event",    matches: true, confirms: "Organic-Event — SVOD streaming peak aligns with historical Thursday evening pattern" },
@@ -477,9 +552,11 @@ export const ALERTS: Alert[] = [
     impact: { baseline: 3.1, peak: 4.8, unit: "Gbps" },
     affected: "EU-CORE-01 / AS6762",
     linkedAlarms: 2,
+    linkedTeams: 1,
     linkedTickets: 1,
     linkedAlarmRefs: ["ALM-0046", "ALM-0047"],
     ticketDesc: "1 maintenance ticket — Tele Italia scheduled BGP timer adjustment, window closes 15:30 UTC",
+    voiceChannel: false,
     eta: "Resolving — ETA 15:30 UTC",
     age: "47m",
     raised: "13:50 UTC",
@@ -490,7 +567,18 @@ export const ALERTS: Alert[] = [
       benocs: { sourceAS: "AS6762", baseline: 3.1, peak: 4.8, spikePercent: 55, direction: "DE-CIX → EU-CORE-01" },
       snmp: { utilization: 62, threshold: 85, capacity: "10 Gbps", router: "eu-core-01", iface: "xe-2/0/0" },
       borderPlanner: { congestedPorts: 0, buildoutFlag: "OK", worstPort: "—", ports: [] },
-      caemCasm: { alarmCount: 2, ticketCount: 1, ticketDesc: "1 maintenance ticket — Tele Italia scheduled BGP timer adjustment, window closes 15:30 UTC", alarmRefs: ["ALM-0046", "ALM-0047"] },
+      caemCasm: {
+        alarmCount: 2, ticketCount: 1,
+        ticketDesc: "1 maintenance ticket — Tele Italia scheduled BGP timer adjustment, window closes 15:30 UTC",
+        alarmRefs: ["ALM-0046", "ALM-0047"],
+        alarmDetails: [
+          { ref: "ALM-0046", message: "Medium: AS6762 BGP session flap detected — eu-core-01", severity: "medium", raised: "13:50 UTC" },
+          { ref: "ALM-0047", message: "Medium: BGP hold-timer reset — Tele Italia peering",     severity: "medium", raised: "13:52 UTC" },
+        ],
+        ticketDetails: [
+          { description: "Maintenance ticket — Tele Italia scheduled BGP timer adjustment, window closes 15:30 UTC", status: "in_progress", raised: "13:45 UTC" },
+        ],
+      },
       benocsRca: {
         classifications: [
           { name: "Router Shift",     matches: true, confirms: "Router Shift — BGP hold-timer reset triggered transient reroute via secondary path" },
@@ -544,4 +632,14 @@ export function confirmAction(alertId: string, actionId: string): void {
 
 export function isConfirmed(alertId: string, actionId: string): boolean {
   return !!_actions[`${alertId}:${actionId}`];
+}
+
+let _feedback: Record<string, Partial<Record<FeedbackQuestionKey, number>>> = {};
+
+export function setFeedbackRating(alertId: string, key: FeedbackQuestionKey, rating: number): void {
+  _feedback[alertId] = { ...(_feedback[alertId] ?? {}), [key]: rating };
+}
+
+export function getFeedbackRating(alertId: string, key: FeedbackQuestionKey): number {
+  return _feedback[alertId]?.[key] ?? 0;
 }

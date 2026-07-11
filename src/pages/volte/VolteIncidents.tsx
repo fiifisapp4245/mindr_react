@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import { VOLTE_INCIDENTS, type VolteSeverity, type IncidentStatus, type Segment } from "../../data/volte-data";
+import { Badge } from "../../components/ui/badge";
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -146,28 +147,28 @@ export default function VolteIncidents() {
 
                     {/* Severity */}
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: SEV_COLOR[inc.severity], backgroundColor: SEV_BG[inc.severity] }}>
                         {inc.severity}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Status */}
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: STATUS_CFG[inc.status].color, backgroundColor: STATUS_CFG[inc.status].bg }}>
                         {inc.status}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Segments */}
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {inc.affectedScope.segments.map((seg) => (
-                          <span key={seg} className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold"
+                          <Badge key={seg} className="px-1.5 py-0.5 text-[9px] font-bold"
                             style={{ color: SEG_COLOR[seg], backgroundColor: SEG_BG[seg] }}>
                             {seg}
-                          </span>
+                          </Badge>
                         ))}
                       </div>
                     </td>

@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import { mockCases } from "../../data/cxi-cases";
+import { Badge } from "@/components/ui/badge";
 
 // ── Agent definitions ─────────────────────────────────────────────────────────
 
@@ -181,19 +182,19 @@ function AgentCard({ agent }: { agent: MINDRAgent }) {
         style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: `${agent.accentColor}18` }}
       >
         <div className="flex items-center gap-2">
-          <span
-            className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
+          <Badge
+            className="text-[9px] font-bold uppercase tracking-widest"
             style={{ color: agent.accentColor, backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${agent.accentColor}` }}
           >
             {agent.role}
-          </span>
-          <span
-            className="text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-1"
+          </Badge>
+          <Badge
+            className="gap-1 text-[9px] font-bold"
             style={{ color: st.color, backgroundColor: st.bg }}
           >
             {st.pulse && <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ backgroundColor: st.color }} />}
             {st.label}
-          </span>
+          </Badge>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: st.color }} />
@@ -262,12 +263,12 @@ function AgentCard({ agent }: { agent: MINDRAgent }) {
         className="flex items-center justify-between px-4 py-3 shrink-0"
         style={{ borderTop: "1px solid var(--color-border)" }}
       >
-        <span
-          className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded"
+        <Badge
+          className="text-[9px] font-bold uppercase tracking-widest"
           style={{ color: agent.accentColor, backgroundColor: `${agent.accentColor}15` }}
         >
           {agent.shortName}
-        </span>
+        </Badge>
         <button
           className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg transition-colors hover:bg-white/10"
           style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
@@ -357,12 +358,12 @@ function EventLog({ events }: { events: PipelineEvent[] }) {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                <span
-                  className="text-[9px] font-bold px-1.5 py-px rounded"
+                <Badge
+                  className="px-1.5 py-px text-[9px] font-bold"
                   style={{ backgroundColor: `${ev.color}20`, color: ev.color }}
                 >
                   {ev.step}
-                </span>
+                </Badge>
                 <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{ev.ts}</span>
                 <span className="text-[10px] truncate" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                   {ev.caseId}

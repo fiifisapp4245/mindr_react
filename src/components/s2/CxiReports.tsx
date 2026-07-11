@@ -28,6 +28,7 @@ import {
   severityBg,
   classificationLabel,
 } from "../cxi/CaseRow";
+import { Badge } from "../ui/badge";
 import type { CaseStatus, CaseSeverity, CaseClassification } from "../../types/cxi";
 
 // ── Period ────────────────────────────────────────────────────────────────────
@@ -576,12 +577,12 @@ function CaseSummaryTable({ period }: { period: Period }) {
                 </td>
 
                 <td className="px-5 py-2.5">
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-px rounded-md"
+                  <Badge
+                    className="font-bold px-1.5 py-px"
                     style={{ color: severityColor(c.severity), backgroundColor: severityBg(c.severity) }}
                   >
                     {c.severity}
-                  </span>
+                  </Badge>
                 </td>
 
                 <td className="px-5 py-2.5" style={{ color: "var(--color-text-secondary)" }}>
@@ -604,12 +605,12 @@ function CaseSummaryTable({ period }: { period: Period }) {
                 </td>
 
                 <td className="px-5 py-2.5">
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                  <Badge
+                    className="font-bold uppercase tracking-wider"
                     style={{ color: statusColor(c.status), backgroundColor: statusBg(c.status) }}
                   >
                     {c.status}
-                  </span>
+                  </Badge>
                 </td>
               </tr>
             ))
@@ -624,12 +625,12 @@ function CaseSummaryTable({ period }: { period: Period }) {
                 <span style={{ color: "var(--color-text-muted)" }}>Totals:</span>
                 {(["pending", "approved", "rejected", "escalated", "corrected"] as CaseStatus[]).map((s) => (
                   <span key={s} className="flex items-center gap-1.5">
-                    <span
-                      className="font-bold px-1.5 py-px rounded-full text-[9px] uppercase tracking-wider"
+                    <Badge
+                      className="font-bold px-1.5 py-px text-[9px] uppercase tracking-wider"
                       style={{ color: statusColor(s), backgroundColor: statusBg(s) }}
                     >
                       {s}
-                    </span>
+                    </Badge>
                     <span
                       className="font-bold"
                       style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}

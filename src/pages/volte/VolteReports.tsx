@@ -4,6 +4,7 @@ import {
   VOLTE_REPORTS, FEEDBACK_ENTRIES, PLAYBOOK_RECOMMENDATIONS,
   type FeedbackEntry,
 } from "../../data/volte-data";
+import { Badge } from "../../components/ui/badge";
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -100,23 +101,23 @@ export default function VolteReports() {
 
                     {/* Type */}
                     <td className="px-5 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: typeCfg.color, backgroundColor: typeCfg.bg }}>
                         {typeCfg.label}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* MTTR / SLA */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       {rpt.mttr && <p className="text-[11px] font-mono font-semibold" style={{ color: "var(--color-text-primary)" }}>{rpt.mttr}</p>}
                       {rpt.slaOutcome && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                        <Badge className="px-1.5 py-0.5 text-[9px] font-bold"
                           style={{
                             color: rpt.slaOutcome === "met" ? "#2DD4BF" : "#FF3B3B",
                             backgroundColor: rpt.slaOutcome === "met" ? "rgba(45,212,191,0.12)" : "rgba(255,59,59,0.12)",
                           }}>
                           SLA {rpt.slaOutcome}
-                        </span>
+                        </Badge>
                       )}
                       {!rpt.mttr && !rpt.slaOutcome && (
                         <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>—</span>
@@ -130,13 +131,13 @@ export default function VolteReports() {
 
                     {/* Status */}
                     <td className="px-5 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{
                           color:           rpt.status === "ready" ? "#2DD4BF" : "#FFB020",
                           backgroundColor: rpt.status === "ready" ? "rgba(45,212,191,0.12)" : "rgba(255,176,32,0.12)",
                         }}>
                         {rpt.status === "ready" ? "Ready" : "Generating…"}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Download */}
@@ -205,13 +206,13 @@ export default function VolteReports() {
             return (
               <div key={rec.id} className="flex items-start gap-4 px-5 py-4 rounded-xl"
                 style={{ backgroundColor: "var(--color-bg-card)", border: accepted ? "1px solid rgba(45,212,191,0.3)" : "1px solid var(--color-border)" }}>
-                <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold mt-0.5"
+                <Badge className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold mt-0.5"
                   style={{
                     color:           rec.priority === "High" ? "#FF3B3B" : "#FFB020",
                     backgroundColor: rec.priority === "High" ? "rgba(255,59,59,0.12)" : "rgba(255,176,32,0.12)",
                   }}>
                   {rec.priority}
-                </span>
+                </Badge>
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-semibold" style={{ color: "var(--color-text-primary)" }}>{rec.title}</p>
                   <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{rec.rationale}</p>

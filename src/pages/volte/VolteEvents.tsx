@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import { VOLTE_EVENTS, type Segment, type EventType, type EventState } from "../../data/volte-data";
+import { Badge } from "../../components/ui/badge";
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -158,18 +159,18 @@ export default function VolteEvents() {
 
                     {/* Type badge */}
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: typeCfg.color, backgroundColor: typeCfg.bg }}>
                         {typeCfg.label}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Segment chip */}
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: SEGMENT_COLOR[evt.segment], backgroundColor: SEGMENT_BG[evt.segment] }}>
                         {evt.segment}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Affected KPI */}
@@ -193,10 +194,10 @@ export default function VolteEvents() {
 
                     {/* State pill */}
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+                      <Badge className="px-2 py-0.5 text-[9px] font-bold"
                         style={{ color: stateCfg.color, backgroundColor: stateCfg.bg }}>
                         {evt.state}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Time */}

@@ -5,6 +5,7 @@ import { useDomain } from "../contexts/domain";
 import { kpiCard, kpiValue } from "../lib/animations";
 import { Activity, TrendingDown, Zap } from "lucide-react";
 import { useDashboard } from "../hooks/use-dashboard";
+import { Badge } from "../components/ui/badge";
 import { HealthTrendChart } from "../components/dashboard/HealthTrendChart";
 import { AgentActivity } from "../components/dashboard/AgentActivity";
 import { IncidentRow } from "../components/dashboard/IncidentRow";
@@ -56,9 +57,9 @@ function AdminDashboardView() {
           </p>
           <motion.p className="text-3xl font-bold tabular-nums" variants={kpiValue}>3</motion.p>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{ color: "var(--color-critical)", backgroundColor: "rgba(255,59,59,0.12)" }}>1 CRITICAL</span>
-            <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{ color: "var(--color-warning)", backgroundColor: "rgba(255,176,32,0.12)" }}>1 PREDICTED</span>
-            <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{ color: "var(--color-mitigating)", backgroundColor: "rgba(77,158,255,0.12)" }}>1 MITIGATING</span>
+            <Badge className="text-[10px]" style={{ color: "var(--color-critical)", backgroundColor: "rgba(255,59,59,0.12)" }}>1 CRITICAL</Badge>
+            <Badge className="text-[10px]" style={{ color: "var(--color-warning)", backgroundColor: "rgba(255,176,32,0.12)" }}>1 PREDICTED</Badge>
+            <Badge className="text-[10px]" style={{ color: "var(--color-mitigating)", backgroundColor: "rgba(77,158,255,0.12)" }}>1 MITIGATING</Badge>
           </div>
         </motion.div>
 
@@ -98,9 +99,9 @@ function AdminDashboardView() {
             <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
               AI Confidence
             </p>
-            <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{ color: "var(--color-mitigating)", backgroundColor: "rgba(77,158,255,0.12)" }}>
+            <Badge className="text-[10px]" style={{ color: "var(--color-mitigating)", backgroundColor: "rgba(77,158,255,0.12)" }}>
               STABLE
-            </span>
+            </Badge>
           </div>
           <motion.p className="text-3xl font-bold tabular-nums" variants={kpiValue}>94.2%</motion.p>
           <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
@@ -117,9 +118,9 @@ function AdminDashboardView() {
             <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
               MTTR Reduction
             </p>
-            <span className="text-[10px] font-medium px-1.5 py-px rounded" style={{ color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }}>
+            <Badge className="text-[10px]" style={{ color: "var(--color-text-muted)", border: "1px solid var(--color-border)", backgroundColor: "transparent" }}>
               BENCHMARK
-            </span>
+            </Badge>
           </div>
           <motion.p className="text-3xl font-bold tabular-nums" variants={kpiValue}>68%</motion.p>
           <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Against baseline</p>

@@ -32,6 +32,7 @@ import {
 import { EVENTS_FULL } from "../data/events";
 import type { EventFull, EventStatus } from "../data/events";
 import { Breadcrumb } from "../components/shared/Breadcrumb";
+import { Badge } from "@/components/ui/badge";
 
 // ── Color helpers ────────────────────────────────────────────────────────────
 
@@ -356,24 +357,24 @@ export default function EventDetail() {
                   <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: "#2DD4BF" }} />
                 </span>
               )}
-              <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide"
+              <Badge
+                className="text-[10px] font-bold uppercase tracking-wide"
                 style={{ backgroundColor: status.bg, color: status.color }}
               >
                 {status.label}
-              </span>
-              <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide"
+              </Badge>
+              <Badge
+                className="text-[10px] font-bold uppercase tracking-wide"
                 style={{ backgroundColor: severity.bg, color: severity.color }}
               >
                 {event.severity}
-              </span>
-              <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded ml-auto"
+              </Badge>
+              <Badge
+                className="text-[10px] font-semibold ml-auto"
                 style={{ backgroundColor: "rgba(77,158,255,0.1)", color: "#4D9EFF" }}
               >
                 {event.confidence}% confidence
-              </span>
+              </Badge>
             </div>
 
             <h1 className="text-xl font-bold leading-tight mb-3" style={{ color: "var(--color-text-primary)" }}>
@@ -514,12 +515,12 @@ export default function EventDetail() {
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
                   style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
                 >
-                  <span
-                    className="text-[9px] font-bold px-1.5 py-px rounded shrink-0"
+                  <Badge
+                    className="text-[9px] font-bold px-1.5 py-px shrink-0"
                     style={{ backgroundColor: `${action.tagColor}18`, color: action.tagColor }}
                   >
                     {action.tag}
-                  </span>
+                  </Badge>
                   <span className="text-[12px]" style={{ color: "var(--color-text-primary)" }}>
                     {action.label}
                   </span>

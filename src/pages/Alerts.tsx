@@ -18,6 +18,7 @@ import {
   type AlertSeverity,
   type AlertStatus,
 } from "../data/alert-store";
+import { Badge } from "../components/ui/badge";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,28 +27,44 @@ type StatusFilter = "all" | AlertStatus;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+const SEV_VARIANT: Record<AlertSeverity, "destructive" | "warning" | "info" | "success"> = {
+  critical: "destructive",
+  high:     "warning",
+  medium:   "info",
+  low:      "success",
+};
+
+const STATUS_VARIANT: Record<AlertStatus, "destructive" | "warning" | "info" | "success"> = {
+  active:     "destructive",
+  predicted:  "warning",
+  mitigating: "info",
+  resolved:   "success",
+};
+
 function SevBadge({ severity }: { severity: AlertSeverity }) {
   const cfg = ALERT_SEV[severity];
   return (
-    <span
-      className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide whitespace-nowrap"
+    <Badge
+      variant={SEV_VARIANT[severity]}
+      className="font-bold uppercase tracking-wide whitespace-nowrap"
       style={{ color: cfg.color, backgroundColor: cfg.bg }}
     >
       {cfg.label}
-    </span>
+    </Badge>
   );
 }
 
 function StatusBadge({ status }: { status: AlertStatus }) {
   const cfg = ALERT_STATUS[status];
   return (
-    <span
-      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wide whitespace-nowrap"
+    <Badge
+      variant={STATUS_VARIANT[status]}
+      className="gap-1 uppercase tracking-wide whitespace-nowrap"
       style={{ color: cfg.color, backgroundColor: cfg.bg }}
     >
       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.color }} />
       {cfg.label}
-    </span>
+    </Badge>
   );
 }
 

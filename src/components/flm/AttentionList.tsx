@@ -1,5 +1,6 @@
 import { attentionItems, type AttentionItem } from '../../data/peering-store';
 import { Link } from 'react-router-dom';
+import { Badge } from '../ui/badge';
 
 const SEV_CFG: Record<
   AttentionItem['severity'],
@@ -66,12 +67,9 @@ export function AttentionList() {
                   >
                     {item.title}
                   </span>
-                  <span
-                    className="text-[10px] font-semibold px-1.5 py-px rounded shrink-0"
-                    style={{ color: cfg.color, backgroundColor: cfg.bg }}
-                  >
+                  <Badge className="text-[10px] shrink-0" style={{ color: cfg.color, backgroundColor: cfg.bg }}>
                     {item.severity}
-                  </span>
+                  </Badge>
                 </div>
                 <p
                   className="text-[11px] mt-0.5"

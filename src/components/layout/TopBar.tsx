@@ -281,7 +281,7 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
               <div style={{ ...dropdownBase, right: 0, width: 340 }}>
                 <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
                   <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Notifications</p>
-                  <span className="text-[10px] font-semibold px-1.5 py-px rounded-full" style={{ backgroundColor: "rgba(255,59,59,0.15)", color: "var(--color-critical)" }}>3 active</span>
+                  <Badge className="text-[10px]" style={{ backgroundColor: "rgba(255,59,59,0.15)", color: "var(--color-critical)" }}>3 active</Badge>
                 </div>
                 {NOTIFICATIONS.map((n) => (
                   <Link
@@ -349,12 +349,12 @@ export function TopBar({ status = "critical", sidebarCollapsed = false, onToggle
                   <div className="min-w-0">
                     <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{authPersona.name}</p>
                     <p className="text-[11px] truncate" style={{ color: "var(--color-text-muted)" }}>{authPersona.email}</p>
-                    <span
-                      className="inline-block text-[9px] font-semibold px-1.5 py-px rounded-full uppercase tracking-wider mt-0.5"
+                    <Badge
+                      className="text-[9px] uppercase tracking-wider mt-0.5"
                       style={{ backgroundColor: "rgba(255,255,255,0.08)", color: authPersona.color }}
                     >
                       {authPersona.roleLabel}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
 

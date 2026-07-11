@@ -18,6 +18,7 @@ export const APP_SUBTITLE = "TODO: multi-agent name";
 import { useScenario } from "../../contexts/scenario";
 import { useDomain } from "../../contexts/domain";
 import { mockCases } from "../../data/cxi-cases";
+import { Badge } from "../ui/badge";
 
 interface NavItem {
   label: string;
@@ -156,8 +157,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
               <Icon size={16} strokeWidth={isActive ? 2.2 : 1.8} className="shrink-0" />
               {!collapsed && <span className="flex-1">{label}</span>}
               {badge && !collapsed && (
-                <span
-                  className="text-[10px] font-bold px-1.5 py-px rounded-full leading-none"
+                <Badge
+                  className="text-[10px] font-bold leading-none"
                   style={{
                     backgroundColor: "var(--color-critical)",
                     color: "#fff",
@@ -166,7 +167,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
                   }}
                 >
                   {badge}
-                </span>
+                </Badge>
               )}
               {badge && collapsed && (
                 <span

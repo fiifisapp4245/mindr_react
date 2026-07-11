@@ -5,6 +5,7 @@ import {
   VOLTE_INCIDENTS, VOLTE_ALARMS,
   type VolteSeverity, type IncidentStatus, type Segment, type RemediationRisk, type RemediationStatus,
 } from "../../data/volte-data";
+import { Badge } from "../../components/ui/badge";
 
 // ── Tokens ─────────────────────────────────────────────────────────────────────
 
@@ -95,14 +96,14 @@ export default function VolteIncidentDetail() {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-2">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+            <Badge className="px-2 py-0.5 text-[9px] font-bold"
               style={{ color: SEV_COLOR[incident.severity], backgroundColor: SEV_BG[incident.severity] }}>
               {incident.severity}
-            </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold"
+            </Badge>
+            <Badge className="px-2 py-0.5 text-[9px] font-bold"
               style={{ color: STATUS_CFG[incident.status].color, backgroundColor: STATUS_CFG[incident.status].bg }}>
               {incident.status}
-            </span>
+            </Badge>
             <span className="text-[10px] font-mono" style={{ color: "var(--color-text-muted)" }}>{incident.id.toUpperCase()}</span>
           </div>
           <h1 className="text-[20px] font-bold leading-tight" style={{ color: "var(--color-text-primary)" }}>{incident.title}</h1>
@@ -134,10 +135,10 @@ export default function VolteIncidentDetail() {
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>Affected segments:</span>
         {incident.affectedScope.segments.map((seg) => (
-          <span key={seg} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+          <Badge key={seg} className="px-2 py-0.5 text-[10px] font-bold"
             style={{ color: SEG_COLOR[seg], backgroundColor: SEG_BG[seg] }}>
             {seg}
-          </span>
+          </Badge>
         ))}
       </div>
 
@@ -150,10 +151,10 @@ export default function VolteIncidentDetail() {
               <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-text-primary)" }}>{incident.rca.summary}</p>
               <div className="mt-3 flex items-center gap-2">
                 <span className="text-[10px] font-semibold" style={{ color: "var(--color-text-muted)" }}>Root node:</span>
-                <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold"
+                <Badge className="px-2 py-0.5 text-[10px] font-bold"
                   style={{ backgroundColor: "rgba(45,212,191,0.12)", color: "#2DD4BF" }}>
                   {incident.rca.rootNodeLabel}
-                </span>
+                </Badge>
               </div>
             </div>
             {/* Confidence gauge */}
@@ -222,14 +223,14 @@ export default function VolteIncidentDetail() {
                   <p className="text-[12px] font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{rem.action}</p>
                   <p className="text-[11px] mt-1 leading-snug" style={{ color: "var(--color-text-muted)" }}>{rem.rationale}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold"
+                    <Badge className="px-1.5 py-0.5 text-[9px] font-bold"
                       style={{ color: riskCfg.color, backgroundColor: riskCfg.bg }}>
                       {riskCfg.label}
-                    </span>
-                    <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold"
+                    </Badge>
+                    <Badge className="px-1.5 py-0.5 text-[9px] font-bold"
                       style={{ color: remCfg.color, backgroundColor: remCfg.bg }}>
                       {remCfg.label}
-                    </span>
+                    </Badge>
                     {isAuto && rem.appliedBy && (
                       <span className="text-[9px]" style={{ color: "var(--color-text-muted)" }}>
                         by {rem.appliedBy} · {rem.appliedAt}
@@ -288,10 +289,10 @@ export default function VolteIncidentDetail() {
                     <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-primary)" }}>{breach.kpi}</p>
                     <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
                       {breach.nodeId.toUpperCase()} ·&nbsp;
-                      <span className="inline-flex items-center px-1 py-0 rounded text-[9px] font-bold"
+                      <Badge className="px-1 py-0 text-[9px] font-bold"
                         style={{ color: SEG_COLOR[breach.segment], backgroundColor: SEG_BG[breach.segment] }}>
                         {breach.segment}
-                      </span>
+                      </Badge>
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -314,10 +315,10 @@ export default function VolteIncidentDetail() {
                     <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-primary)" }}>{alarm.name}</p>
                     <p className="text-[10px] font-mono" style={{ color: "var(--color-brand)" }}>{alarm.id.toUpperCase()}</p>
                   </div>
-                  <span className="inline-flex shrink-0 items-center px-1.5 py-0.5 rounded text-[9px] font-bold mt-0.5"
+                  <Badge className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold mt-0.5"
                     style={{ color: "#FF3B3B", backgroundColor: "rgba(255,59,59,0.12)" }}>
                     {alarm.severity}
-                  </span>
+                  </Badge>
                 </div>
               ))}
             </div>

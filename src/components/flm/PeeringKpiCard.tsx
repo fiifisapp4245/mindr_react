@@ -9,6 +9,7 @@ import {
   type KpiEntry,
 } from '../../data/peering-store';
 import { InfoTooltip } from './InfoTooltip';
+import { Badge } from '../ui/badge';
 
 interface Props {
   title: string;
@@ -84,12 +85,9 @@ export function PeeringKpiCard({ title, entry, to }: Props) {
 
       {/* Band badge + support text */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span
-          className="text-[10px] font-semibold px-1.5 py-px rounded shrink-0"
-          style={{ color, backgroundColor: bg }}
-        >
+        <Badge className="text-[10px] shrink-0" style={{ color, backgroundColor: bg }}>
           {label}
-        </span>
+        </Badge>
         <p
           className="text-[11px] truncate"
           style={{ color: 'var(--color-text-muted)' }}

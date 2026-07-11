@@ -15,6 +15,7 @@ import {
 import { mockCases } from "../../data/cxi-cases";
 import type { MINDRCase } from "../../types/cxi";
 import { statusColor, statusBg, severityColor, severityBg } from "../cxi/CaseRow";
+import { Badge } from "../ui/badge";
 
 // ── 7 canonical pipeline stages ───────────────────────────────────────────────
 
@@ -541,10 +542,10 @@ const caseMap = new Map(mockCases.map((c) => [c.caseId, c]));
 function ConfidenceBadge({ value, label }: { value: number; label?: string }) {
   const color = value >= 85 ? "var(--color-resolved)" : value >= 70 ? "var(--color-warning)" : "var(--color-critical)";
   return (
-    <span className="text-[9px] font-bold px-1.5 py-px rounded-full"
+    <Badge className="font-bold px-1.5 py-px"
       style={{ backgroundColor: `${color}20`, color }}>
       {label ? `${label} ` : ""}{value}%
-    </span>
+    </Badge>
   );
 }
 
@@ -717,22 +718,22 @@ function CaseCard({ activity, featured }: { activity: CaseActivity; featured?: b
             {c.caseId}
           </Link>
           {/* Status */}
-          <span className="text-[9px] font-bold px-2 py-px rounded-full uppercase tracking-wider"
+          <Badge className="font-bold px-2 py-px uppercase tracking-wider"
             style={{ color: statusColor(c.status), backgroundColor: statusBg(c.status) }}>
             {c.status}
-          </span>
+          </Badge>
           {/* Severity */}
-          <span className="text-[9px] font-bold px-1.5 py-px rounded-md"
+          <Badge className="font-bold px-1.5 py-px"
             style={{ color: severityColor(c.severity), backgroundColor: severityBg(c.severity) }}>
             {c.severity}
-          </span>
+          </Badge>
           {/* Anti-loop flag (D1) */}
           {activity.repeatFlag && (
-            <span className="flex items-center gap-1 text-[9px] font-semibold px-2 py-px rounded-md"
+            <Badge className="gap-1 px-2 py-px"
               style={{ backgroundColor: "rgba(255,176,32,0.12)", color: "var(--color-warning)", border: "1px solid rgba(255,176,32,0.25)" }}>
               <AlertTriangle size={9} />
               {activity.repeatFlag}
-            </span>
+            </Badge>
           )}
         </div>
         {/* Scope */}
@@ -807,10 +808,10 @@ function FlatEventLog({ activities }: { activities: CaseActivity[] }) {
                 style={{ color: "var(--color-brand)", fontFamily: "var(--font-mono)" }}>
                 {act.caseId}
               </Link>
-              <span className="text-[9px] font-bold px-1.5 py-px rounded-full"
+              <Badge className="font-bold px-1.5 py-px"
                 style={{ color: statusColor(c.status), backgroundColor: statusBg(c.status) }}>
                 {c.status}
-              </span>
+              </Badge>
               <span className="text-[9px]" style={{ color: "var(--color-text-muted)" }}>
                 {c.affectedScope.cellName} · {c.affectedScope.region}
               </span>

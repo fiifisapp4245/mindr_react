@@ -8,6 +8,7 @@ import {
   VOLTE_KPIS, VOLTE_TREND, VOLTE_INCIDENTS,
   type TimeWindow, type TrendPoint,
 } from "../../data/volte-data";
+import { Badge } from "../../components/ui/badge";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 
@@ -175,15 +176,15 @@ export default function VolteDashboard() {
           <KpiCard label="Active incidents" value={VOLTE_KPIS.activeIncidents}
             icon={AlertTriangle} iconColor="#FF3B3B" iconBg="rgba(255,59,59,0.08)" border="1px solid rgba(255,59,59,0.25)">
             <div className="flex flex-wrap gap-1 mt-1.5">
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,59,59,0.12)", color: "#FF3B3B" }}>
+              <Badge className="px-1.5 py-0.5 text-[9px] font-bold" style={{ backgroundColor: "rgba(255,59,59,0.12)", color: "#FF3B3B" }}>
                 {VOLTE_KPIS.incidentBreakdown.critical} critical
-              </span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,176,32,0.12)", color: "#FFB020" }}>
+              </Badge>
+              <Badge className="px-1.5 py-0.5 text-[9px] font-bold" style={{ backgroundColor: "rgba(255,176,32,0.12)", color: "#FFB020" }}>
                 {VOLTE_KPIS.incidentBreakdown.high} high
-              </span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(77,158,255,0.12)", color: "#4D9EFF" }}>
+              </Badge>
+              <Badge className="px-1.5 py-0.5 text-[9px] font-bold" style={{ backgroundColor: "rgba(77,158,255,0.12)", color: "#4D9EFF" }}>
                 {VOLTE_KPIS.incidentBreakdown.medium} medium
-              </span>
+              </Badge>
             </div>
           </KpiCard>
         </div>
@@ -279,17 +280,17 @@ export default function VolteDashboard() {
                 className="w-full flex flex-col gap-2 px-5 py-4 text-left hover:bg-white/[0.025] transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-[12px] font-semibold leading-snug" style={{ color: "var(--color-text-primary)" }}>{inc.title}</span>
-                  <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold"
+                  <Badge className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold"
                     style={{ color: SEV_COLOR[inc.severity], backgroundColor: SEV_BG[inc.severity] }}>
                     {inc.severity}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold"
+                    <Badge className="px-1.5 py-0.5 text-[9px] font-bold"
                       style={{ color: SEV_COLOR[inc.status], backgroundColor: SEV_BG[inc.status] }}>
                       {inc.status}
-                    </span>
+                    </Badge>
                     <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
                       {inc.affectedSubscribers.toLocaleString()} subscribers
                     </span>

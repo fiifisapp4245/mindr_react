@@ -9,6 +9,7 @@ import {
   bandBg,
 } from '../../data/peering-store';
 import { InfoTooltip } from './InfoTooltip';
+import { Badge } from '../ui/badge';
 
 const band = computeBand(coordinationKpi.value, coordinationKpi.thresholds);
 const color = bandColor(band);
@@ -36,12 +37,9 @@ export function CoordinationDonut() {
             thresholdLabel={coordinationKpi.thresholdLabel}
           />
         </div>
-        <span
-          className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0"
-          style={{ color, backgroundColor: bg }}
-        >
+        <Badge className="text-[10px] shrink-0" style={{ color, backgroundColor: bg }}>
           {stateLabel}
-        </span>
+        </Badge>
       </div>
       <p className="text-[11px] mb-2" style={{ color: 'var(--color-text-muted)' }}>
         % alerts with change ticket or blocked — CASM

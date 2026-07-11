@@ -17,6 +17,7 @@ import {
 } from '../../data/peering-store';
 import { InfoTooltip } from './InfoTooltip';
 import { PeeringChartTooltip } from './PeeringChartTooltip';
+import { Badge } from '../ui/badge';
 
 const band = computeBand(trafficKpi.value, trafficKpi.thresholds);
 const color = bandColor(band);
@@ -48,12 +49,9 @@ export function TrafficTrendChart() {
             Total traffic (Gbps) — BENOCS
           </p>
         </div>
-        <span
-          className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0"
-          style={{ color, backgroundColor: bg }}
-        >
+        <Badge className="text-[10px] shrink-0" style={{ color, backgroundColor: bg }}>
           {stateLabel}
-        </span>
+        </Badge>
       </div>
 
       <div style={{ height: 190 }}>

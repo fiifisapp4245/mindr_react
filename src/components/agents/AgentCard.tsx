@@ -1,5 +1,6 @@
 import { AlertTriangle, Clock, Flag, Globe, Settings, Target, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import type { Agent, TagColor } from "../../types/agent";
+import { Badge } from "@/components/ui/badge";
 
 // ── Enrichment metadata ───────────────────────────────────────────────────────
 
@@ -109,18 +110,18 @@ export function AgentCard({ agent }: { agent: Agent }) {
       >
         {/* Layer badge + status */}
         <div className="flex items-center gap-2">
-          <span
-            className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
+          <Badge
+            className="text-[9px] font-bold uppercase tracking-widest"
             style={{ color: layerColor, backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${layerColor}` }}
           >
             {agent.layer}
-          </span>
-          <span
-            className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
+          </Badge>
+          <Badge
+            className="px-1.5 text-[9px] font-semibold"
             style={{ color: badgeColor, backgroundColor: badgeBg }}
           >
             {isActive ? "ACTIVE" : "IDLE"}
-          </span>
+          </Badge>
         </div>
 
         {/* Last active */}
@@ -250,25 +251,25 @@ export function AgentCard({ agent }: { agent: Agent }) {
         <div className="flex items-center gap-1.5 flex-wrap">
           <Globe size={10} style={{ color: "var(--color-text-muted)" }} />
           {meta.zones.map((z) => (
-            <span
+            <Badge
               key={z}
-              className="text-[9px] font-medium px-1.5 py-px rounded"
+              className="px-1.5 py-px text-[9px] font-medium"
               style={{ backgroundColor: "var(--color-bg-elevated)", color: "var(--color-text-muted)" }}
             >
               {z}
-            </span>
+            </Badge>
           ))}
         </div>
 
         {/* Tag + Configure */}
         <div className="flex items-center gap-2">
-          <span
-            className="flex items-center gap-1 text-[9px] font-medium px-1.5 py-px rounded"
+          <Badge
+            className="gap-1 px-1.5 py-px text-[9px] font-medium"
             style={{ color: tagStyle.color, backgroundColor: tagStyle.bg }}
           >
             <TagIcon size={8} />
             {agent.tag.label}
-          </span>
+          </Badge>
           <button
             className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg transition-colors hover:bg-white/10"
             style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}

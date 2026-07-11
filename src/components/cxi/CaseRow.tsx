@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
+import { Badge } from "../ui/badge";
 import type { MINDRCase, CaseStatus, CaseSeverity, CaseClassification, ActionType } from "../../types/cxi";
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
@@ -139,24 +140,24 @@ export function CaseRow({ c }: CaseRowProps) {
       </span>
 
       {/* Status pill */}
-      <span
-        className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 w-20 text-center"
+      <Badge
+        className="font-bold uppercase tracking-wider shrink-0 w-20 justify-center"
         style={{ color: statusColor(c.status), backgroundColor: statusBg(c.status) }}
       >
         {c.status}
-      </span>
+      </Badge>
 
       {/* Severity */}
-      <span
-        className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0"
+      <Badge
+        className="font-bold uppercase tracking-wider shrink-0"
         style={{ color: severityColor(c.severity), backgroundColor: severityBg(c.severity) }}
       >
         {c.severity}
-      </span>
+      </Badge>
 
       {/* Classification */}
-      <span
-        className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0 w-20 text-center"
+      <Badge
+        className="font-medium shrink-0 w-20 justify-center"
         style={{
           color: "var(--color-text-secondary)",
           backgroundColor: "var(--color-bg-elevated)",
@@ -164,7 +165,7 @@ export function CaseRow({ c }: CaseRowProps) {
         }}
       >
         {classificationLabel(c.classification)}
-      </span>
+      </Badge>
 
       {/* Affected scope + trigger + cluster/dup signals */}
       <div className="flex-1 min-w-0">
@@ -176,8 +177,8 @@ export function CaseRow({ c }: CaseRowProps) {
         </p>
         <div className="flex items-center gap-1 mt-1 flex-wrap">
           {/* Trigger chip */}
-          <span
-            className="text-[8px] font-semibold px-1.5 py-px rounded-sm uppercase tracking-wide"
+          <Badge
+            className="text-[8px] px-1.5 py-px uppercase tracking-wide"
             style={{
               backgroundColor: c.triggerType === "cell_based"
                 ? "rgba(77,158,255,0.12)"
@@ -188,11 +189,11 @@ export function CaseRow({ c }: CaseRowProps) {
             }}
           >
             {c.triggerType === "cell_based" ? "Cell" : "Customer"}
-          </span>
+          </Badge>
           {/* Cluster chip */}
           {c.clusterInfo && (
-            <span
-              className="text-[8px] font-medium px-1.5 py-px rounded-sm"
+            <Badge
+              className="text-[8px] font-medium px-1.5 py-px"
               style={{
                 backgroundColor: "rgba(226,0,122,0.1)",
                 color: "var(--color-brand)",
@@ -200,12 +201,12 @@ export function CaseRow({ c }: CaseRowProps) {
               }}
             >
               Cluster · {c.clusterInfo.clusterId} · {c.clusterInfo.caseCount}
-            </span>
+            </Badge>
           )}
           {/* Duplicate risk flag */}
           {c.duplicateRisk && (
-            <span
-              className="text-[8px] font-semibold px-1.5 py-px rounded-sm"
+            <Badge
+              className="text-[8px] px-1.5 py-px"
               style={{
                 backgroundColor: "rgba(255,176,32,0.1)",
                 color: "var(--color-warning)",
@@ -213,7 +214,7 @@ export function CaseRow({ c }: CaseRowProps) {
               }}
             >
               Possible duplicate
-            </span>
+            </Badge>
           )}
         </div>
       </div>
@@ -258,8 +259,8 @@ export function CaseRow({ c }: CaseRowProps) {
 
       {/* Recommendation chip */}
       <div className="shrink-0 w-24">
-        <span
-          className="text-[9px] font-semibold px-2 py-0.5 rounded-md"
+        <Badge
+          className="text-[9px] px-2 py-0.5"
           style={{
             backgroundColor: "var(--color-bg-elevated)",
             border: "1px solid var(--color-border)",
@@ -267,7 +268,7 @@ export function CaseRow({ c }: CaseRowProps) {
           }}
         >
           {ACTION_LABEL[c.recommendation.actionType]}
-        </span>
+        </Badge>
       </div>
 
       {/* Age */}

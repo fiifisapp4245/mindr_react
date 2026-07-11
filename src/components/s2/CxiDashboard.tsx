@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { mockCases, SITE_MARKERS, SCOPE_NODES, MOVERS_BY_WINDOW, GERMANY_PATH, computeKpis, LARGE_MOCK_CASES, type MoverWindow, type Mover } from "../../data/cxi-mock-store";
 import { statusColor, statusBg } from "../cxi/CaseRow";
+import { Badge } from "../ui/badge";
 import { useCxiLens } from "../../contexts/cxi-lens";
 import { useCxiScope } from "../../contexts/cxi-scope";
 import type { MINDRCase } from "../../types/cxi";
@@ -510,18 +511,17 @@ function BiggestMovers() {
               </div>
 
               {/* Delta chip */}
-              <div
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
+              <Badge
+                className="font-bold px-1.5 py-0.5 shrink-0 justify-center"
                 style={{
                   backgroundColor: isDown ? "rgba(255,59,59,0.12)" : "rgba(45,212,191,0.12)",
                   color: deltaColor,
                   fontFamily: "var(--font-mono)",
                   minWidth: 38,
-                  textAlign: "center",
                 }}
               >
                 {isDown ? "" : "+"}{m.delta.toFixed(1)}
-              </div>
+              </Badge>
 
               {/* Sparkline */}
               <Sparkline data={m.sparkline} color={deltaColor} />

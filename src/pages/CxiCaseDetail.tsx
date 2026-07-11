@@ -33,6 +33,7 @@ import {
   severityBg,
   classificationLabel,
 } from "../components/cxi/CaseRow";
+import { Badge } from "../components/ui/badge";
 import { useCxiLens } from "../contexts/cxi-lens";
 import type { CaseClassification, ActionType, MINDRCase } from "../types/cxi";
 
@@ -225,12 +226,12 @@ function SleepingCellPanel({ cellId, cellName }: { cellId: string; cellName: str
       >
         <Zap size={13} style={{ color: "var(--color-mitigating)" }} />
         <p className="text-sm font-semibold" style={{ color: "var(--color-mitigating)" }}>One-Click Recovery Available</p>
-        <span
-          className="ml-auto text-[9px] font-bold px-2 py-px rounded-full uppercase tracking-wider"
+        <Badge
+          className="ml-auto font-bold px-2 py-px uppercase tracking-wider"
           style={{ backgroundColor: "rgba(77,158,255,0.2)", color: "var(--color-mitigating)" }}
         >
           Sleeping Cell
-        </span>
+        </Badge>
       </div>
       <div className="px-5 py-4">
         <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
@@ -297,13 +298,14 @@ function Accordion({
       >
         <span className="text-xs font-semibold flex-1" style={{ color: "var(--color-text-primary)" }}>{title}</span>
         {count > 0 && (
-          <span className="text-[9px] font-bold px-1.5 py-px rounded-full"
+          <Badge
+            className="font-bold px-1.5 py-px"
             style={{
               backgroundColor: accentColor ? `${accentColor}20` : "var(--color-bg-elevated)",
               color: accentColor ?? "var(--color-text-muted)",
             }}>
             {count}
-          </span>
+          </Badge>
         )}
         <ChevronDown size={13} style={{
           color: "var(--color-text-muted)",
@@ -530,18 +532,18 @@ export default function CxiCaseDetail() {
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                    style={{ color: statusColor(c.status), backgroundColor: statusBg(c.status) }}>{c.status}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider"
-                    style={{ color: severityColor(c.severity), backgroundColor: severityBg(c.severity) }}>{c.severity}</span>
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
+                  <Badge className="font-bold uppercase tracking-wider"
+                    style={{ color: statusColor(c.status), backgroundColor: statusBg(c.status) }}>{c.status}</Badge>
+                  <Badge className="font-bold uppercase tracking-wider"
+                    style={{ color: severityColor(c.severity), backgroundColor: severityBg(c.severity) }}>{c.severity}</Badge>
+                  <Badge className="font-medium"
                     style={{ color: "var(--color-text-secondary)", backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
                     {classificationLabel(c.classification)}
-                  </span>
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-md"
+                  </Badge>
+                  <Badge className="font-medium"
                     style={{ color: "var(--color-text-muted)", backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
                     {c.triggerType === "cell_based" ? "Cell-based" : "Customer-based"}
-                  </span>
+                  </Badge>
                 </div>
                 <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>{c.caseId}</h1>
                 <p className="text-sm mt-0.5" style={{ color: "var(--color-text-secondary)" }}>

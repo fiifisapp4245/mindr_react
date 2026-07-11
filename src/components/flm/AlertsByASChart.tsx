@@ -18,6 +18,7 @@ import {
 } from '../../data/peering-store';
 import { InfoTooltip } from './InfoTooltip';
 import { PeeringChartTooltip } from './PeeringChartTooltip';
+import { Badge } from '../ui/badge';
 
 const band = computeBand(alertsByASKpi.value, alertsByASKpi.thresholds);
 const stateColor = bandColor(band);
@@ -50,12 +51,9 @@ export function AlertsByASChart() {
             Alert count per autonomous system — Anodot
           </p>
         </div>
-        <span
-          className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0"
-          style={{ color: stateColor, backgroundColor: stateBg }}
-        >
+        <Badge className="text-[10px] shrink-0" style={{ color: stateColor, backgroundColor: stateBg }}>
           {stateLabel}
-        </span>
+        </Badge>
       </div>
 
       <div style={{ height: 140 }}>

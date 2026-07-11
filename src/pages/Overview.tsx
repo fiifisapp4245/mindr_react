@@ -42,6 +42,7 @@ import { useDomain } from "../contexts/domain";
 import { useAuth } from "../contexts/auth";
 import { useScenario } from "../contexts/scenario";
 import { InfoTooltip } from "../components/flm/InfoTooltip";
+import { Badge } from "../components/ui/badge";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 
@@ -463,15 +464,15 @@ export default function Overview() {
                 }}
               >
                 <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,59,59,0.18)", color: "#FF3B3B" }}>
+                  <Badge className="text-[9px] font-bold" style={{ backgroundColor: "rgba(255,59,59,0.18)", color: "#FF3B3B" }}>
                     {liveKpis.severityCritical} critical
-                  </span>
-                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,176,32,0.12)", color: "#FFB020" }}>
+                  </Badge>
+                  <Badge className="text-[9px]" style={{ backgroundColor: "rgba(255,176,32,0.12)", color: "#FFB020" }}>
                     {liveKpis.severityPredicted} predicted
-                  </span>
-                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(45,212,191,0.10)", color: "#2DD4BF" }}>
+                  </Badge>
+                  <Badge className="text-[9px]" style={{ backgroundColor: "rgba(45,212,191,0.10)", color: "#2DD4BF" }}>
                     {liveKpis.severityMitigating} mitigating
-                  </span>
+                  </Badge>
                 </div>
               </KpiCard>
             );

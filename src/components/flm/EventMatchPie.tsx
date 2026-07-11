@@ -9,6 +9,7 @@ import {
   bandBg,
 } from '../../data/peering-store';
 import { InfoTooltip } from './InfoTooltip';
+import { Badge } from '../ui/badge';
 
 const band = computeBand(eventMatchKpi.value, eventMatchKpi.thresholds);
 const color = bandColor(band);
@@ -37,12 +38,9 @@ export function EventMatchPie() {
             thresholdLabel={eventMatchKpi.thresholdLabel}
           />
         </div>
-        <span
-          className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0"
-          style={{ color, backgroundColor: bg }}
-        >
+        <Badge className="text-[10px] shrink-0" style={{ color, backgroundColor: bg }}>
           {stateLabel}
-        </span>
+        </Badge>
       </div>
       <p className="text-[11px] mb-2" style={{ color: 'var(--color-text-muted)' }}>
         % incidents matched to known events — Event Scout

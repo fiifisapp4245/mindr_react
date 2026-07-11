@@ -31,6 +31,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useReports } from "../hooks/use-reports";
+import { Badge } from "../components/ui/badge";
 import { SLARing } from "../components/reports/SLARing";
 import { TrendTooltip } from "../components/reports/TrendTooltip";
 import { IncidentTooltip } from "../components/reports/IncidentTooltip";
@@ -380,9 +381,9 @@ export default function Reports() {
                 </div>
                 <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{report.type}</span>
                 <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{report.date}</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded inline-block w-fit" style={{ color: st.color, backgroundColor: st.bg }}>
+                <Badge className="text-[10px]" style={{ color: st.color, backgroundColor: st.bg }}>
                   {report.status}
-                </span>
+                </Badge>
                 <div className="flex justify-center">
                   <button
                     onClick={() => report.status !== "ARCHIVED" && downloadReport(report.name, report.type)}

@@ -8,6 +8,7 @@ import {
   VOLTE_NODES, VOLTE_EDGES, VOLTE_CONVERSATIONS, VOLTE_ALARMS,
   type ChainNode, type ConvStatus,
 } from "../../data/volte-data";
+import { Badge } from "../../components/ui/badge";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 
@@ -77,10 +78,10 @@ function NodeDetail({ node, onClose }: { node: ChainNode; onClose: () => void })
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] font-bold" style={{ color: hColor }}>{node.health.toUpperCase()}</span>
-            <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold"
+            <Badge className="px-1.5 py-0.5 text-[9px] font-bold"
               style={{ color: SEG_COLOR[node.segment], backgroundColor: SEG_BG[node.segment] }}>
               {node.segment} · {node.type}
-            </span>
+            </Badge>
           </div>
           <p className="text-[14px] font-bold mt-1 leading-tight" style={{ color: "var(--color-text-primary)" }}>{node.label}</p>
           <p className="text-[10px] mt-0.5 leading-snug" style={{ color: "var(--color-text-muted)" }}>{node.tagline}</p>
@@ -171,10 +172,10 @@ function NodeDetail({ node, onClose }: { node: ChainNode; onClose: () => void })
                 {node.detail.upstream.map((id) => {
                   const n = VOLTE_NODES.find((x) => x.id === id);
                   return n ? (
-                    <span key={id} className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold mr-1"
+                    <Badge key={id} className="px-1.5 py-0.5 text-[9px] font-bold mr-1"
                       style={{ color: HEALTH_COLOR[n.health], backgroundColor: HEALTH_BG[n.health] }}>
                       {n.label}
-                    </span>
+                    </Badge>
                   ) : null;
                 })}
               </div>
@@ -185,10 +186,10 @@ function NodeDetail({ node, onClose }: { node: ChainNode; onClose: () => void })
                 {node.detail.downstream.map((id) => {
                   const n = VOLTE_NODES.find((x) => x.id === id);
                   return n ? (
-                    <span key={id} className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold mr-1"
+                    <Badge key={id} className="px-1.5 py-0.5 text-[9px] font-bold mr-1"
                       style={{ color: HEALTH_COLOR[n.health], backgroundColor: HEALTH_BG[n.health] }}>
                       {n.label}
-                    </span>
+                    </Badge>
                   ) : null;
                 })}
               </div>
@@ -254,10 +255,10 @@ function ScopedChat() {
             <ArrowLeft size={13} style={{ color: "var(--color-text-muted)" }} />
           </button>
           <p className="text-[11px] font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{activeConv.title}</p>
-          <span className="ml-auto shrink-0 inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold"
+          <Badge className="ml-auto shrink-0 px-1.5 py-0.5 text-[9px] font-bold"
             style={{ color: CONV_STATUS_CFG[activeConv.status].color, backgroundColor: CONV_STATUS_CFG[activeConv.status].bg }}>
             {activeConv.status}
-          </span>
+          </Badge>
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
@@ -329,10 +330,10 @@ function ScopedChat() {
             className="w-full flex flex-col gap-1 px-3 py-3 rounded-xl text-left hover:bg-white/[0.04] transition-colors">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[11px] font-semibold truncate leading-tight" style={{ color: "var(--color-text-primary)" }}>{conv.title}</p>
-              <span className="inline-flex shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold"
+              <Badge className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold"
                 style={{ color: CONV_STATUS_CFG[conv.status].color, backgroundColor: CONV_STATUS_CFG[conv.status].bg }}>
                 {conv.status}
-              </span>
+              </Badge>
             </div>
             <p className="text-[10px] truncate leading-snug" style={{ color: "var(--color-text-muted)" }}>{conv.preview}</p>
             <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.2)" }}>{conv.updatedAt}</p>
