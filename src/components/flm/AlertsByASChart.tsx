@@ -84,7 +84,10 @@ export function AlertsByASChart() {
               dataKey="count"
               name="Alerts"
               radius={[3, 3, 0, 0]}
-              onClick={() => navigate('/alerts')}
+              onClick={(data: any) => {
+                const as = data?.as ?? data?.payload?.as;
+                if (as) navigate(`/alerts?affectedAS=${as}`);
+              }}
               style={{ cursor: 'pointer' }}
             >
               {alertsByAS.map((_, i) => (

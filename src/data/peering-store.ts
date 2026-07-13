@@ -27,7 +27,7 @@ export interface PieSlice {
 }
 
 export interface LookingAheadItem {
-  type: 'breach' | 'event';
+  type: 'alert' | 'event';
   id: string;
   label: string;
   detail: string;
@@ -36,7 +36,7 @@ export interface LookingAheadItem {
   severity: 'CRITICAL' | 'WARNING' | 'INFO';
 }
 
-import { ACTIVE_ALERTS_COUNT, HIGH_SEVERITY_ALERTS_COUNT } from './alert-store';
+import { ACTIVE_ALERTS_COUNT, HIGH_SEVERITY_ALERTS_COUNT, getAlertsByAS } from './alert-store';
 import {
   CONGESTED_PORTS,
   CRITICAL_BUILDOUT_PORTS,
@@ -198,23 +198,18 @@ export const routingKpi: KpiEntry = {
 
 // ── Band 3 — Distribution data ─────────────────────────────────────────────────
 
-export const alertsByAS = [
-  { as: 'AS6453', count: 8 },
-  { as: 'AS1299', count: 5 },
-  { as: 'AS3356', count: 4 },
-  { as: 'AS5511', count: 3 },
-  { as: 'AS3257', count: 1 },
-];
+export const alertsByAS = getAlertsByAS();
 
 export const alertsByASKpi: KpiEntry = {
-  value: 8,
+  value: alertsByAS[0]?.count ?? 0,
   unit: 'alerts (max AS)',
   source: 'Anodot',
   description:
-    'Alert count per handover autonomous system. A skewed distribution signals a single-peer problem rather than a broad network issue.',
+    'Alert count per handover autonomous system — same query as the Alerts page "Handover AS" filter. ' +
+    'A skewed distribution signals a single-peer problem rather than a broad network issue.',
   thresholds: { t1: 3, t2: 6, direction: 'lower-better' },
   thresholdLabel: 'Balanced ≤3/AS · Skewed 4–6 · Concentrated >6',
-  supportText: 'AS6453 is dominant problem peer',
+  supportText: `${alertsByAS[0]?.as ?? '—'} is dominant problem peer`,
 };
 
 export const congestedRouters = [
@@ -244,9 +239,10 @@ export const capacityRiskSlices: PieSlice[] = [
 export const capacityRiskKpi: KpiEntry = {
   value: 30,
   unit: '% at risk',
-  source: 'Border Planner',
+  source: 'Border Planner (interim estimate based on recent utilisation trend — pending full Border Planner integration)',
   description:
-    'Proportion of peering ports flagged as CRITICAL or SOON for capacity build-out. Above 30% indicates systemic structural congestion risk.',
+    'Shows how close your peering ports are to running out of capacity. Critical = needs a capacity build-out very ' +
+    'soon (projected to hit 95% within ~2 weeks); Soon = within ~4 weeks; OK = healthy headroom.',
   thresholds: { t1: 10, t2: 30, direction: 'lower-better' },
   thresholdLabel: 'Healthy <10% · Watch 10–30% · Critical >30%',
   supportText: '12% CRITICAL + 18% SOON',
@@ -263,7 +259,9 @@ export const coordinationKpi: KpiEntry = {
   unit: '% coordinating',
   source: 'CASM',
   description:
-    'Percentage of open alerts that have an active change ticket or are blocked by a change window — indicates coordination overhead.',
+    'Shows how much of your current alert load is tangled up with planned changes. With Change Ticket = a change is ' +
+    "already logged; Blocked by Changes = work can't proceed until a change clears; Clear = no change dependency. " +
+    "High numbers mean you'll need to coordinate with change management before acting.",
   thresholds: { t1: 10, t2: 30, direction: 'lower-better' },
   thresholdLabel: 'Healthy <10% · Watch 10–30% · Critical >30%',
   supportText: '8% w/ ticket + 7% blocked',
@@ -279,38 +277,43 @@ export const eventMatchKpi: KpiEntry = {
   unit: '% explained',
   source: 'Event Scout',
   description:
-    'Percentage of traffic anomalies and incidents matched to known planned events. Higher coverage means more triage context for the operator.',
+    'Shows how many current incidents we can explain by a known event (like a game release or streaming spike) vs. ' +
+    'ones with no known cause. Explained = matched to a known event; Unexplained = cause still unknown and may need ' +
+    'investigation. Low coverage means more mystery anomalies.',
   thresholds: { t1: 30, t2: 60, direction: 'higher-better' },
   thresholdLabel: 'Healthy >60% · Watch 30–60% · Critical <30%',
   supportText: '55% remain unexplained',
 };
 
 // ── Band 4 — Looking ahead ─────────────────────────────────────────────────────
+// Each card references a REAL record in the shared datasets — an alert in
+// ALERTS (alert-store.ts) or an event in EVENTS_FULL (events.ts) — so the
+// click always lands on that exact record's detail page, never a mock entry.
 
 export const lookingAheadItems: LookingAheadItem[] = [
   {
-    type: 'breach',
-    id: 'PRED-AS1299',
+    type: 'alert',
+    id: 'ALT-012', // "Forecast breach — LINX London / AS1299 evening peak" (high/predicted)
     label: 'Capacity breach predicted',
-    detail: 'AS1299 peering link — trending at 98% utilization',
-    timeLabel: '47',
-    timeUnit: 'MIN',
+    detail: 'AS1299 peering link — trending at 83% utilization',
+    timeLabel: '2',
+    timeUnit: 'HOURS',
     severity: 'CRITICAL',
   },
   {
     type: 'event',
-    id: 'EVT-NOVA',
+    id: 'EVT-0091', // "Nova Strike — S3 launch"
     label: 'Nova Strike — Gaming Tournament',
-    detail: 'Expected +28% traffic surge on EU peering links',
-    timeLabel: '3',
+    detail: 'Historic pattern: +34–41 Gbps surge on AMS-IX Amsterdam path',
+    timeLabel: '2',
     timeUnit: 'DAYS',
     severity: 'WARNING',
   },
   {
     type: 'event',
-    id: 'EVT-SVOD',
+    id: 'EVT-0092', // "SVOD finale drop"
     label: 'SVOD Platform Release',
-    detail: 'Expected +18% streaming traffic increase',
+    detail: 'Predicted peak ~78 Gbps via LINX London',
     timeLabel: '5',
     timeUnit: 'DAYS',
     severity: 'INFO',

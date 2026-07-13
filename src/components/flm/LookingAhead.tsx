@@ -1,4 +1,5 @@
 import { Zap, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { lookingAheadItems, type LookingAheadItem } from '../../data/peering-store';
 
 const SEV_CFG: Record<LookingAheadItem['severity'], { color: string; bg: string }> = {
@@ -7,7 +8,12 @@ const SEV_CFG: Record<LookingAheadItem['severity'], { color: string; bg: string 
   INFO:     { color: 'var(--color-mitigating)', bg: 'rgba(77,158,255,0.12)' },
 };
 
+function detailHref(item: LookingAheadItem): string {
+  return item.type === 'event' ? `/events/${item.id}` : `/alerts/${item.id}`;
+}
+
 export function LookingAhead() {
+  const navigate = useNavigate();
   return (
     <div
       className="rounded-lg p-5"
@@ -26,12 +32,21 @@ export function LookingAhead() {
       <div className="grid grid-cols-3 gap-3">
         {lookingAheadItems.map((item) => {
           const cfg = SEV_CFG[item.severity];
-          const Icon = item.type === 'breach' ? Zap : Calendar;
+          const Icon = item.type === 'alert' ? Zap : Calendar;
           return (
             <div
               key={item.id}
-              className="rounded-lg p-4 flex flex-col gap-3"
-              style={{ backgroundColor: 'var(--color-bg-elevated)' }}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(detailHref(item))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(detailHref(item));
+                }
+              }}
+              className="rounded-lg p-4 flex flex-col gap-3 transition-opacity hover:opacity-85"
+              style={{ backgroundColor: 'var(--color-bg-elevated)', cursor: 'pointer' }}
             >
               <div className="flex items-start justify-between gap-2">
                 <div

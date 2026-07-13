@@ -150,7 +150,8 @@ export interface Alert {
   confidence: number;
   status: AlertStatus;
   impact: { baseline: number; peak: number; unit: "Gbps" };
-  affected: string;         // handover AS / router
+  affected: string;         // handover AS / router — display label
+  affectedAS: string;       // handover AS number (e.g. "AS6453") — single source for AS grouping/filtering
   linkedAlarms: number;
   linkedTeams: number;
   linkedTickets: number;
@@ -199,12 +200,12 @@ export const ALERT_STATUS: Record<AlertStatus, { label: string; color: string; b
 // ── Mock data ─────────────────────────────────────────────────────────────────
 // peering-store.ts KPI values are computed from these records (ACTIVE_ALERTS_COUNT,
 // HIGH_SEVERITY_ALERTS_COUNT below) and from border-ports.ts (congested/build-out
-// ports), so the Dashboard cards and the Alerts page filters never diverge:
-//   activeSC1Alerts: status === "active"      → ALT-001 + ALT-002 = 2
-//   highSeverityAlerts: severity === "high"    → ALT-002 + ALT-003 = 2
-//   congestedPorts / criticalBuildoutPorts     → see border-ports.ts
+// ports), so the Dashboard cards and the Alerts page filters never diverge.
+// ALERTS = HAND_ALERTS (4 fully hand-authored records) + GENERATED_ALERTS (built
+// from compact specs below) — both feed the exact same Alert shape, so every
+// generated record is just as navigable/complete as the hand-authored ones.
 
-export const ALERTS: Alert[] = [
+const HAND_ALERTS: Alert[] = [
   // ── ALT-001 — main detail alert (CRITICAL/active) ─────────────────────────
   {
     id: "ALT-001",
@@ -214,6 +215,7 @@ export const ALERTS: Alert[] = [
     status: "active",
     impact: { baseline: 7.1, peak: 9.4, unit: "Gbps" },
     affected: "AMS-SC1 / ams-ix-rtr-01",
+    affectedAS: "AS3320",
     linkedAlarms: 6,
     linkedTeams: 2,
     linkedTickets: 3,
@@ -397,6 +399,7 @@ export const ALERTS: Alert[] = [
     status: "active",
     impact: { baseline: 6.2, peak: 8.1, unit: "Gbps" },
     affected: "FRA-RTR-01 / fra-rtr-01",
+    affectedAS: "AS6453",
     linkedAlarms: 4,
     linkedTeams: 2,
     linkedTickets: 2,
@@ -471,6 +474,7 @@ export const ALERTS: Alert[] = [
     status: "predicted",
     impact: { baseline: 5.8, peak: 9.1, unit: "Gbps" },
     affected: "AMS-RTR-02 / ams-ix-rtr-02",
+    affectedAS: "AS6453",
     linkedAlarms: 3,
     linkedTeams: 1,
     linkedTickets: 1,
@@ -542,6 +546,7 @@ export const ALERTS: Alert[] = [
     status: "mitigating",
     impact: { baseline: 3.1, peak: 4.8, unit: "Gbps" },
     affected: "EU-CORE-01 / AS6762",
+    affectedAS: "AS6762",
     linkedAlarms: 2,
     linkedTeams: 1,
     linkedTickets: 1,
@@ -603,8 +608,251 @@ export const ALERTS: Alert[] = [
   },
 ];
 
+// ── Generated alerts ───────────────────────────────────────────────────────────
+// Compact specs → full Alert records via makeAlert(), so the dataset can cover a
+// realistic AS/severity/status spread without hand-authoring ~150 lines each.
+// Every field the Evidence/RCA/Remediation/Feedback tabs read is populated —
+// these are complete, navigable alerts, not chart-only counts.
+
+const RCA_CLASSES: RcaClass[] = ["Handover Shift", "Indirect Overflow", "Router Shift", "Interface Shift", "Organic-Event"];
+
+const RCA_PHRASING: Record<RcaClass, { verb: string; note: string }> = {
+  "Handover Shift":    { verb: "shifted transit volume onto",        note: "a peering handover policy change" },
+  "Indirect Overflow": { verb: "is absorbing redirected volume via", note: "an upstream re-route by a neighbouring carrier" },
+  "Router Shift":      { verb: "rerouted briefly through",           note: "a BGP hold-timer reset on the peer session" },
+  "Interface Shift":   { verb: "failed over onto",                   note: "a secondary interface after a brief link event" },
+  "Organic-Event":     { verb: "is ramping traffic through",         note: "organic demand growth, not a fault" },
+};
+
+interface GeneratedAlertSpec {
+  id: string;
+  title: string;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  confidence: number;
+  affectedAS: string;
+  affected: string;
+  region: string;
+  router: string;
+  ixp: string;
+  iface: string;
+  baseline: number;
+  peak: number;
+  utilization: number;
+  age: string;
+  raised: string;
+  eta: string;
+  changeTicket: string | null;
+  rcaClass: RcaClass;
+}
+
+function makeAlarmRefs(idNum: number, count: number): string[] {
+  const base = 200 + idNum * 10; // offset clear of the hand-authored ALM-0042..0052 range
+  return Array.from({ length: count }, (_, i) => `ALM-0${base + i}`);
+}
+
+function makeActions(spec: GeneratedAlertSpec): AlertAction[] {
+  const notify: AlertAction = {
+    id: `${spec.id.toLowerCase()}-act-notify`,
+    label: `Notify transit partner (${spec.affectedAS})`,
+    risk: "LOW",
+    needsApproval: true,
+    hold: false,
+    modalTitle: `Notify ${spec.affectedAS}`,
+    modalBody: `Send a peering notification to ${spec.affectedAS} flagging "${spec.title}" and requesting confirmation of any policy or maintenance change. Informational only — no routing changes made.`,
+    confirmLabel: "Send notification",
+    confirmColor: "#2DD4BF",
+    confirmed: false,
+  };
+  const monitor: AlertAction = {
+    id: `${spec.id.toLowerCase()}-act-monitor`,
+    label: `Place ${spec.router} on heightened monitoring`,
+    risk: "LOW",
+    needsApproval: true,
+    hold: false,
+    modalTitle: "Enable heightened monitoring",
+    modalBody: `Set a 5-minute SNMP polling interval on ${spec.router} ${spec.iface} and create an auto-escalation trigger if utilisation exceeds 95%.`,
+    confirmLabel: "Enable monitoring",
+    confirmColor: "#2DD4BF",
+    confirmed: false,
+  };
+  const escalate: AlertAction = {
+    id: `${spec.id.toLowerCase()}-act-escalate`,
+    label: "Escalate to IP Peering Ops",
+    risk: "MEDIUM",
+    needsApproval: true,
+    hold: false,
+    modalTitle: "Escalate to IP Peering Ops",
+    modalBody: `Page the IP Peering Ops on-call team with full alert context for ${spec.id}.`,
+    confirmLabel: "Escalate now",
+    confirmColor: "#FFB020",
+    confirmed: false,
+  };
+  return spec.severity === "critical" || spec.severity === "high"
+    ? [notify, escalate, monitor]
+    : [notify, monitor];
+}
+
+function makeAlert(spec: GeneratedAlertSpec): Alert {
+  const sevLabel      = spec.severity.toUpperCase();
+  const sevTitleCase   = sevLabel[0] + sevLabel.slice(1).toLowerCase();
+  const idNum          = Number(spec.id.split("-")[1]);
+  const phrasing       = RCA_PHRASING[spec.rcaClass];
+  const spikePercent   = Math.round(((spec.peak - spec.baseline) / spec.baseline) * 100);
+  const threshold      = 85;
+  const alarmCount     = spec.severity === "critical" ? 4 : spec.severity === "high" ? 3 : 2;
+  const ticketCount    = spec.changeTicket ? 1 : spec.severity === "low" ? 0 : 1;
+  const alarmRefs      = makeAlarmRefs(idNum, alarmCount);
+  const ticketDesc     = ticketCount > 0
+    ? `1 ${spec.changeTicket ? "maintenance" : "capacity planning"} ticket — ${spec.affectedAS} flagged for review on ${spec.router}`
+    : "No open tickets linked to this alert";
+
+  const classifications: RcaClassification[] = RCA_CLASSES.map(name =>
+    name === spec.rcaClass
+      ? { name, matches: true, confirms: `${name} — ${spec.affectedAS} ${phrasing.verb} ${spec.router}, consistent with ${phrasing.note}` }
+      : { name, matches: false }
+  );
+
+  return {
+    id: spec.id,
+    title: spec.title,
+    severity: spec.severity,
+    confidence: spec.confidence,
+    status: spec.status,
+    impact: { baseline: spec.baseline, peak: spec.peak, unit: "Gbps" },
+    affected: spec.affected,
+    affectedAS: spec.affectedAS,
+    linkedAlarms: alarmCount,
+    linkedTeams: spec.severity === "critical" || spec.severity === "high" ? 2 : 1,
+    linkedTickets: ticketCount,
+    linkedAlarmRefs: alarmRefs,
+    ticketDesc,
+    changeTicket: spec.changeTicket,
+    voiceChannel: false,
+    eta: spec.eta,
+    age: spec.age,
+    raised: spec.raised,
+    region: spec.region,
+
+    sources: {
+      anodot: {
+        severity: sevLabel,
+        handoverAS: spec.affectedAS,
+        score: Math.round((spec.utilization + spikePercent / 4) * 10) / 10,
+        router: spec.router,
+        ixp: spec.ixp,
+      },
+      networkLoadMonitor: {
+        decision: spec.status === "mitigating" ? "resolve" : "escalate",
+        reason: spec.status === "predicted"
+          ? `Forecast model projects breach based on recent ${spec.affectedAS} traffic growth pattern`
+          : `Ingress ${spec.status === "mitigating" ? "recovering toward" : "trending toward"} the ${threshold}% threshold on ${spec.router}`,
+        currentGbps: spec.peak,
+        thresholdGbps: Math.round(spec.baseline * 1.15 * 10) / 10,
+      },
+      benocs: {
+        sourceAS: spec.affectedAS,
+        baseline: spec.baseline,
+        peak: spec.peak,
+        spikePercent,
+        direction: `${spec.ixp} → ${spec.region}`,
+      },
+      snmp: {
+        utilization: spec.utilization,
+        threshold,
+        capacity: "10 Gbps",
+        router: spec.router,
+        iface: spec.iface,
+      },
+      borderPlanner: {
+        congestedPorts: 0,
+        buildoutFlag: "OK",
+        worstPort: "—",
+        ports: [],
+      },
+      caemCasm: {
+        alarmCount,
+        ticketCount,
+        ticketDesc,
+        alarmRefs,
+        alarmDetails: alarmRefs.map((ref, i) => ({
+          ref,
+          message: `${sevTitleCase}: ${spec.router} ${i === 0 ? "ingress" : "handover"} anomaly linked to ${spec.affectedAS}`,
+          severity: spec.severity,
+          raised: spec.raised,
+        })),
+        ticketDetails: ticketCount > 0
+          ? [{ description: ticketDesc, status: spec.changeTicket ? "in_progress" : "open", raised: spec.raised }]
+          : [],
+      },
+      benocsRca: {
+        classifications,
+        summary: `${spec.rcaClass}: ${phrasing.note}.`,
+      },
+      rex: {
+        linkFlap: spec.rcaClass === "Router Shift" || spec.rcaClass === "Interface Shift",
+        igpMetricChange: spec.rcaClass === "Router Shift" ? "+10 on secondary" : "none",
+        reroutePath: spec.rcaClass === "Interface Shift" ? "Failover to secondary interface confirmed" : "No rerouting active",
+        localPref: 100,
+        notes: spec.rcaClass === "Organic-Event"
+          ? "Routing stable — demand-driven growth, not a routing fault."
+          : "Routing table consistent with the classified event; no BGP withdrawals detected.",
+      },
+      eventScout: { matchCount: 0, matches: [] },
+    },
+
+    predict: {
+      narrative:
+        `${spec.affectedAS} ${phrasing.verb} ${spec.router} (${spec.ixp}). BENOCS attributes the change to ${phrasing.note}. ` +
+        `Current utilisation on ${spec.router} ${spec.iface} is ${spec.utilization}% against a baseline of ${spec.baseline} Gbps and a peak of ${spec.peak} Gbps (+${spikePercent}%).`,
+      changeInFlight: spec.changeTicket
+        ? `${spec.changeTicket} — change window covering ${spec.router}. ${spec.status === "mitigating" ? "Auto-resolving." : "In progress."}`
+        : null,
+      evidenceChain: [
+        `Anodot ${sevLabel} anomaly at ${spec.raised}: ${spec.affectedAS} handover activity on ${spec.router}`,
+        `BENOCS: ${spikePercent}% ingress change sourced from ${spec.affectedAS}, direction ${spec.ixp} → ${spec.region}`,
+        `BENOCS RCA: ${spec.rcaClass} classification (only match) — ${phrasing.note}`,
+      ],
+      ifUnmitigated: spec.status === "predicted"
+        ? `Forecast model projects the ${threshold}% threshold will be breached on ${spec.router} ${spec.iface} at current growth — plan capacity or rerouting ahead of the window.`
+        : `At current growth, ${spec.router} ${spec.iface} risks exceeding the ${threshold}% threshold, raising packet-loss/SLA-breach risk for ${spec.affectedAS} and co-located peers.`,
+      confidence: spec.confidence,
+    },
+
+    actions: makeActions(spec),
+  };
+}
+
+const GENERATED_ALERT_SPECS: GeneratedAlertSpec[] = [
+  { id: "ALT-005", title: "Elevated ingress — DE-CIX Frankfurt / AS6453 secondary", severity: "medium", status: "active", confidence: 74, affectedAS: "AS6453", affected: "FRA-RTR-02 / fra-rtr-02", region: "FRA-EU-CENTRAL", router: "fra-rtr-02", ixp: "DE-CIX Frankfurt", iface: "xe-0/1/0", baseline: 4.5, peak: 5.9, utilization: 78, age: "9m", raised: "14:28 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Indirect Overflow" },
+  { id: "ALT-006", title: "Peering link congestion — DE-CIX Frankfurt / AS6453 tertiary", severity: "high", status: "mitigating", confidence: 82, affectedAS: "AS6453", affected: "FRA-RTR-03 / fra-rtr-03", region: "FRA-EU-CENTRAL", router: "fra-rtr-03", ixp: "DE-CIX Frankfurt", iface: "xe-1/0/0", baseline: 6.8, peak: 8.5, utilization: 88, age: "22m", raised: "14:15 UTC", eta: "Resolving — ETA 15:00 UTC", changeTicket: "CHG-0503", rcaClass: "Router Shift" },
+  { id: "ALT-007", title: "Forecast overflow — AMS-IX Amsterdam / AS6453 evening peak", severity: "low", status: "predicted", confidence: 63, affectedAS: "AS6453", affected: "AMS-RTR-03 / ams-ix-rtr-03", region: "AMS-EU-WEST", router: "ams-ix-rtr-03", ixp: "AMS-IX Amsterdam", iface: "xe-2/0/0", baseline: 3.2, peak: 4.1, utilization: 58, age: "1h 5m", raised: "13:32 UTC", eta: "Breach in ~5 hrs", changeTicket: null, rcaClass: "Organic-Event" },
+  { id: "ALT-008", title: "Handover surge — AMS-IX Amsterdam / AS3320 secondary path", severity: "high", status: "active", confidence: 83, affectedAS: "AS3320", affected: "AMS-RTR-04 / ams-ix-rtr-04", region: "AMS-EU-WEST", router: "ams-ix-rtr-04", ixp: "AMS-IX Amsterdam", iface: "xe-0/0/2", baseline: 5.5, peak: 7.2, utilization: 82, age: "26m", raised: "14:11 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Handover Shift" },
+  { id: "ALT-009", title: "Capacity trending high — DE-CIX Frankfurt / AS6762 secondary", severity: "medium", status: "predicted", confidence: 71, affectedAS: "AS6762", affected: "EU-CORE-02B / eu-core-02b", region: "FRA-EU-CENTRAL", router: "eu-core-02b", ixp: "DE-CIX Frankfurt", iface: "xe-3/0/0", baseline: 4.0, peak: 5.6, utilization: 74, age: "1h 40m", raised: "12:55 UTC", eta: "Breach in ~4 hrs", changeTicket: null, rcaClass: "Organic-Event" },
+  { id: "ALT-010", title: "Micro-outage recovered — LINX London / AS6762 backup", severity: "low", status: "active", confidence: 59, affectedAS: "AS6762", affected: "LINX-RTR-02 / linx-rtr-02", region: "LON-EU-WEST", router: "linx-rtr-02", ixp: "LINX London", iface: "xe-0/2/0", baseline: 2.1, peak: 2.6, utilization: 41, age: "6m", raised: "14:31 UTC", eta: "Monitor only", changeTicket: null, rcaClass: "Interface Shift" },
+  { id: "ALT-011", title: "Handover instability — LINX London / AS1299 (Telia) surge", severity: "critical", status: "active", confidence: 95, affectedAS: "AS1299", affected: "LINX-RTR-01 / linx-rtr-01", region: "LON-EU-WEST", router: "linx-rtr-01", ixp: "LINX London", iface: "xe-0/0/0", baseline: 8.0, peak: 10.6, utilization: 96, age: "4m", raised: "14:33 UTC", eta: "Immediate operator review", changeTicket: "CHG-0512", rcaClass: "Handover Shift" },
+  { id: "ALT-012", title: "Forecast breach — LINX London / AS1299 evening peak", severity: "high", status: "predicted", confidence: 86, affectedAS: "AS1299", affected: "LINX-RTR-03 / linx-rtr-03", region: "LON-EU-WEST", router: "linx-rtr-03", ixp: "LINX London", iface: "xe-1/0/1", baseline: 5.9, peak: 8.8, utilization: 83, age: "1h 12m", raised: "13:25 UTC", eta: "Breach in ~2 hrs", changeTicket: null, rcaClass: "Organic-Event" },
+  { id: "ALT-013", title: "BGP session flap stabilising — LINX London / AS1299 backup path", severity: "medium", status: "mitigating", confidence: 76, affectedAS: "AS1299", affected: "LINX-RTR-04 / linx-rtr-04", region: "LON-EU-WEST", router: "linx-rtr-04", ixp: "LINX London", iface: "xe-2/0/1", baseline: 3.4, peak: 4.6, utilization: 63, age: "38m", raised: "13:59 UTC", eta: "Resolving — ETA 14:45 UTC", changeTicket: "CHG-0498", rcaClass: "Router Shift" },
+  { id: "ALT-014", title: "Transit congestion — Milan IX / AS3356 (Lumen) ingress spike", severity: "medium", status: "active", confidence: 73, affectedAS: "AS3356", affected: "MIL-RTR-01 / mil-rtr-01", region: "MIL-EU-SOUTH", router: "mil-rtr-01", ixp: "Milan IX", iface: "xe-0/1/1", baseline: 4.4, peak: 5.7, utilization: 76, age: "17m", raised: "14:20 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Indirect Overflow" },
+  { id: "ALT-015", title: "Handover surge — Milan IX / AS3356 (Lumen) secondary port", severity: "high", status: "active", confidence: 85, affectedAS: "AS3356", affected: "MIL-RTR-02 / mil-rtr-02", region: "MIL-EU-SOUTH", router: "mil-rtr-02", ixp: "Milan IX", iface: "xe-1/1/0", baseline: 6.1, peak: 7.9, utilization: 86, age: "11m", raised: "14:26 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Handover Shift" },
+  { id: "ALT-016", title: "Capacity forecast — Brussels peer / AS5511 (Orange) evening ramp", severity: "medium", status: "predicted", confidence: 70, affectedAS: "AS5511", affected: "BRU-PEER-02 / bru-peer-02", region: "BRU-EU-WEST", router: "bru-peer-02", ixp: "Brussels Peering", iface: "ge-0/1/0", baseline: 2.8, peak: 3.9, utilization: 68, age: "2h 5m", raised: "12:32 UTC", eta: "Breach in ~5 hrs", changeTicket: null, rcaClass: "Organic-Event" },
+];
+
+const GENERATED_ALERTS: Alert[] = GENERATED_ALERT_SPECS.map(makeAlert);
+
+export const ALERTS: Alert[] = [...HAND_ALERTS, ...GENERATED_ALERTS];
+
+// ── AS grouping (single source for the "Alerts by Handover AS" chart AND the
+// Alerts page's AS filter — same query, so bar height always equals filtered
+// row count) ───────────────────────────────────────────────────────────────────
+
+export function getAlertsByAS(alerts: Alert[] = ALERTS): { as: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const a of alerts) counts.set(a.affectedAS, (counts.get(a.affectedAS) ?? 0) + 1);
+  return Array.from(counts, ([as, count]) => ({ as, count })).sort((a, b) => b.count - a.count);
+}
+
 // ── KPI helpers (reconcile with peering-store) ────────────────────────────────
-// Active: 4, Critical: 1, Predicted: 1, Avg confidence: 85, Needs review: 2
 
 export const ALERT_KPIS = {
   total:        ALERTS.length,                                                       // 4

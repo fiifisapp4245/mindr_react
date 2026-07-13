@@ -15,6 +15,7 @@ import {
   ALERT_SEV,
   ALERT_STATUS,
   hasChangeTicket,
+  getAlertsByAS,
   type Alert,
   type AlertSeverity,
   type AlertStatus,
@@ -26,11 +27,17 @@ import { Badge } from "../components/ui/badge";
 type SevFilter    = "all" | AlertSeverity;
 type StatusFilter = "all" | AlertStatus;
 type TicketFilter = "all" | "with" | "without";
+type AsFilter     = "all" | string;
 
 const SEVERITIES: AlertSeverity[] = ["critical", "high", "medium", "low"];
 const STATUSES:   AlertStatus[]   = ["active", "predicted", "mitigating", "resolved"];
 
-// Deep-link query params are read once on mount (?severity=high&status=active&changeTicket=true),
+// Same query that backs the "Alerts by Handover AS" dashboard chart, so a bar's
+// height always equals this page's filtered row count for that AS.
+const ALERTS_BY_AS = getAlertsByAS(ALERTS);
+const KNOWN_AS = new Set(ALERTS_BY_AS.map(a => a.as));
+
+// Deep-link query params are read once on mount (?severity=high&status=active&changeTicket=true&affectedAS=AS6453),
 // case-insensitively, so cards/links elsewhere in the app can pre-apply a filter.
 function parseSevParam(v: string | null): SevFilter {
   const lower = v?.toLowerCase() ?? "";
@@ -44,6 +51,11 @@ function parseStatusParam(v: string | null): StatusFilter {
 
 function parseTicketParam(v: string | null): TicketFilter {
   return v?.toLowerCase() === "true" ? "with" : "all";
+}
+
+function parseAsParam(v: string | null): AsFilter {
+  const upper = v?.toUpperCase() ?? "";
+  return KNOWN_AS.has(upper) ? upper : "all";
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -241,11 +253,13 @@ export default function Alerts() {
   const [sevFilter,    setSevFilter]    = useState<SevFilter>(() => parseSevParam(searchParams.get("severity")));
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => parseStatusParam(searchParams.get("status")));
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>(() => parseTicketParam(searchParams.get("changeTicket")));
+  const [asFilter,     setAsFilter]     = useState<AsFilter>(() => parseAsParam(searchParams.get("affectedAS")));
 
   const filtered = ALERTS.filter((a) => {
-    if (sevFilter    !== "all" && a.severity !== sevFilter)    return false;
-    if (statusFilter !== "all" && a.status   !== statusFilter) return false;
-    if (ticketFilter === "with" && !hasChangeTicket(a))        return false;
+    if (sevFilter    !== "all" && a.severity   !== sevFilter)    return false;
+    if (statusFilter !== "all" && a.status     !== statusFilter) return false;
+    if (ticketFilter === "with" && !hasChangeTicket(a))          return false;
+    if (asFilter     !== "all" && a.affectedAS !== asFilter)     return false;
     return true;
   });
 
@@ -400,6 +414,45 @@ export default function Alerts() {
                 }}
               >
                 {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-5 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
+
+        {/* Handover AS filter */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
+            Handover AS
+          </span>
+          <button
+            onClick={() => setAsFilter("all")}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
+            style={{
+              backgroundColor: asFilter === "all" ? "rgba(255,255,255,0.08)" : "transparent",
+              color: asFilter === "all" ? "var(--color-text-primary)" : "var(--color-text-muted)",
+              border: `1px solid ${asFilter === "all" ? "var(--color-border)" : "transparent"}`,
+            }}
+          >
+            All
+          </button>
+          {ALERTS_BY_AS.map(({ as, count }) => {
+            const active = asFilter === as;
+            return (
+              <button
+                key={as}
+                onClick={() => setAsFilter(as)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold font-mono transition-colors"
+                style={{
+                  backgroundColor: active ? "rgba(233,24,124,0.12)" : "transparent",
+                  color: active ? "var(--color-brand)" : "var(--color-text-muted)",
+                  border: `1px solid ${active ? "var(--color-brand)" : "transparent"}`,
+                }}
+              >
+                {as}
+                <span className="text-[10px] opacity-70">({count})</span>
               </button>
             );
           })}
