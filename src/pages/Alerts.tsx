@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Bell,
@@ -14,6 +14,7 @@ import {
   ALERT_KPIS,
   ALERT_SEV,
   ALERT_STATUS,
+  hasChangeTicket,
   type Alert,
   type AlertSeverity,
   type AlertStatus,
@@ -24,6 +25,26 @@ import { Badge } from "../components/ui/badge";
 
 type SevFilter    = "all" | AlertSeverity;
 type StatusFilter = "all" | AlertStatus;
+type TicketFilter = "all" | "with" | "without";
+
+const SEVERITIES: AlertSeverity[] = ["critical", "high", "medium", "low"];
+const STATUSES:   AlertStatus[]   = ["active", "predicted", "mitigating", "resolved"];
+
+// Deep-link query params are read once on mount (?severity=high&status=active&changeTicket=true),
+// case-insensitively, so cards/links elsewhere in the app can pre-apply a filter.
+function parseSevParam(v: string | null): SevFilter {
+  const lower = v?.toLowerCase() ?? "";
+  return (SEVERITIES as string[]).includes(lower) ? (lower as AlertSeverity) : "all";
+}
+
+function parseStatusParam(v: string | null): StatusFilter {
+  const lower = v?.toLowerCase() ?? "";
+  return (STATUSES as string[]).includes(lower) ? (lower as AlertStatus) : "all";
+}
+
+function parseTicketParam(v: string | null): TicketFilter {
+  return v?.toLowerCase() === "true" ? "with" : "all";
+}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -216,12 +237,15 @@ function AlertRow({ alert, onClick }: { alert: Alert; onClick: () => void }) {
 
 export default function Alerts() {
   const navigate = useNavigate();
-  const [sevFilter,    setSevFilter]    = useState<SevFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [searchParams] = useSearchParams();
+  const [sevFilter,    setSevFilter]    = useState<SevFilter>(() => parseSevParam(searchParams.get("severity")));
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => parseStatusParam(searchParams.get("status")));
+  const [ticketFilter, setTicketFilter] = useState<TicketFilter>(() => parseTicketParam(searchParams.get("changeTicket")));
 
   const filtered = ALERTS.filter((a) => {
     if (sevFilter    !== "all" && a.severity !== sevFilter)    return false;
     if (statusFilter !== "all" && a.status   !== statusFilter) return false;
+    if (ticketFilter === "with" && !hasChangeTicket(a))        return false;
     return true;
   });
 
@@ -346,6 +370,36 @@ export default function Alerts() {
                 }}
               >
                 {s === "all" ? "All" : s}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-5 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
+
+        {/* Change ticket filter */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
+            Change Ticket
+          </span>
+          {([
+            { key: "all",  label: "All" },
+            { key: "with", label: "With Ticket" },
+          ] as { key: TicketFilter; label: string }[]).map(({ key, label }) => {
+            const active = ticketFilter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setTicketFilter(key)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
+                style={{
+                  backgroundColor: active ? "rgba(255,255,255,0.08)" : "transparent",
+                  color: active ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  border: active ? "1px solid var(--color-border)" : "1px solid transparent",
+                }}
+              >
+                {label}
               </button>
             );
           })}

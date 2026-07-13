@@ -1,3 +1,12 @@
+import {
+  CONGESTED_PORTS,
+  CRITICAL_BUILDOUT_PORTS,
+  CONGESTION_UTIL_PCT,
+  BUILDOUT_EXHAUSTION_PCT,
+  BUILDOUT_CRITICAL_WEEKS,
+  BUILDOUT_INTERIM_LABEL,
+} from "./border-ports";
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type NodeStatus = "core" | "healthy" | "warning" | "critical";
@@ -336,7 +345,38 @@ export const INITIAL_CONVERSATIONS: ConvEntry[] = [
 // Each intent: keyword set + grounded answer with node highlights.
 // matchIntent() below maps user text to the closest supported intent.
 
+const CONGESTED_PORTS_LIST = CONGESTED_PORTS
+  .map(p => `• ${p.port} (${p.transitAS}) — ${p.ingressUtil}% utilisation`)
+  .join("\n");
+
+const CRITICAL_BUILDOUT_PORTS_LIST = CRITICAL_BUILDOUT_PORTS
+  .map(p => `• ${p.port} (${p.transitAS}) — ${p.ingressUtil}% now, ~${p.weeklyGrowthPct}pp/week growth`)
+  .join("\n");
+
 const IP_CORE_INTENTS: CuratedIntent[] = [
+  {
+    keywords: ["congested port", "congested ports", "port congestion", "ports are congested"],
+    answer: {
+      text:
+        `${CONGESTED_PORTS.length} peering ports are currently at or above ${CONGESTION_UTIL_PCT}% instantaneous ` +
+        `utilisation (SNMP, single poll — no sustained window):\n\n${CONGESTED_PORTS_LIST}\n\n` +
+        `This is a live snapshot and may shift between polling intervals. AMS-IX Amsterdam and DE-CIX Frankfurt ` +
+        `account for the highest readings.`,
+      highlightNodeIds: ["ams-ix", "de-cix"],
+      focusNodeId:      "ams-ix",
+    },
+  },
+  {
+    keywords: ["build-out", "build out", "buildout", "critical build-out"],
+    answer: {
+      text:
+        `${CRITICAL_BUILDOUT_PORTS.length} ports are at Critical build-out status — projected to reach ` +
+        `${BUILDOUT_EXHAUSTION_PCT}% utilisation within ${BUILDOUT_CRITICAL_WEEKS} weeks at current growth:\n\n` +
+        `${CRITICAL_BUILDOUT_PORTS_LIST}\n\n${BUILDOUT_INTERIM_LABEL}`,
+      highlightNodeIds: ["ams-ix", "de-cix"],
+      focusNodeId:      "de-cix",
+    },
+  },
   {
     keywords: ["ams-ix", "amsterdam", "packet loss"],
     answer: {

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, Fragment } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Send, X, MapPin, Users, Network, Mic, Paperclip, Pencil } from "lucide-react";
 import { useScenario } from "../contexts/scenario";
 import { DOMAINS } from "../data/domains";
@@ -401,6 +401,7 @@ function renderEntityText(
 export default function NetworkModelGraph() {
   const { domainId } = useParams<{ domainId: string }>();
   const navigate     = useNavigate();
+  const location     = useLocation();
   const { activeUser } = useScenario();
 
   // Redirect on invalid domain
@@ -427,6 +428,7 @@ export default function NetworkModelGraph() {
 
   const inputRef  = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const autoQueryFired = useRef(false);
 
   // Reset state when domain changes
   useEffect(() => {
@@ -436,6 +438,17 @@ export default function NetworkModelGraph() {
     setSelectedNodeId(null);
     setInputVal("");
     setIsComposing(false);
+  }, [domainId]);
+
+  // Auto-submit a query passed via route state (e.g. an FLM Dashboard KPI card
+  // deep-linking here with a pre-defined question) so the user lands on a
+  // streaming answer instead of an empty prompt.
+  useEffect(() => {
+    const autoQuery = (location.state as { autoQuery?: string } | null)?.autoQuery;
+    if (!autoQuery || autoQueryFired.current) return;
+    autoQueryFired.current = true;
+    handleSend(autoQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domainId]);
 
   // Auto-scroll chat to bottom

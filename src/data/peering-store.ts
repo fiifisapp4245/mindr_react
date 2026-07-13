@@ -44,6 +44,17 @@ export interface LookingAheadItem {
   severity: 'CRITICAL' | 'WARNING' | 'INFO';
 }
 
+import { ACTIVE_ALERTS_COUNT, HIGH_SEVERITY_ALERTS_COUNT } from './alert-store';
+import {
+  CONGESTED_PORTS,
+  CRITICAL_BUILDOUT_PORTS,
+  BUILDOUT_INTERIM_LABEL,
+  BUILDOUT_EXHAUSTION_PCT,
+  BUILDOUT_CRITICAL_WEEKS,
+} from './border-ports';
+
+export { BUILDOUT_INTERIM_LABEL };
+
 // ── Threshold engine ───────────────────────────────────────────────────────────
 
 export function computeBand(value: number, spec: ThresholdSpec): Band {
@@ -85,50 +96,51 @@ export function bandLabel(band: Band): string {
 
 export const kpi: Record<string, KpiEntry> = {
   activeSC1Alerts: {
-    value: 4,
+    value: ACTIVE_ALERTS_COUNT,
     unit: 'incidents',
     source: 'Anodot',
     description:
-      'Count of ongoing SC-1 (Priority-1) incidents active in the IP peering domain. ' +
-      'Distinct from the global "Active P1" in the top bar, which spans all domains.',
+      'Count of ongoing SC-1 (Priority-1) incidents active in the IP peering domain — same query as the ' +
+      'Alerts page "Active" status filter. Distinct from the global "Active P1" in the top bar, which spans all domains.',
     thresholds: { t1: 2, t2: 5, direction: 'lower-better' },
     thresholdLabel: 'Healthy 0–2 · Watch 3–5 · Critical >5',
     supportText: 'INC-3021 is current top trigger',
   },
 
   highSeverityAlerts: {
-    value: 2,
+    value: HIGH_SEVERITY_ALERTS_COUNT,
     unit: 'alerts',
     source: 'Anodot',
     description:
-      'Count of HIGH and CRITICAL severity alerts currently open — requires operator review or active remediation.',
+      'Count of HIGH severity alerts currently open — same query as the Alerts page "High" severity filter. ' +
+      'Requires operator review or active remediation.',
     thresholds: { t1: 0, t2: 2, direction: 'lower-better' },
     thresholdLabel: 'Healthy 0 · Watch 1–2 · Critical ≥3',
     supportText: 'Both elevated above normal baseline',
   },
 
   congestedPorts: {
-    value: 7,
+    value: CONGESTED_PORTS.length,
     unit: 'ports',
     source: 'SNMP',
     description:
-      'Ports running at 90%+ utilization — a sign links are near capacity. ' +
-      'High counts risk packet loss and SLA breaches.',
+      'Ports running at 90%+ instantaneous utilization (max of ingress/egress) at the current SNMP polling ' +
+      'interval — no sustained window. High counts risk packet loss and SLA breaches. Count may flicker between polls.',
     thresholds: { t1: 3, t2: 10, direction: 'lower-better' },
     thresholdLabel: 'Healthy 0–3 · Watch 4–10 · Critical >10',
-    supportText: 'FRA-RTR-01 has 3 affected ports',
+    supportText: 'FRA-RTR-01 has 2 affected ports',
   },
 
   criticalBuildoutPorts: {
-    value: 2,
+    value: CRITICAL_BUILDOUT_PORTS.length,
     unit: 'ports',
     source: 'Border Planner',
     description:
-      'Structurally overloaded peering ports at ≥100% of weekly traffic peak. ' +
-      'Require capacity expansion — cannot be resolved by re-routing alone.',
+      `Ports projected to reach ${BUILDOUT_EXHAUSTION_PCT}% utilization within ${BUILDOUT_CRITICAL_WEEKS} weeks ` +
+      `at current growth. ${BUILDOUT_INTERIM_LABEL} Require capacity expansion — cannot be resolved by re-routing alone.`,
     thresholds: { t1: 0, t2: 3, direction: 'lower-better' },
     thresholdLabel: 'Healthy 0 · Watch 1–3 · Critical >3',
-    supportText: 'AS6453 & AS1299 links affected',
+    supportText: 'AS3320 & AS3549 links affected',
   },
 
   activeChangeTickets: {

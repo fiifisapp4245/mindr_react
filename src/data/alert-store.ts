@@ -4,13 +4,17 @@
 // topology, RCA, and remediation into one operator-facing item.
 //
 // D3 CONSTRAINT: linked incident/ticket IDs are NEVER exposed here.
-// Only descriptions + counts are stored for tickets.
+// Only descriptions + counts are stored for tickets. CASM change tickets
+// (CHG-xxxx) are distinct from customer incident tickets and ARE exposed —
+// they're operational change references, not customer-identifying data.
 // Alarm refs (ALM-xxxx) are OK to show.
 
+import { BORDER_PORTS, type BorderPort, type BuildoutFlag } from "./border-ports";
+
+export type { BorderPort, BuildoutFlag };
 export type AlertSeverity = "critical" | "high" | "medium" | "low";
 export type AlertStatus   = "active" | "predicted" | "mitigating" | "resolved";
 export type RiskLevel     = "LOW" | "MEDIUM" | "HIGH";
-export type BuildoutFlag  = "CRITICAL" | "SOON" | "OK";
 export type RcaClass = "Indirect Overflow" | "Handover Shift" | "Router Shift" | "Interface Shift" | "Organic-Event";
 
 // ── OBSERVE: per-source evidence ──────────────────────────────────────────────
@@ -44,14 +48,6 @@ export interface SnmpSource {
   capacity: string;
   router: string;
   iface: string;
-}
-
-export interface BorderPort {
-  port: string;
-  ingressUtil: number;  // %
-  capacity: string;
-  transitAS: string;
-  flag: BuildoutFlag;
 }
 
 export interface BorderPlannerSource {
@@ -160,6 +156,7 @@ export interface Alert {
   linkedTickets: number;
   linkedAlarmRefs: string[];   // OK per D3
   ticketDesc: string;          // description only, no IDs
+  changeTicket: string | null; // CASM change ticket ref (e.g. "CHG-0441"), or null if none in flight
   voiceChannel: boolean;       // true = a dedicated voice bridge has been designated
   eta: string;
   age: string;
@@ -200,21 +197,12 @@ export const ALERT_STATUS: Record<AlertStatus, { label: string; color: string; b
 };
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
-// Values reconcile with peering-store.ts:
-//   activeSC1Alerts: 4    → 4 alerts total
-//   highSeverityAlerts: 2 → ALT-002 (high/active) + ALT-003 (high/predicted)
-//   congestedPorts: 7     → 7 rows in ALT-001 borderPlanner
-//   criticalBuildoutPorts:2→ 2 CRITICAL rows in port table
-
-const BORDER_PORTS: BorderPort[] = [
-  { port: "ams-ix-rtr-01 xe-0/0/0", ingressUtil: 94, capacity: "10G", transitAS: "AS3320", flag: "CRITICAL" },
-  { port: "fra-rtr-01 xe-0/0/0",    ingressUtil: 91, capacity: "10G", transitAS: "AS3549", flag: "CRITICAL" },
-  { port: "ams-ix-rtr-01 xe-0/0/1", ingressUtil: 88, capacity: "10G", transitAS: "AS1299", flag: "SOON"     },
-  { port: "ams-ix-rtr-02 xe-1/0/0", ingressUtil: 85, capacity: "10G", transitAS: "AS6453", flag: "SOON"     },
-  { port: "fra-rtr-01 xe-0/0/1",    ingressUtil: 82, capacity: "10G", transitAS: "AS6762", flag: "SOON"     },
-  { port: "bru-peer-01 ge-0/0/0",   ingressUtil: 79, capacity: "1G",  transitAS: "AS5432", flag: "SOON"     },
-  { port: "lux-peer-03 ge-0/0/0",   ingressUtil: 77, capacity: "1G",  transitAS: "AS8218", flag: "SOON"     },
-];
+// peering-store.ts KPI values are computed from these records (ACTIVE_ALERTS_COUNT,
+// HIGH_SEVERITY_ALERTS_COUNT below) and from border-ports.ts (congested/build-out
+// ports), so the Dashboard cards and the Alerts page filters never diverge:
+//   activeSC1Alerts: status === "active"      → ALT-001 + ALT-002 = 2
+//   highSeverityAlerts: severity === "high"    → ALT-002 + ALT-003 = 2
+//   congestedPorts / criticalBuildoutPorts     → see border-ports.ts
 
 export const ALERTS: Alert[] = [
   // ── ALT-001 — main detail alert (CRITICAL/active) ─────────────────────────
@@ -231,6 +219,7 @@ export const ALERTS: Alert[] = [
     linkedTickets: 3,
     linkedAlarmRefs: ["ALM-0042", "ALM-0043", "ALM-0044", "ALM-0045", "ALM-0046", "ALM-0047"],
     ticketDesc: "3 customer tickets — voice degradation on AMS-SC1 path, raised by Tele2 NL and KPN ops teams",
+    changeTicket: "CHG-0441",
     voiceChannel: true,
     eta: "Immediate operator review",
     age: "14m",
@@ -413,6 +402,7 @@ export const ALERTS: Alert[] = [
     linkedTickets: 2,
     linkedAlarmRefs: ["ALM-0043", "ALM-0050", "ALM-0051", "ALM-0052"],
     ticketDesc: "2 customer tickets — elevated latency on Frankfurt peering path, raised by Cogent and Lumen teams",
+    changeTicket: null,
     voiceChannel: false,
     eta: "Review within 30 min",
     age: "31m",
@@ -486,6 +476,7 @@ export const ALERTS: Alert[] = [
     linkedTickets: 1,
     linkedAlarmRefs: ["ALM-0045", "ALM-0048", "ALM-0049"],
     ticketDesc: "1 capacity planning ticket — AMS-RTR-02 flagged for Q3 upgrade review",
+    changeTicket: null,
     voiceChannel: false,
     eta: "Breach in ~3 hrs",
     age: "2h 14m",
@@ -556,6 +547,7 @@ export const ALERTS: Alert[] = [
     linkedTickets: 1,
     linkedAlarmRefs: ["ALM-0046", "ALM-0047"],
     ticketDesc: "1 maintenance ticket — Tele Italia scheduled BGP timer adjustment, window closes 15:30 UTC",
+    changeTicket: "CHG-TI-0112",
     voiceChannel: false,
     eta: "Resolving — ETA 15:30 UTC",
     age: "47m",
@@ -621,6 +613,18 @@ export const ALERT_KPIS = {
   avgConfidence: Math.round(ALERTS.reduce((s, a) => s + a.confidence, 0) / ALERTS.length), // 85
   needsReview:  ALERTS.filter(a => (a.status === "active" && (a.severity === "critical" || a.severity === "high"))).length, // 2
 };
+
+// ── Shared alert queries ───────────────────────────────────────────────────────
+// Single definition per query so the FLM Dashboard KPI count and the Alerts
+// page's filtered row count are always the same query run twice, never two
+// hand-maintained numbers that can drift apart.
+
+export const isActiveAlert       = (a: Alert): boolean => a.status === "active";
+export const isHighSeverityAlert = (a: Alert): boolean => a.severity === "high";
+export const hasChangeTicket     = (a: Alert): boolean => a.changeTicket !== null;
+
+export const ACTIVE_ALERTS_COUNT        = ALERTS.filter(isActiveAlert).length;
+export const HIGH_SEVERITY_ALERTS_COUNT = ALERTS.filter(isHighSeverityAlert).length;
 
 // ── Mutable state (mirrors alarms context pattern) ────────────────────────────
 

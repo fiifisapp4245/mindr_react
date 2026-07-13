@@ -4,25 +4,24 @@ import { kpiCard, kpiValueScale } from '../../lib/animations';
 import {
   computeBand,
   bandColor,
-  bandBg,
-  bandLabel,
   type KpiEntry,
 } from '../../data/peering-store';
 import { InfoTooltip } from './InfoTooltip';
-import { Badge } from '../ui/badge';
 
 interface Props {
   title: string;
   entry: KpiEntry;
   to?: string;
+  /** Route state to pass along with `to` (e.g. an auto-submitted Network Model query). */
+  navState?: Record<string, unknown>;
 }
 
-export function PeeringKpiCard({ title, entry, to }: Props) {
+export function PeeringKpiCard({ title, entry, to, navState }: Props) {
   const band = computeBand(entry.value, entry.thresholds);
   const color = bandColor(band);
-  const bg = bandBg(band);
-  const label = bandLabel(band);
   const navigate = useNavigate();
+
+  const go = () => to && navigate(to, navState ? { state: navState } : undefined);
 
   return (
     <motion.div
@@ -37,13 +36,13 @@ export function PeeringKpiCard({ title, entry, to }: Props) {
         padding: '16px',
         cursor: to ? 'pointer' : 'default',
       }}
-      onClick={to ? () => navigate(to) : undefined}
+      onClick={to ? go : undefined}
       onKeyDown={
         to
           ? (e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                navigate(to);
+                go();
               }
             }
           : undefined
@@ -83,11 +82,8 @@ export function PeeringKpiCard({ title, entry, to }: Props) {
         </span>
       </div>
 
-      {/* Band badge + support text */}
+      {/* Support text */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <Badge className="text-[10px] shrink-0" style={{ color, backgroundColor: bg }}>
-          {label}
-        </Badge>
         <p
           className="text-[11px] truncate"
           style={{ color: 'var(--color-text-muted)' }}

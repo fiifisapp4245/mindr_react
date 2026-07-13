@@ -18,13 +18,28 @@ import { LookingAhead } from "../components/flm/LookingAhead";
 
 import { kpi } from "../data/peering-store";
 
-// Band 1 card definitions — maps store key → display title → nav destination
-const BAND1_CARDS: { key: keyof typeof kpi; title: string; to: string }[] = [
-  { key: "activeSC1Alerts",       title: "Active Alerts",            to: "/alerts"   },
-  { key: "highSeverityAlerts",    title: "High Severity Alerts",     to: "/alerts"   },
-  { key: "congestedPorts",        title: "Congested Ports",          to: "/topology" },
-  { key: "criticalBuildoutPorts", title: "Critical Build-out Ports", to: "/alerts"   },
-  { key: "activeChangeTickets",   title: "Active Change Tickets",    to: "/alerts"   },
+// Fixed, auto-submitted Network Model queries — parameterised (not free-form) so
+// results stay reproducible and match each card's definition.
+const NM_QUERY_CONGESTED_PORTS =
+  "What are the currently congested ports on the IP Peering network?";
+const NM_QUERY_CRITICAL_BUILDOUT =
+  "Which ports are at Critical build-out status on the IP Peering network?";
+
+// Band 1 card definitions — maps store key → display title → nav destination.
+// Alerts cards deep-link with a pre-applied, editable filter (Pattern 1);
+// port cards deep-link into the Network Model chat with an auto-submitted
+// query (Pattern 2) since ports aren't alerts and have no Alerts-page filter.
+const BAND1_CARDS: {
+  key: keyof typeof kpi;
+  title: string;
+  to: string;
+  navState?: { autoQuery: string };
+}[] = [
+  { key: "activeSC1Alerts",       title: "Active Alerts",            to: "/alerts?status=active" },
+  { key: "highSeverityAlerts",    title: "High Severity Alerts",     to: "/alerts?severity=high" },
+  { key: "congestedPorts",        title: "Congested Ports",          to: "/network-model/ip-core", navState: { autoQuery: NM_QUERY_CONGESTED_PORTS } },
+  { key: "criticalBuildoutPorts", title: "Critical Build-out Ports", to: "/network-model/ip-core", navState: { autoQuery: NM_QUERY_CRITICAL_BUILDOUT } },
+  { key: "activeChangeTickets",   title: "Active Change Tickets",    to: "/alerts?changeTicket=true" },
 ];
 
 export default function FLMDashboard() {
@@ -49,8 +64,8 @@ export default function FLMDashboard() {
       {/* ── Band 1 — KPI cards + Attention list ─────────────────────────────── */}
       <section>
         <div className="grid grid-cols-5 gap-4">
-          {BAND1_CARDS.map(({ key, title, to }) => (
-            <PeeringKpiCard key={key} title={title} entry={kpi[key]} to={to} />
+          {BAND1_CARDS.map(({ key, title, to, navState }) => (
+            <PeeringKpiCard key={key} title={title} entry={kpi[key]} to={to} navState={navState} />
           ))}
         </div>
         <AttentionList />
