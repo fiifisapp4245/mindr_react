@@ -20,14 +20,6 @@ export interface KpiEntry {
   supportText: string;
 }
 
-export interface AttentionItem {
-  id: string;
-  title: string;
-  severity: 'CRITICAL' | 'HIGH' | 'WATCH' | 'PREDICTED';
-  age: string;
-  source: string;
-}
-
 export interface PieSlice {
   name: string;
   value: number;
@@ -154,46 +146,6 @@ export const kpi: Record<string, KpiEntry> = {
     supportText: 'CHG-0441 conflicts with peak window',
   },
 };
-
-// ── Band 1 — Attention list (ranked by severity + SLA risk, distinct IDs) ──────
-
-export const attentionItems: AttentionItem[] = [
-  {
-    id: 'INC-3021',
-    title: 'Peer AS6453 traffic spike — 94% utilization',
-    severity: 'CRITICAL',
-    age: '5M AGO',
-    source: 'SNMP / Anodot',
-  },
-  {
-    id: 'INC-2847',
-    title: 'BGP session instability with Tier-1 carrier',
-    severity: 'HIGH',
-    age: '12M AGO',
-    source: 'REX',
-  },
-  {
-    id: 'INC-2891',
-    title: 'Frankfurt IXP port utilization ≥90%',
-    severity: 'HIGH',
-    age: '18M AGO',
-    source: 'SNMP',
-  },
-  {
-    id: 'CHG-0441',
-    title: 'Scheduled maintenance conflicts with peak window',
-    severity: 'WATCH',
-    age: '31M AGO',
-    source: 'CASM',
-  },
-  {
-    id: 'PRE-0087',
-    title: 'Predicted capacity breach — AS1299 peering link',
-    severity: 'PREDICTED',
-    age: '45M AGO',
-    source: 'BENOCS / Nova',
-  },
-];
 
 // ── Band 2 — Trend time-series ─────────────────────────────────────────────────
 

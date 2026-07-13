@@ -1,18 +1,58 @@
-import { attentionItems, type AttentionItem } from '../../data/peering-store';
 import { Link } from 'react-router-dom';
+import {
+  getAttentionAlerts,
+  ALERT_SEV,
+  ALERT_STATUS,
+  type AlertSeverity,
+  type AlertStatus,
+} from '../../data/alert-store';
 import { Badge } from '../ui/badge';
 
-const SEV_CFG: Record<
-  AttentionItem['severity'],
-  { color: string; bg: string; dot: string }
-> = {
-  CRITICAL:  { color: 'var(--color-critical)',   bg: 'rgba(255,59,59,0.12)',   dot: '#FF3B3B' },
-  HIGH:      { color: 'var(--color-warning)',    bg: 'rgba(255,176,32,0.12)',  dot: '#FFB020' },
-  WATCH:     { color: 'var(--color-mitigating)', bg: 'rgba(77,158,255,0.12)', dot: '#4D9EFF' },
-  PREDICTED: { color: 'var(--color-neutral)',    bg: 'rgba(107,114,128,0.12)', dot: '#6B7280' },
+// Mirrors the Alerts page's SevBadge/StatusBadge variant mapping so colours
+// never drift between the two surfaces.
+const SEV_VARIANT: Record<AlertSeverity, "destructive" | "warning" | "info" | "success"> = {
+  critical: "destructive",
+  high:     "warning",
+  medium:   "info",
+  low:      "success",
 };
 
+const STATUS_VARIANT: Record<AlertStatus, "destructive" | "warning" | "info" | "success"> = {
+  active:     "destructive",
+  predicted:  "warning",
+  mitigating: "info",
+  resolved:   "success",
+};
+
+function SevBadge({ severity }: { severity: AlertSeverity }) {
+  const cfg = ALERT_SEV[severity];
+  return (
+    <Badge
+      variant={SEV_VARIANT[severity]}
+      className="text-[10px] shrink-0 uppercase tracking-wide"
+      style={{ color: cfg.color, backgroundColor: cfg.bg }}
+    >
+      {cfg.label}
+    </Badge>
+  );
+}
+
+function StatusBadge({ status }: { status: AlertStatus }) {
+  const cfg = ALERT_STATUS[status];
+  return (
+    <Badge
+      variant={STATUS_VARIANT[status]}
+      className="text-[10px] shrink-0 uppercase tracking-wide"
+      style={{ color: cfg.color, backgroundColor: cfg.bg }}
+    >
+      {cfg.label}
+    </Badge>
+  );
+}
+
 export function AttentionList() {
+  const attentionAlerts = getAttentionAlerts();
+
   return (
     <div
       className="rounded-lg mt-3"
@@ -38,16 +78,12 @@ export function AttentionList() {
       </div>
 
       <div className="px-2 pb-2">
-        {attentionItems.map((item, i) => {
-          const cfg = SEV_CFG[item.severity];
-          const isLast = i === attentionItems.length - 1;
-          const dest = item.id.startsWith('INC-') || item.id.startsWith('CHG-')
-            ? '/alerts'
-            : '/events';
+        {attentionAlerts.map((alert, i) => {
+          const isLast = i === attentionAlerts.length - 1;
           return (
             <Link
-              key={item.id}
-              to={dest}
+              key={alert.id}
+              to={`/alerts/${alert.id}`}
               className="px-3 py-3 flex items-center gap-3 rounded hover:bg-white/5 transition-colors"
               style={{
                 borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
@@ -56,7 +92,7 @@ export function AttentionList() {
             >
               <span
                 className="w-2 h-2 rounded-full shrink-0 mt-0.5"
-                style={{ backgroundColor: cfg.dot }}
+                style={{ backgroundColor: ALERT_SEV[alert.severity].color }}
               />
 
               <div className="flex-1 min-w-0">
@@ -65,17 +101,16 @@ export function AttentionList() {
                     className="text-sm font-medium"
                     style={{ color: 'var(--color-text-primary)' }}
                   >
-                    {item.title}
+                    {alert.title}
                   </span>
-                  <Badge className="text-[10px] shrink-0" style={{ color: cfg.color, backgroundColor: cfg.bg }}>
-                    {item.severity}
-                  </Badge>
+                  <SevBadge severity={alert.severity} />
+                  <StatusBadge status={alert.status} />
                 </div>
                 <p
                   className="text-[11px] mt-0.5"
                   style={{ color: 'var(--color-text-muted)' }}
                 >
-                  {item.source}
+                  Anodot
                 </p>
               </div>
 
@@ -87,10 +122,10 @@ export function AttentionList() {
                     fontFamily: 'var(--font-mono)',
                   }}
                 >
-                  {item.id}
+                  {alert.id}
                 </p>
                 <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                  {item.age}
+                  {alert.age} ago
                 </p>
               </div>
             </Link>

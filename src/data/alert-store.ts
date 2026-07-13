@@ -626,6 +626,38 @@ export const hasChangeTicket     = (a: Alert): boolean => a.changeTicket !== nul
 export const ACTIVE_ALERTS_COUNT        = ALERTS.filter(isActiveAlert).length;
 export const HIGH_SEVERITY_ALERTS_COUNT = ALERTS.filter(isHighSeverityAlert).length;
 
+// ── "Needs Attention Now" selection ───────────────────────────────────────────
+// Fills up to ATTENTION_LIST_SIZE rows from the same ALERTS array the Alerts
+// page reads: actionable alerts (Active/Mitigating) ranked by severity then
+// recency, topped up with Predicted alerts (ranked below all actionable rows)
+// only if there aren't enough actionable alerts to fill the list.
+
+const ATTENTION_LIST_SIZE = 5;
+
+const SEVERITY_RANK: Record<AlertSeverity, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+
+function parseAgeMinutes(age: string): number {
+  const hours = Number(age.match(/(\d+)\s*h/)?.[1] ?? 0);
+  const mins  = Number(age.match(/(\d+)\s*m/)?.[1] ?? 0);
+  return hours * 60 + mins;
+}
+
+function bySeverityThenRecency(a: Alert, b: Alert): number {
+  const sevDiff = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
+  if (sevDiff !== 0) return sevDiff;
+  return parseAgeMinutes(a.age) - parseAgeMinutes(b.age); // smaller age = more recent = ranks first
+}
+
+export function getAttentionAlerts(alerts: Alert[] = ALERTS): Alert[] {
+  const actionable = alerts
+    .filter(a => a.status === "active" || a.status === "mitigating")
+    .sort(bySeverityThenRecency);
+  const predicted = alerts
+    .filter(a => a.status === "predicted")
+    .sort(bySeverityThenRecency);
+  return [...actionable, ...predicted].slice(0, ATTENTION_LIST_SIZE);
+}
+
 // ── Mutable state (mirrors alarms context pattern) ────────────────────────────
 
 let _actions: Record<string, boolean> = {};
