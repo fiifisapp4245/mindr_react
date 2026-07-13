@@ -92,7 +92,13 @@ export function CongestedRoutersChart() {
               dataKey="ports"
               name="Congested ports"
               radius={[3, 3, 0, 0]}
-              onClick={() => navigate('/topology')}
+              onClick={(data: any) => {
+                const router = data?.router ?? data?.payload?.router;
+                if (!router) return;
+                navigate('/network-model/ip-core', {
+                  state: { autoQuery: `What are the currently congested ports on ${router} in the IP Peering network?` },
+                });
+              }}
               style={{ cursor: 'pointer' }}
             >
               {congestedRouters.map((r, i) => (

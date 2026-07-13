@@ -43,6 +43,7 @@ import {
   BUILDOUT_INTERIM_LABEL,
   BUILDOUT_EXHAUSTION_PCT,
   BUILDOUT_CRITICAL_WEEKS,
+  getPortsByRouter,
 } from './border-ports';
 
 export { BUILDOUT_INTERIM_LABEL };
@@ -212,22 +213,18 @@ export const alertsByASKpi: KpiEntry = {
   supportText: `${alertsByAS[0]?.as ?? '—'} is dominant problem peer`,
 };
 
-export const congestedRouters = [
-  { router: 'FRA-RTR-01', ports: 3 },
-  { router: 'AMS-RTR-02', ports: 2 },
-  { router: 'MUC-RTR-01', ports: 1 },
-  { router: 'BER-RTR-03', ports: 1 },
-];
+export const congestedRouters = getPortsByRouter(CONGESTED_PORTS).map(({ router, count }) => ({ router, ports: count }));
 
 export const congestedRoutersKpi: KpiEntry = {
-  value: 3,
+  value: congestedRouters[0]?.ports ?? 0,
   unit: 'ports (max router)',
   source: 'SNMP',
   description:
-    'Number of congested ports (≥90% utilization) per router. Hotspot routers require priority attention.',
+    'Number of congested ports (≥90% utilization) per router — same query as the Network Model chat query a bar ' +
+    'drills into. Hotspot routers require priority attention.',
   thresholds: { t1: 1, t2: 3, direction: 'lower-better' },
   thresholdLabel: 'Low ≤1/router · Moderate 2–3 · Hotspot >3',
-  supportText: 'FRA-RTR-01 worst offender',
+  supportText: `${congestedRouters[0]?.router ?? '—'} worst offender`,
 };
 
 export const capacityRiskSlices: PieSlice[] = [

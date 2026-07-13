@@ -66,3 +66,16 @@ export const BORDER_PORTS: BorderPort[] = BORDER_PORT_SEEDS.map(seed => ({
 
 export const CONGESTED_PORTS = computeCongestedPorts(BORDER_PORTS);
 export const CRITICAL_BUILDOUT_PORTS = BORDER_PORTS.filter(p => p.flag === "CRITICAL");
+
+// Router name a port belongs to — e.g. "ams-ix-rtr-01 xe-0/0/0" → "ams-ix-rtr-01".
+export function routerOf(port: BorderPort): string {
+  return port.port.split(" ")[0];
+}
+
+// Single source for the "Top Congested Routers" chart AND the Network Model
+// chat query for a given router, so the two never diverge.
+export function getPortsByRouter(ports: BorderPort[]): { router: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const p of ports) counts.set(routerOf(p), (counts.get(routerOf(p)) ?? 0) + 1);
+  return Array.from(counts, ([router, count]) => ({ router, count })).sort((a, b) => b.count - a.count);
+}

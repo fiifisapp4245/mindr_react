@@ -353,6 +353,37 @@ const CRITICAL_BUILDOUT_PORTS_LIST = CRITICAL_BUILDOUT_PORTS
   .map(p => `• ${p.port} (${p.transitAS}) — ${p.ingressUtil}% now, ~${p.weeklyGrowthPct}pp/week growth`)
   .join("\n");
 
+// Router → graph node it maps onto, for highlighting when a "Top Congested
+// Routers" chart bar drills into a per-router congested-ports query.
+const ROUTER_NODE_MAP: Record<string, string> = {
+  "ams-ix-rtr-01": "ams-ix",
+  "ams-ix-rtr-02": "ams-ix",
+  "fra-rtr-01":    "de-cix",
+};
+const CONGESTED_PORT_ROUTERS = Array.from(new Set(CONGESTED_PORTS.map(p => p.port.split(" ")[0])));
+
+// Per-router congested-ports query — same underlying CONGESTED_PORTS data as
+// the general intent below, filtered to just the router named in the question
+// (e.g. from the "Top Congested Routers" chart drill-down), so the chart, the
+// KPI, and this chat answer never diverge.
+function matchCongestedPortsByRouter(lower: string): IntentAnswer | null {
+  if (!lower.includes("congested port")) return null;
+  const router = CONGESTED_PORT_ROUTERS.find(r => lower.includes(r));
+  if (!router) return null;
+
+  const ports = CONGESTED_PORTS.filter(p => p.port.startsWith(router));
+  const nodeId = ROUTER_NODE_MAP[router];
+  return {
+    text:
+      `${ports.length} port${ports.length === 1 ? "" : "s"} on ${router} ${ports.length === 1 ? "is" : "are"} ` +
+      `currently at or above ${CONGESTION_UTIL_PCT}% instantaneous utilisation (SNMP, single poll — no sustained window):\n\n` +
+      `${ports.map(p => `• ${p.port} (${p.transitAS}) — ${p.ingressUtil}% utilisation`).join("\n")}\n\n` +
+      `This is a live snapshot and may shift between polling intervals.`,
+    highlightNodeIds: nodeId ? [nodeId] : [],
+    focusNodeId: nodeId,
+  };
+}
+
 const IP_CORE_INTENTS: CuratedIntent[] = [
   {
     keywords: ["congested port", "congested ports", "port congestion", "ports are congested"],
@@ -520,7 +551,11 @@ export function matchIntent(
   text: string,
   domainId: "ip-core" | "cxi" | "volte"
 ): IntentAnswer {
-  const lower   = text.toLowerCase();
+  const lower = text.toLowerCase();
+  if (domainId === "ip-core") {
+    const routerAnswer = matchCongestedPortsByRouter(lower);
+    if (routerAnswer) return routerAnswer;
+  }
   const intents = DOMAIN_INTENTS[domainId];
   for (const intent of intents) {
     if (intent.keywords.some(kw => lower.includes(kw.toLowerCase()))) {
