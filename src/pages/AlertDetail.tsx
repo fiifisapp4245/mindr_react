@@ -679,11 +679,11 @@ export default function AlertDetail() {
 
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => navigate("/network-model/ip-core")}
+              onClick={() => navigate(`/network-model?alert=${alert.id}`)}
               className="text-[12px] font-semibold px-4 py-2 rounded-lg transition-colors hover:bg-white/5"
               style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
             >
-              View in Network Model
+              Send Proposal
             </button>
             {notifyAction && (
               <button

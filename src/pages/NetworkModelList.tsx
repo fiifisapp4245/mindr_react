@@ -1,9 +1,18 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DOMAIN_META_ROWS, SEV_CFG } from "../data/network-model-data";
 import { Badge } from "../components/ui/badge";
+import { AlertProposalGraph } from "../components/network-model/AlertProposalGraph";
 
 export default function NetworkModelList() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const alertId = searchParams.get("alert");
+
+  // Deep-linked from an Alert Detail page's "Send Proposal" button — renders
+  // the alert-scoped subgraph/proposal view instead of the domain list.
+  if (alertId) {
+    return <AlertProposalGraph alertId={alertId} />;
+  }
 
   return (
     <div className="flex flex-col gap-6">

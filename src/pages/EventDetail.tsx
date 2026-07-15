@@ -3,18 +3,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
+  Bell,
   BookOpen,
-  CheckSquare,
   ChevronRight,
-  Clock,
-  ExternalLink,
   MessageSquare,
   Network,
   Server,
-  ThumbsDown,
   ThumbsUp,
   X,
-  Zap,
   Radio,
 } from "lucide-react";
 import {
@@ -29,9 +25,12 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { ALERTS, ALERT_SEV } from "../data/alert-store";
 import { EVENTS_FULL } from "../data/events";
 import type { EventFull, EventStatus } from "../data/events";
 import { Breadcrumb } from "../components/shared/Breadcrumb";
+import { ConfirmModal } from "../components/shared/ConfirmModal";
+import { Toast, TOAST_DURATION_MS } from "../components/shared/Toast";
 import { Badge } from "@/components/ui/badge";
 
 // ── Color helpers ────────────────────────────────────────────────────────────
@@ -51,9 +50,29 @@ function severityCfg(s: string) {
 
 function pathNodeIcon(type: EventFull["affectedPath"][0]["type"]) {
   if (type === "cdn")    return Network;
-  if (type === "ixp")   return Radio;
+  if (type === "ixp")    return Radio;
   if (type === "router") return Server;
   return Network;
+}
+
+// CDN operator name derived from the event's own path data (e.g. "EdgeCDN-EU"),
+// used in the Notify CDN confirm dialog and success toast.
+function cdnNameOf(event: EventFull): string {
+  const cdnNode = event.affectedPath.find((p) => p.type === "cdn");
+  return cdnNode ? cdnNode.label.replace(/ egress$/i, "") : "the CDN operator";
+}
+
+// Short "DD Mon" date extracted from windowUTC (e.g. "02 May 18:00–23:00 UTC" → "02 May").
+function shortDate(event: EventFull): string {
+  return event.windowUTC.split(" ").slice(0, 2).join(" ");
+}
+
+// Mocked action: in the real system this sends an outage/surge notification
+// email to the CDN operator's on-call contact. No real email is dispatched
+// here — this only simulates the send so the confirm → toast flow is wired
+// end-to-end ahead of the real integration.
+function mockNotifyCdn(_event: EventFull): void {
+  // no-op — real send would POST to the CDN notification API here
 }
 
 // ── Custom chart tooltip ────────────────────────────────────────────────────
@@ -115,13 +134,6 @@ function ForecastChart({ event }: { event: EventFull }) {
         >
           <AlertTriangle size={12} strokeWidth={2.5} />
           Actual exceeds forecast ({event.actualPeak}% vs {event.predictedPeak}% predicted)
-          <Link
-            to="/alerts"
-            className="ml-auto flex items-center gap-1 font-semibold hover:opacity-80 transition-opacity"
-            style={{ color: "#FFB020" }}
-          >
-            → Linked alarm <ExternalLink size={10} />
-          </Link>
         </div>
       )}
 
@@ -131,7 +143,6 @@ function ForecastChart({ event }: { event: EventFull }) {
           className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3 text-xs"
           style={{ backgroundColor: "rgba(45,212,191,0.08)", border: "1px solid rgba(45,212,191,0.2)", color: "#2DD4BF" }}
         >
-          <CheckSquare size={12} strokeWidth={2.5} />
           <span>Forecast accuracy: <strong>{event.accuracy}%</strong></span>
           <span style={{ color: "#94a3b8" }}>·</span>
           <span style={{ color: "#94a3b8" }}>Predicted {event.predictedPeak}% · Actual {event.actualPeak}%</span>
@@ -141,11 +152,7 @@ function ForecastChart({ event }: { event: EventFull }) {
       {/* Chart */}
       <ResponsiveContainer width="100%" height={220}>
         <ComposedChart data={event.chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="rgba(255,255,255,0.05)"
-            vertical={false}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis
             dataKey="time"
             tick={{ fontSize: 10, fill: "#5c5c7a" }}
@@ -160,13 +167,8 @@ function ForecastChart({ event }: { event: EventFull }) {
             tickFormatter={(v) => `${v}%`}
           />
           <Tooltip content={<ChartTooltip />} />
-          <Legend
-            wrapperStyle={{ fontSize: 10, paddingTop: 8, color: "#94a3b8" }}
-            iconType="plainline"
-            iconSize={16}
-          />
+          <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8, color: "#94a3b8" }} iconType="plainline" iconSize={16} />
 
-          {/* Overload zone highlight */}
           {event.overloadStart && event.overloadEnd && (
             <ReferenceArea
               x1={event.overloadStart}
@@ -177,7 +179,6 @@ function ForecastChart({ event }: { event: EventFull }) {
             />
           )}
 
-          {/* Capacity threshold at 85% */}
           <ReferenceLine
             y={85}
             stroke="#FF3B3B"
@@ -186,44 +187,14 @@ function ForecastChart({ event }: { event: EventFull }) {
             label={{ value: "85% cap", position: "insideTopRight", fontSize: 10, fill: "#FF3B3B", dy: -4 }}
           />
 
-          {/* Base load */}
-          <Line
-            type="monotone"
-            dataKey="base"
-            name="Base load"
-            stroke="#4D9EFF"
-            strokeWidth={1.5}
-            dot={false}
-            strokeDasharray="4 3"
-            strokeOpacity={0.7}
-          />
-
-          {/* Predicted spike */}
-          <Line
-            type="monotone"
-            dataKey="predicted"
-            name={isPast ? "Predicted" : "Forecast (event spike)"}
-            stroke="#FFB020"
-            strokeWidth={2}
-            dot={false}
-          />
-
-          {/* Actual — live or past */}
+          <Line type="monotone" dataKey="base" name="Base load" stroke="#4D9EFF" strokeWidth={1.5} dot={false} strokeDasharray="4 3" strokeOpacity={0.7} />
+          <Line type="monotone" dataKey="predicted" name={isPast ? "Predicted" : "Forecast (event spike)"} stroke="#FFB020" strokeWidth={2} dot={false} />
           {showActual && (
-            <Line
-              type="monotone"
-              dataKey="actual"
-              name="Actual"
-              stroke="#2DD4BF"
-              strokeWidth={2}
-              dot={false}
-              connectNulls={false}
-            />
+            <Line type="monotone" dataKey="actual" name="Actual" stroke="#2DD4BF" strokeWidth={2} dot={false} connectNulls={false} />
           )}
         </ComposedChart>
       </ResponsiveContainer>
 
-      {/* Legend supplement — capacity line */}
       <div className="flex items-center gap-4 mt-1 px-1">
         <div className="flex items-center gap-1.5">
           <svg width="20" height="8">
@@ -254,11 +225,7 @@ function PathStrip({ nodes }: { nodes: EventFull["affectedPath"] }) {
           <div key={i} className="flex items-center gap-0 shrink-0">
             <div
               className="flex flex-col items-center px-3 py-2.5 rounded-lg"
-              style={{
-                backgroundColor: "var(--color-bg-elevated)",
-                border: "1px solid var(--color-border)",
-                minWidth: 120,
-              }}
+              style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", minWidth: 120 }}
             >
               <Icon size={13} style={{ color: "#4D9EFF" }} strokeWidth={1.8} />
               <div className="text-[11px] font-semibold mt-1 text-center leading-tight" style={{ color: "var(--color-text-primary)" }}>
@@ -280,6 +247,395 @@ function PathStrip({ nodes }: { nodes: EventFull["affectedPath"] }) {
   );
 }
 
+// ── Tab bar ───────────────────────────────────────────────────────────────────
+// Same visual language as AlertDetail's tab bar.
+
+type TabKey = "evidence" | "rca" | "remediation" | "feedback";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "evidence",    label: "Evidence" },
+  { key: "rca",         label: "Root Cause Analysis" },
+  { key: "remediation", label: "Remediation" },
+  { key: "feedback",    label: "Feedback" },
+];
+
+function EventTabBar({ active, onChange }: { active: TabKey; onChange: (t: TabKey) => void }) {
+  return (
+    <div className="flex items-center gap-6" style={{ borderBottom: "1px solid var(--color-border)" }}>
+      {TABS.map((tab) => {
+        const isActive = tab.key === active;
+        return (
+          <button
+            key={tab.key}
+            onClick={() => onChange(tab.key)}
+            className="pb-3 text-[13px] font-semibold transition-colors relative"
+            style={{ color: isActive ? "var(--color-brand)" : "var(--color-text-muted)" }}
+          >
+            {tab.label}
+            {isActive && (
+              <span className="absolute left-0 right-0 rounded-full" style={{ bottom: -1, height: 2, backgroundColor: "var(--color-brand)" }} />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Shared card primitive ─────────────────────────────────────────────────────
+
+function Card({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+        {title}
+      </p>
+      {sub && (
+        <p className="text-[11px] mt-0.5 mb-3" style={{ color: "var(--color-text-muted)" }}>{sub}</p>
+      )}
+      <div className={sub ? "" : "mt-3"}>{children}</div>
+    </div>
+  );
+}
+
+// ── Evidence tab — the forecast and its basis ─────────────────────────────────
+
+function EvidenceTab({ event }: { event: EventFull }) {
+  return (
+    <div className="space-y-4">
+      <Card title="Event metadata">
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>Detection source</p>
+            <p className="text-xs leading-snug" style={{ color: "var(--color-text-primary)" }}>{event.detectionSource}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>Historic occurrences</p>
+            <p className="text-xs leading-snug" style={{ color: "var(--color-text-primary)" }}>{event.historicOccurrences}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>Predicted peak load</p>
+            <p
+              className="text-base font-bold tabular-nums"
+              style={{ color: event.predictedPeak >= 85 ? "#FF3B3B" : event.predictedPeak >= 70 ? "#FFB020" : "#2DD4BF" }}
+            >
+              {event.predictedPeak}%
+              {event.actualPeak && (
+                <span className="text-xs font-medium ml-2" style={{ color: "var(--color-text-muted)" }}>
+                  actual {event.actualPeak}%
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Affected scope — traffic path">
+        <PathStrip nodes={event.affectedPath} />
+      </Card>
+
+      <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+              Interface utilization forecast
+            </p>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+              {event.status === "live"
+                ? "Live: actual vs predicted — updating every 2 min"
+                : event.status === "past"
+                ? "Post-event: predicted vs actual outcome"
+                : "Predicted load through event window · 85% capacity threshold"}
+            </p>
+          </div>
+        </div>
+        <ForecastChart event={event} />
+      </div>
+    </div>
+  );
+}
+
+// ── Root Cause Analysis tab — why this event threatens the network ───────────
+
+function RcaTab({ event }: { event: EventFull }) {
+  return (
+    <div className="space-y-4">
+      <Card title="MINDR analysis" sub={`${event.confidence}% confidence forecast`}>
+        <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-text-primary)" }}>{event.rcaSummary}</p>
+      </Card>
+
+      <Card title="Planned changes in window">
+        {event.plannedChanges.length > 0 && (
+          <div className="space-y-2 mb-2">
+            {event.plannedChanges.map((chg) => (
+              <div
+                key={chg.ref}
+                className="flex items-start gap-2.5 p-2.5 rounded-lg"
+                style={{ backgroundColor: "rgba(255,176,32,0.06)", border: "1px solid rgba(255,176,32,0.2)" }}
+              >
+                <AlertTriangle size={12} className="mt-0.5 shrink-0" style={{ color: "#FFB020" }} />
+                <div>
+                  <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                    {chg.ref} — {chg.description}
+                  </p>
+                  <p className="text-[10px] mt-0.5" style={{ color: "#FFB020" }}>Overlap risk · {chg.window}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{chg.overlapNote}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-[10px] text-center" style={{ color: "var(--color-text-muted)" }}>
+          No other changes scheduled in window
+        </p>
+      </Card>
+
+      <Card title="Similar past events" sub="Learning loop — forecast model trained on these">
+        {event.similarEventIds.length === 0 ? (
+          <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>No similar past events on record.</p>
+        ) : (
+          <div className="space-y-2">
+            {event.similarEventIds.map((id) => {
+              const past = EVENTS_FULL.find((e) => e.id === id);
+              if (!past) return null;
+              return (
+                <Link
+                  key={id}
+                  to={`/events/${past.id}`}
+                  className="block rounded-lg px-3 py-2.5 hover:bg-white/5 transition-colors"
+                  style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{past.name}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{shortDate(past)}</p>
+                    </div>
+                    <ChevronRight size={11} style={{ color: "var(--color-text-muted)", marginTop: 2, flexShrink: 0 }} />
+                  </div>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                      P: <span style={{ color: "#FFB020" }}>{past.predictedPeak}%</span>
+                    </div>
+                    <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                      A: <span style={{ color: "#2DD4BF" }}>{past.actualPeak ?? "—"}%</span>
+                    </div>
+                    <div className="ml-auto text-[10px] font-semibold px-1.5 py-px rounded" style={{ backgroundColor: "rgba(45,212,191,0.1)", color: "#2DD4BF" }}>
+                      {past.accuracy ?? "—"}% acc
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
+      <Card title="Related alarms — past occurrences">
+        {event.relatedAlarms.length === 0 ? (
+          <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>No related alarms on record.</p>
+        ) : (
+          <div className="space-y-2">
+            {event.relatedAlarms.map((entry) => {
+              const alert = ALERTS.find((a) => a.id === entry.alertId);
+              const detail = alert?.sources.caemCasm.alarmDetails.find((d) => d.ref === entry.ref);
+              if (!alert || !detail) return null;
+              const cfg = ALERT_SEV[detail.severity];
+              return (
+                <Link
+                  key={entry.ref}
+                  to={`/alerts/${alert.id}`}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 hover:bg-white/5 transition-colors"
+                  style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+                >
+                  <AlertTriangle size={11} style={{ color: cfg.color, flexShrink: 0 }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-medium truncate" style={{ color: "var(--color-text-primary)" }}>{detail.message}</p>
+                    <p className="text-[9px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{entry.ref} · {entry.eventLabel}</p>
+                  </div>
+                  <span className="text-[9px] font-bold px-1.5 py-px rounded shrink-0" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+                    {detail.severity}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ── Remediation tab — how to prepare ──────────────────────────────────────────
+
+function RemediationTab({ event, notifyCdnSent, onNotifyCdn }: {
+  event: EventFull;
+  notifyCdnSent: boolean;
+  onNotifyCdn: () => void;
+}) {
+  const rows = [
+    { tag: "Capacity", tagColor: "#4D9EFF", label: "Pre-provision capacity on parallel path" },
+    { tag: "Routing",  tagColor: "#FFB020", label: `Pre-stage policy-based reroute on ${event.affectedScope.match(/AS\d+/)?.[0] ?? "peering"} peering interface` },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+            Recommended actions
+          </p>
+          <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--color-text-muted)" }}>
+            <BookOpen size={11} />
+            Matched playbook: Pre-event capacity prep
+          </span>
+        </div>
+        <div className="space-y-2">
+          {rows.map((action, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
+              style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+            >
+              <Badge className="text-[9px] font-bold px-1.5 py-px shrink-0" style={{ backgroundColor: `${action.tagColor}18`, color: action.tagColor }}>
+                {action.tag}
+              </Badge>
+              <span className="text-[12px]" style={{ color: "var(--color-text-primary)" }}>{action.label}</span>
+              <Badge className="ml-auto text-[9px] font-semibold shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
+                Open
+              </Badge>
+            </div>
+          ))}
+
+          {/* Coordination — shares state/action with the header's Notify CDN button */}
+          <div
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
+            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+          >
+            <Badge className="text-[9px] font-bold px-1.5 py-px shrink-0" style={{ backgroundColor: "rgba(45,212,191,0.10)", color: "#2DD4BF" }}>
+              Coordination
+            </Badge>
+            <span className="text-[12px]" style={{ color: "var(--color-text-primary)" }}>
+              Notify CDN for load-balancing (raise CASM ticket)
+            </span>
+            {notifyCdnSent ? (
+              <Badge className="ml-auto text-[9px] font-semibold shrink-0" style={{ backgroundColor: "rgba(45,212,191,0.12)", color: "#2DD4BF" }}>
+                Notified
+              </Badge>
+            ) : (
+              <button
+                onClick={onNotifyCdn}
+                className="ml-auto flex items-center gap-1 text-[10px] font-semibold shrink-0 hover:opacity-80"
+                style={{ color: "var(--color-brand)" }}
+              >
+                Notify CDN
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Feedback tab — was the forecast right (learning loop) ─────────────────────
+
+function FeedbackTab() {
+  const [validation, setValidation] = useState<"confirmed" | "adjusted" | "dismissed" | null>(null);
+  const [validationNote, setValidationNote] = useState("");
+
+  return (
+    <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>
+            Event validation
+          </p>
+          <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+            Your input feeds the forecast model — First Line role can confirm, adjust, or dismiss.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setValidation(validation === "confirmed" ? null : "confirmed")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={{
+              backgroundColor: validation === "confirmed" ? "rgba(45,212,191,0.15)" : "var(--color-bg-elevated)",
+              border: `1px solid ${validation === "confirmed" ? "#2DD4BF" : "var(--color-border)"}`,
+              color: validation === "confirmed" ? "#2DD4BF" : "var(--color-text-muted)",
+            }}
+          >
+            <ThumbsUp size={12} strokeWidth={2} />
+            Confirm relevant
+          </button>
+          <button
+            onClick={() => setValidation(validation === "adjusted" ? null : "adjusted")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={{
+              backgroundColor: validation === "adjusted" ? "rgba(255,176,32,0.12)" : "var(--color-bg-elevated)",
+              border: `1px solid ${validation === "adjusted" ? "#FFB020" : "var(--color-border)"}`,
+              color: validation === "adjusted" ? "#FFB020" : "var(--color-text-muted)",
+            }}
+          >
+            <MessageSquare size={12} strokeWidth={2} />
+            Adjust impact
+          </button>
+          <button
+            onClick={() => setValidation(validation === "dismissed" ? null : "dismissed")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={{
+              backgroundColor: validation === "dismissed" ? "rgba(255,59,59,0.10)" : "var(--color-bg-elevated)",
+              border: `1px solid ${validation === "dismissed" ? "#FF3B3B" : "var(--color-border)"}`,
+              color: validation === "dismissed" ? "#FF3B3B" : "var(--color-text-muted)",
+            }}
+          >
+            <X size={12} strokeWidth={2} />
+            Dismiss
+          </button>
+        </div>
+      </div>
+
+      {validation === "adjusted" && (
+        <div className="mt-3 flex gap-2">
+          <input
+            type="text"
+            value={validationNote}
+            onChange={(e) => setValidationNote(e.target.value)}
+            placeholder="Describe the adjustment (e.g. peak may be 10% lower based on CDN pre-warming plan)…"
+            className="flex-1 rounded-lg px-3 py-2 text-xs"
+            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)", outline: "none" }}
+          />
+          <button className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}>
+            Submit
+          </button>
+        </div>
+      )}
+
+      {validation && validation !== "adjusted" && (
+        <div
+          className="mt-3 px-3 py-2 rounded-lg text-xs flex items-center gap-2"
+          style={{
+            backgroundColor: validation === "confirmed" ? "rgba(45,212,191,0.08)" : "rgba(255,59,59,0.08)",
+            border: `1px solid ${validation === "confirmed" ? "rgba(45,212,191,0.2)" : "rgba(255,59,59,0.2)"}`,
+            color: validation === "confirmed" ? "#2DD4BF" : "#FF3B3B",
+          }}
+        >
+          {validation === "confirmed" ? (
+            <>
+              <ThumbsUp size={11} />
+              Event confirmed — forecast model updated. Thank you.
+            </>
+          ) : (
+            <>
+              <X size={11} />
+              Marked as false positive — this event will be excluded from alerting.
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function EventDetail() {
@@ -287,8 +643,10 @@ export default function EventDetail() {
   const navigate = useNavigate();
   const event = EVENTS_FULL.find((e) => e.id === id);
 
-  const [validation, setValidation] = useState<"confirmed" | "adjusted" | "dismissed" | null>(null);
-  const [validationNote, setValidationNote] = useState("");
+  const [activeTab, setActiveTab] = useState<TabKey>("evidence");
+  const [confirmingNotify, setConfirmingNotify] = useState(false);
+  const [notifyCdnSent, setNotifyCdnSent] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   if (!event) {
     return (
@@ -304,587 +662,128 @@ export default function EventDetail() {
     );
   }
 
-  const TypeIcon = event.typeIcon;
   const status = statusCfg(event.status);
   const severity = severityCfg(event.severity);
+  const cdnName = cdnNameOf(event);
+
+  function handleNotifyConfirm() {
+    mockNotifyCdn(event!);
+    setNotifyCdnSent(true);
+    setConfirmingNotify(false);
+    setToastMsg(`Notification sent to ${cdnName}`);
+    setTimeout(() => setToastMsg(null), TOAST_DURATION_MS);
+  }
 
   return (
-    <div
-      className="flex flex-col h-full overflow-hidden"
-      style={{ backgroundColor: "var(--color-bg-base)", color: "var(--color-text-primary)" }}
-    >
-      {/* Top action bar */}
-      <div
-        className="flex items-center justify-between px-6 py-3 shrink-0"
-        style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
-      >
-        {/* Breadcrumb */}
-        <Breadcrumb items={[
+    <div className="space-y-5 pb-8 mx-auto" style={{ maxWidth: "78%", minWidth: 0 }}>
+
+      {/* ── Breadcrumb ───────────────────────────────────────────────────────── */}
+      <Breadcrumb
+        items={[
           { label: "Events", href: "/events" },
           { label: event.id, badge: { text: event.id, color: "var(--color-text-muted)", bg: "rgba(255,255,255,0.06)" } },
           { label: event.name },
-        ]} />
+        ]}
+      />
 
-        {/* CTA */}
-        <button
-          className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-        >
-          <CheckSquare size={13} strokeWidth={2.2} />
-          Acknowledge &amp; prepare
-        </button>
-      </div>
-
-      {/* Body — two column */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Main column */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4" style={{ minWidth: 0 }}>
-
-          {/* Header card */}
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            {/* Status row */}
-            <div className="flex items-center gap-2 mb-3">
-              {/* Live pulse */}
-              {event.status === "live" && (
-                <span className="relative flex h-2 w-2">
-                  <span
-                    className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                    style={{ backgroundColor: "#2DD4BF" }}
-                  />
-                  <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: "#2DD4BF" }} />
-                </span>
-              )}
-              <Badge
-                className="text-[10px] font-bold uppercase tracking-wide"
-                style={{ backgroundColor: status.bg, color: status.color }}
-              >
-                {status.label}
-              </Badge>
-              <Badge
-                className="text-[10px] font-bold uppercase tracking-wide"
-                style={{ backgroundColor: severity.bg, color: severity.color }}
-              >
-                {event.severity}
-              </Badge>
-              <Badge
-                className="text-[10px] font-semibold ml-auto"
-                style={{ backgroundColor: "rgba(77,158,255,0.1)", color: "#4D9EFF" }}
-              >
-                {event.confidence}% confidence
-              </Badge>
-            </div>
-
-            <h1 className="text-xl font-bold leading-tight mb-3" style={{ color: "var(--color-text-primary)" }}>
-              {event.name}
-            </h1>
-
-            <div className="grid grid-cols-4 gap-4">
-              {[
-                { label: "Type",    value: event.type },
-                { label: "Window",  value: event.windowUTC },
-                { label: "Scope",   value: event.affectedScope },
-                { label: "Source",  value: event.source },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p
-                    className="text-[9px] font-semibold uppercase tracking-widest mb-0.5"
-                    style={{ color: "var(--color-text-muted)" }}
-                  >
-                    {label}
-                  </p>
-                  <p className="text-[12px] font-medium leading-snug" style={{ color: "var(--color-text-primary)" }}>
-                    {value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Event metadata */}
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              Event metadata
-            </p>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>Detection source</p>
-                <p className="text-xs leading-snug" style={{ color: "var(--color-text-primary)" }}>{event.detectionSource}</p>
-              </div>
-              <div>
-                <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>Historic occurrences</p>
-                <p className="text-xs leading-snug" style={{ color: "var(--color-text-primary)" }}>{event.historicOccurrences}</p>
-              </div>
-              <div>
-                <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>Predicted peak load</p>
-                <p
-                  className="text-base font-bold tabular-nums"
-                  style={{ color: event.predictedPeak >= 85 ? "#FF3B3B" : event.predictedPeak >= 70 ? "#FFB020" : "#2DD4BF" }}
-                >
-                  {event.predictedPeak}%
-                  {event.actualPeak && (
-                    <span className="text-xs font-medium ml-2" style={{ color: "var(--color-text-muted)" }}>
-                      actual {event.actualPeak}%
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Affected scope path */}
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              Affected scope — traffic path
-            </p>
-            <PathStrip nodes={event.affectedPath} />
-          </div>
-
-          {/* Forecast chart */}
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-widest"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  Interface utilization forecast
-                </p>
-                <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                  {event.status === "live"
-                    ? "Live: actual vs predicted — updating every 2 min"
-                    : event.status === "past"
-                    ? "Post-event: predicted vs actual outcome"
-                    : "Predicted load through event window · 85% capacity threshold"}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <TypeIcon size={13} style={{ color: "var(--color-text-muted)" }} />
-                <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>{event.type}</span>
-              </div>
-            </div>
-            <ForecastChart event={event} />
-          </div>
-
-          {/* Recommended actions */}
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <p
-                className="text-[10px] font-semibold uppercase tracking-widest"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                Recommended actions
-              </p>
-              <Link
-                to="/playbooks"
-                className="flex items-center gap-1 text-[11px] font-medium hover:opacity-80 transition-opacity"
-                style={{ color: "var(--color-brand)" }}
-              >
-                <BookOpen size={11} />
-                Matched playbook: Pre-event capacity prep
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {[
-                { label: "Pre-provision capacity on parallel path", tag: "Capacity", tagColor: "#4D9EFF" },
-                { label: "Pre-stage policy-based reroute on AS1299 peering interface", tag: "Routing", tagColor: "#FFB020" },
-                { label: "Notify CDN for load-balancing (raise CASM ticket)", tag: "Coordination", tagColor: "#2DD4BF" },
-              ].map((action, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
-                  style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-                >
-                  <Badge
-                    className="text-[9px] font-bold px-1.5 py-px shrink-0"
-                    style={{ backgroundColor: `${action.tagColor}18`, color: action.tagColor }}
-                  >
-                    {action.tag}
-                  </Badge>
-                  <span className="text-[12px]" style={{ color: "var(--color-text-primary)" }}>
-                    {action.label}
-                  </span>
-                  <button
-                    className="ml-auto flex items-center gap-1 text-[10px] font-semibold shrink-0 hover:opacity-80"
-                    style={{ color: "var(--color-brand)" }}
-                  >
-                    Open <ExternalLink size={9} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Validation controls */}
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-widest mb-0.5"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  Event validation
-                </p>
-                <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-                  Your input feeds the forecast model — First Line role can confirm, adjust, or dismiss.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setValidation(validation === "confirmed" ? null : "confirmed")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: validation === "confirmed" ? "rgba(45,212,191,0.15)" : "var(--color-bg-elevated)",
-                    border: `1px solid ${validation === "confirmed" ? "#2DD4BF" : "var(--color-border)"}`,
-                    color: validation === "confirmed" ? "#2DD4BF" : "var(--color-text-muted)",
-                  }}
-                >
-                  <ThumbsUp size={12} strokeWidth={2} />
-                  Confirm relevant
-                </button>
-                <button
-                  onClick={() => setValidation(validation === "adjusted" ? null : "adjusted")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: validation === "adjusted" ? "rgba(255,176,32,0.12)" : "var(--color-bg-elevated)",
-                    border: `1px solid ${validation === "adjusted" ? "#FFB020" : "var(--color-border)"}`,
-                    color: validation === "adjusted" ? "#FFB020" : "var(--color-text-muted)",
-                  }}
-                >
-                  <MessageSquare size={12} strokeWidth={2} />
-                  Adjust impact
-                </button>
-                <button
-                  onClick={() => setValidation(validation === "dismissed" ? null : "dismissed")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: validation === "dismissed" ? "rgba(255,59,59,0.10)" : "var(--color-bg-elevated)",
-                    border: `1px solid ${validation === "dismissed" ? "#FF3B3B" : "var(--color-border)"}`,
-                    color: validation === "dismissed" ? "#FF3B3B" : "var(--color-text-muted)",
-                  }}
-                >
-                  <X size={12} strokeWidth={2} />
-                  Dismiss
-                </button>
-              </div>
-            </div>
-
-            {/* Adjust note input */}
-            {validation === "adjusted" && (
-              <div className="mt-3 flex gap-2">
-                <input
-                  type="text"
-                  value={validationNote}
-                  onChange={(e) => setValidationNote(e.target.value)}
-                  placeholder="Describe the adjustment (e.g. peak may be 10% lower based on CDN pre-warming plan)…"
-                  className="flex-1 rounded-lg px-3 py-2 text-xs"
-                  style={{
-                    backgroundColor: "var(--color-bg-elevated)",
-                    border: "1px solid var(--color-border)",
-                    color: "var(--color-text-primary)",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  className="px-3 py-2 rounded-lg text-xs font-semibold"
-                  style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-                >
-                  Submit
-                </button>
-              </div>
-            )}
-
-            {/* Confirmation feedback */}
-            {validation && validation !== "adjusted" && (
-              <div
-                className="mt-3 px-3 py-2 rounded-lg text-xs flex items-center gap-2"
-                style={{
-                  backgroundColor: validation === "confirmed" ? "rgba(45,212,191,0.08)" : "rgba(255,59,59,0.08)",
-                  border: `1px solid ${validation === "confirmed" ? "rgba(45,212,191,0.2)" : "rgba(255,59,59,0.2)"}`,
-                  color: validation === "confirmed" ? "#2DD4BF" : "#FF3B3B",
-                }}
-              >
-                {validation === "confirmed" ? (
-                  <>
-                    <ThumbsUp size={11} />
-                    Event confirmed — forecast model updated. Thank you.
-                  </>
-                ) : (
-                  <>
-                    <X size={11} />
-                    Marked as false positive — this event will be excluded from alerting.
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+      {/* ── Header card (persistent across tabs) ─────────────────────────────── */}
+      <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {event.status === "live" && (
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#2DD4BF" }} />
+              <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: "#2DD4BF" }} />
+            </span>
+          )}
+          <Badge className="text-[10px] font-bold uppercase tracking-wide" style={{ backgroundColor: status.bg, color: status.color }}>
+            {status.label}
+          </Badge>
+          <Badge className="text-[10px] font-bold uppercase tracking-wide" style={{ backgroundColor: severity.bg, color: severity.color }}>
+            {event.severity}
+          </Badge>
+          <span className="text-[10px] font-mono" style={{ color: "var(--color-text-muted)" }}>
+            {event.id}
+          </span>
+          <Badge className="text-[10px] font-semibold ml-auto" style={{ backgroundColor: "rgba(77,158,255,0.1)", color: "#4D9EFF" }}>
+            {event.confidence}% confidence
+          </Badge>
         </div>
 
-        {/* Right rail */}
-        <div
-          className="shrink-0 overflow-y-auto py-5 px-4 space-y-4"
-          style={{
-            width: 296,
-            borderLeft: "1px solid var(--color-border)",
-            backgroundColor: "var(--color-bg-base)",
-          }}
-        >
-          {/* MINDR AI banner */}
-          <div
-            className="rounded-xl p-4"
-            style={{
-              background: "linear-gradient(135deg, rgba(226,0,116,0.12), rgba(226,0,116,0.05))",
-              border: "1px solid rgba(226,0,116,0.25)",
-            }}
-          >
-            <div className="flex items-center gap-2.5 mb-2">
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{ backgroundColor: "var(--color-brand)" }}
-              >
-                <Zap size={13} color="#fff" strokeWidth={2.5} />
-              </div>
-              <div>
-                <p className="text-xs font-bold" style={{ color: "var(--color-text-primary)" }}>MINDR analysis</p>
-                <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                  {event.confidence}% confidence forecast
-                </p>
-              </div>
+        <h1 className="text-xl font-bold leading-tight mb-4" style={{ color: "var(--color-text-primary)" }}>
+          {event.name}
+        </h1>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          {[
+            { label: "Type",                 value: event.type },
+            { label: "Window",                value: event.windowUTC },
+            { label: "Scope",                 value: event.affectedScope, mono: true },
+            { label: "Predicted peak load",   value: `${event.predictedPeak}%`, color: event.predictedPeak >= 85 ? "#FF3B3B" : event.predictedPeak >= 70 ? "#FFB020" : "#2DD4BF" },
+          ].map(({ label, value, color, mono }) => (
+            <div key={label}>
+              <p className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-muted)" }}>
+                {label}
+              </p>
+              <p className={`text-sm font-bold leading-tight ${mono ? "font-mono text-[11px]" : ""}`} style={{ color: color ?? "var(--color-text-primary)" }}>
+                {value}
+              </p>
             </div>
+          ))}
+        </div>
+
+        <div
+          className="flex items-center justify-between gap-3 flex-wrap pt-3"
+          style={{ borderTop: "1px solid var(--color-border)" }}
+        >
+          <p className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>{event.windowSub}</p>
+
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold mt-1 hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-              onClick={() =>
-                navigate("/assistant", {
-                  state: {
-                    eventContext: {
-                      id:         event.id,
-                      name:       event.name,
-                      type:       event.type,
-                      severity:   event.severity,
-                      status:     event.status,
-                      confidence: event.confidence,
-                    },
-                  },
-                })
-              }
+              onClick={() => navigate(`/assistant?context=event:${event.id}`)}
+              className="text-[12px] font-semibold px-4 py-2 rounded-lg transition-colors hover:bg-white/5"
+              style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
             >
-              <MessageSquare size={12} />
-              Discuss this event with MINDR
+              Discuss with MINDR
+            </button>
+            <button
+              onClick={() => !notifyCdnSent && setConfirmingNotify(true)}
+              disabled={notifyCdnSent}
+              className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "var(--color-brand)", color: "#fff", opacity: notifyCdnSent ? 0.6 : 1 }}
+            >
+              <Bell size={12} />
+              {notifyCdnSent ? "Notification Sent" : "Notify CDN"}
             </button>
           </div>
-
-          {/* Planned changes in window */}
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
-                Planned changes in window
-              </p>
-            </div>
-            <div className="px-4 py-3">
-              <div
-                className="flex items-start gap-2.5 p-2.5 rounded-lg"
-                style={{ backgroundColor: "rgba(255,176,32,0.06)", border: "1px solid rgba(255,176,32,0.2)" }}
-              >
-                <AlertTriangle size={12} className="mt-0.5 shrink-0" style={{ color: "#FFB020" }} />
-                <div>
-                  <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                    CHG-9912 — AS3320 maintenance
-                  </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "#FFB020" }}>
-                    Overlap risk · 14:00–16:00 UTC
-                  </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                    Maintenance window overlaps with event pre-load phase — capacity temporarily reduced
-                  </p>
-                </div>
-              </div>
-              <p className="text-[10px] mt-2 text-center" style={{ color: "var(--color-text-muted)" }}>
-                No other changes scheduled in window
-              </p>
-            </div>
-          </div>
-
-          {/* Similar past events */}
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
-                Similar past events
-              </p>
-              <p className="text-[9px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                Learning loop — forecast model trained on these
-              </p>
-            </div>
-            {[
-              { id: "EVT-0045", name: "Nova Strike S2 launch", date: "02 May", predicted: 92, actual: 95, accuracy: 96 },
-              { id: "EVT-0031", name: "Nova Strike S1 launch", date: "14 Jan", predicted: 84, actual: 88, accuracy: 94 },
-            ].map((past, i, arr) => (
-              <Link
-                key={past.id}
-                to={`/events/${past.id}`}
-                className="block px-4 py-3 hover:bg-white/5 transition-colors"
-                style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--color-border)" : "none" }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>
-                      {past.name}
-                    </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{past.date}</p>
-                  </div>
-                  <ChevronRight size={11} style={{ color: "var(--color-text-muted)", marginTop: 2 }} />
-                </div>
-                <div className="flex items-center gap-3 mt-1.5">
-                  <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                    P: <span style={{ color: "#FFB020" }}>{past.predicted}%</span>
-                  </div>
-                  <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                    A: <span style={{ color: "#2DD4BF" }}>{past.actual}%</span>
-                  </div>
-                  <div
-                    className="ml-auto text-[10px] font-semibold px-1.5 py-px rounded"
-                    style={{ backgroundColor: "rgba(45,212,191,0.1)", color: "#2DD4BF" }}
-                  >
-                    {past.accuracy}% acc
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Related alarms from past occurrences */}
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
-                Related alarms — past occurrences
-              </p>
-            </div>
-            {[
-              { ref: "ALM-4421", desc: "AMS-IX interface saturation", event: "Nova Strike S2", severity: "critical" },
-              { ref: "ALM-4398", desc: "AS1299 BGP session flap", event: "Nova Strike S2", severity: "high" },
-              { ref: "ALM-3817", desc: "EdgeCDN egress spike", event: "Nova Strike S1", severity: "high" },
-            ].map((alarm, i, arr) => {
-              const aColor = alarm.severity === "critical" ? "#FF3B3B" : "#FFB020";
-              const aBg   = alarm.severity === "critical" ? "rgba(255,59,59,0.1)" : "rgba(255,176,32,0.1)";
-              return (
-                <Link
-                  key={alarm.ref}
-                  to="/alerts"
-                  className="flex items-center gap-2.5 px-4 py-3 hover:bg-white/5 transition-colors"
-                  style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--color-border)" : "none" }}
-                >
-                  <AlertTriangle size={11} style={{ color: aColor, flexShrink: 0 }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-medium truncate" style={{ color: "var(--color-text-primary)" }}>
-                      {alarm.desc}
-                    </p>
-                    <p className="text-[9px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                      {alarm.ref} · {alarm.event}
-                    </p>
-                  </div>
-                  <span
-                    className="text-[9px] font-bold px-1.5 py-px rounded shrink-0"
-                    style={{ backgroundColor: aBg, color: aColor }}
-                  >
-                    {alarm.severity}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Past accuracy (for Past events) */}
-          {event.status === "past" && event.accuracy && (
-            <div
-              className="rounded-xl p-4"
-              style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-            >
-              <p
-                className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                Forecast accuracy summary
-              </p>
-              <div className="flex items-end gap-3">
-                <div>
-                  <p className="text-3xl font-bold tabular-nums" style={{ color: "#2DD4BF" }}>{event.accuracy}%</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>model accuracy</p>
-                </div>
-                <div className="flex-1 space-y-1.5 pb-1">
-                  <div>
-                    <div className="flex justify-between text-[9px] mb-0.5">
-                      <span style={{ color: "#FFB020" }}>Predicted</span>
-                      <span style={{ color: "#FFB020" }}>{event.predictedPeak}%</span>
-                    </div>
-                    <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-                      <div className="h-full rounded-full" style={{ width: `${event.predictedPeak}%`, backgroundColor: "#FFB020" }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-[9px] mb-0.5">
-                      <span style={{ color: "#2DD4BF" }}>Actual</span>
-                      <span style={{ color: "#2DD4BF" }}>{event.actualPeak}%</span>
-                    </div>
-                    <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-                      <div className="h-full rounded-full" style={{ width: `${event.actualPeak}%`, backgroundColor: "#2DD4BF" }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Timing */}
-          <div
-            className="rounded-xl p-4"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-          >
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              Window
-            </p>
-            <div className="flex items-center gap-2">
-              <Clock size={12} style={{ color: "var(--color-text-muted)" }} />
-              <p className="text-[12px] font-medium" style={{ color: "var(--color-text-primary)" }}>{event.window}</p>
-            </div>
-            <p className="text-[10px] mt-1" style={{ color: "var(--color-text-muted)" }}>{event.windowSub}</p>
-          </div>
         </div>
       </div>
+
+      {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
+      <EventTabBar active={activeTab} onChange={setActiveTab} />
+
+      <div>
+        {activeTab === "evidence"    && <EvidenceTab event={event} />}
+        {activeTab === "rca"         && <RcaTab event={event} />}
+        {activeTab === "remediation" && (
+          <RemediationTab event={event} notifyCdnSent={notifyCdnSent} onNotifyCdn={() => !notifyCdnSent && setConfirmingNotify(true)} />
+        )}
+        {activeTab === "feedback"    && <FeedbackTab />}
+      </div>
+
+      {/* Notify CDN confirmation */}
+      {confirmingNotify && (
+        <ConfirmModal
+          title="Notify CDN"
+          body={`Send outage/surge notification to ${cdnName}?`}
+          confirmLabel="Send notification"
+          confirmColor="var(--color-brand)"
+          onConfirm={handleNotifyConfirm}
+          onClose={() => setConfirmingNotify(false)}
+        />
+      )}
+
+      {/* Success toast */}
+      {toastMsg && <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />}
     </div>
   );
 }

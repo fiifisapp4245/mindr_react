@@ -6,6 +6,7 @@ import {
   BUILDOUT_CRITICAL_WEEKS,
   BUILDOUT_INTERIM_LABEL,
 } from "./border-ports";
+import { ALERTS, type Alert } from "./alert-store";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -362,6 +363,42 @@ const ROUTER_NODE_MAP: Record<string, string> = {
 };
 const CONGESTED_PORT_ROUTERS = Array.from(new Set(CONGESTED_PORTS.map(p => p.port.split(" ")[0])));
 
+// IXP → graph node it maps onto, for highlighting a "Send Proposal" answer.
+const IXP_NODE_MAP: Record<string, string> = {
+  "AMS-IX Amsterdam": "ams-ix",
+  "DE-CIX Frankfurt": "de-cix",
+  "LINX London":      "linx",
+  "Milan IX":         "milan-ix",
+};
+
+// "Send Proposal" on an Alert Detail page auto-submits a query naming the
+// alert's ID — this looks that alert back up in the shared ALERTS dataset and
+// synthesises a remediation proposal from its own predict/actions data, so
+// the answer is grounded in the exact alert the user clicked from.
+function buildProposalAnswer(alert: Alert): IntentAnswer {
+  const nodeId = IXP_NODE_MAP[alert.sources.anodot.ixp];
+  const steps = alert.actions.filter(a => !a.hold).slice(0, 3);
+  const stepsText = steps.length
+    ? steps.map((a, i) => `${i + 1}. ${a.label} (${a.risk} risk)`).join("\n")
+    : "No further action recommended at this time.";
+
+  return {
+    text:
+      `Proposed remediation for ${alert.id} — ${alert.title}:\n\n` +
+      `${alert.predict.narrative}\n\n` +
+      `Recommended steps:\n${stepsText}\n\n` +
+      `If unmitigated: ${alert.predict.ifUnmitigated}`,
+    highlightNodeIds: nodeId ? [nodeId] : [],
+    focusNodeId: nodeId,
+  };
+}
+
+function matchProposalForAlert(lower: string): IntentAnswer | null {
+  if (!lower.includes("propose") && !lower.includes("proposal")) return null;
+  const alert = ALERTS.find(a => lower.includes(a.id.toLowerCase()));
+  return alert ? buildProposalAnswer(alert) : null;
+}
+
 // Per-router congested-ports query — same underlying CONGESTED_PORTS data as
 // the general intent below, filtered to just the router named in the question
 // (e.g. from the "Top Congested Routers" chart drill-down), so the chart, the
@@ -553,6 +590,8 @@ export function matchIntent(
 ): IntentAnswer {
   const lower = text.toLowerCase();
   if (domainId === "ip-core") {
+    const proposalAnswer = matchProposalForAlert(lower);
+    if (proposalAnswer) return proposalAnswer;
     const routerAnswer = matchCongestedPortsByRouter(lower);
     if (routerAnswer) return routerAnswer;
   }

@@ -16,6 +16,19 @@ export interface ChartPoint {
   actual?: number | null;
 }
 
+export interface PlannedChange {
+  ref: string;         // CASM change ticket ref
+  description: string;
+  overlapNote: string;
+  window: string;
+}
+
+export interface RelatedAlarmRef {
+  ref: string;         // ALM- ref — must exist on the linked alert's alarmDetails
+  alertId: string;      // real Alert.id (alert-store.ts) — deep-links to /alerts/:id
+  eventLabel: string;   // which past occurrence this alarm relates to
+}
+
 export interface EventFull {
   id: string;
   name: string;
@@ -43,6 +56,10 @@ export interface EventFull {
   chartData: ChartPoint[];
   overloadStart?: string;
   overloadEnd?: string;
+  rcaSummary: string;
+  plannedChanges: PlannedChange[];
+  similarEventIds: string[];        // real EVENTS_FULL ids
+  relatedAlarms: RelatedAlarmRef[];
 }
 
 export const EVENTS_FULL: EventFull[] = [
@@ -86,6 +103,25 @@ export const EVENTS_FULL: EventFull[] = [
     ],
     overloadStart: "20:00",
     overloadEnd: "22:00",
+    rcaSummary:
+      "Nova Strike S3 is a major game-release event on AS1299's distribution network. Historic S1 and S2 launches " +
+      "both drove sustained multi-hour surges on the AMS-IX Amsterdam path, and pre-order/social signals for S3 " +
+      "match that pattern closely — the 88% confidence reflects strong correlation with 2 prior launches on the " +
+      "same path.",
+    plannedChanges: [
+      {
+        ref: "CHG-9912",
+        description: "AS3320 maintenance",
+        overlapNote: "Maintenance window overlaps with event pre-load phase — capacity temporarily reduced",
+        window: "14:00–16:00 UTC",
+      },
+    ],
+    similarEventIds: ["EVT-0045", "EVT-0031"],
+    relatedAlarms: [
+      { ref: "ALM-0042", alertId: "ALT-001", eventLabel: "Nova Strike S2" },
+      { ref: "ALM-0320", alertId: "ALT-012", eventLabel: "Nova Strike S2" },
+      { ref: "ALM-0280", alertId: "ALT-008", eventLabel: "Nova Strike S1" },
+    ],
   },
   {
     id: "EVT-0092",
@@ -123,6 +159,12 @@ export const EVENTS_FULL: EventFull[] = [
       { time: "04:00", base: 32, predicted: 55 },
       { time: "05:00", base: 33, predicted: 38 },
     ],
+    rcaSummary:
+      "SVOD finale drop is a scheduled streaming release on the LINX London path. Historic S1/S2 finale drops show " +
+      "a consistent ~2-hour surge pattern; the 81% confidence reflects moderate correlation with 2 prior finale events.",
+    plannedChanges: [],
+    similarEventIds: [],
+    relatedAlarms: [],
   },
   {
     id: "EVT-0093",
@@ -161,6 +203,13 @@ export const EVENTS_FULL: EventFull[] = [
       { time: "Wed 00", base: 38, predicted: 44 },
       { time: "Wed 12", base: 39, predicted: 39 },
     ],
+    rcaSummary:
+      "Console OS rollout is a staggered software update pushing traffic through DE-CIX Frankfurt over 48 hours. " +
+      "Prior OS rollouts showed a modest, sustained load increase rather than a sharp spike; the 74% confidence " +
+      "reflects a single historic reference point.",
+    plannedChanges: [],
+    similarEventIds: [],
+    relatedAlarms: [],
   },
   {
     id: "EVT-0094",
@@ -200,6 +249,12 @@ export const EVENTS_FULL: EventFull[] = [
       { time: "22:00", base: 38, predicted: 48, actual: null },
       { time: "22:30", base: 40, predicted: 42, actual: null },
     ],
+    rcaSummary:
+      "Champions matchday stream is a live sports broadcast on the DE-CIX Frankfurt path. Actual load (71%) is " +
+      "tracking slightly above the 68% forecast, consistent with prior Champions League fixtures on this path.",
+    plannedChanges: [],
+    similarEventIds: [],
+    relatedAlarms: [],
   },
   {
     id: "EVT-0045",
@@ -243,6 +298,14 @@ export const EVENTS_FULL: EventFull[] = [
     ],
     overloadStart: "19:00",
     overloadEnd: "22:00",
+    rcaSummary:
+      "Nova Strike S2 launch drove a sustained surge on the AMS-IX Amsterdam / AS1299 path, peaking at 95% against " +
+      "a 92% forecast — the model under-predicted by 3 points, later attributed to a longer-than-usual pre-load window.",
+    plannedChanges: [],
+    similarEventIds: ["EVT-0031"],
+    relatedAlarms: [
+      { ref: "ALM-0042", alertId: "ALT-001", eventLabel: "Nova Strike S2" },
+    ],
   },
   {
     id: "EVT-0046",
@@ -281,5 +344,80 @@ export const EVENTS_FULL: EventFull[] = [
       { time: "16:00", base: 35, predicted: 58, actual: 53 },
       { time: "20:00", base: 36, predicted: 38, actual: 36 },
     ],
+    rcaSummary:
+      "Major sale event drove a daytime surge on the DE-CIX Frankfurt / AS3320 path, peaking at 64% against a 70% " +
+      "forecast — the model over-predicted, attributed to better-than-expected CDN pre-caching.",
+    plannedChanges: [],
+    similarEventIds: [],
+    relatedAlarms: [],
+  },
+  {
+    id: "EVT-0031",
+    name: "Nova Strike — S1 launch",
+    shortName: "Nova Strike S1",
+    type: "Game release",
+    typeKey: "game-release",
+    typeIcon: Gamepad2,
+    status: "past",
+    severity: "critical",
+    window: "Tue 14 Jan, 18:00–23:00 UTC",
+    windowUTC: "14 Jan 18:00–23:00 UTC",
+    windowSub: "Completed",
+    affectedScope: "EdgeCDN-EU → AMS-IX Amsterdam → EU-CORE-01 (AS1299)",
+    affectedPath: [
+      { label: "EdgeCDN-EU egress", detail: "edge-cdn-eu-fra-01", type: "cdn" },
+      { label: "AMS-IX Amsterdam", detail: "IXP · 300 Gbps", type: "ixp" },
+      { label: "core-rtr-fra-01.dt.net", detail: "ge-0/2/1 · peer AS1299", type: "router" },
+      { label: "EU-CORE-01", detail: "Region downstream", type: "region" },
+    ],
+    predictedPeak: 84,
+    actualPeak: 88,
+    confidence: 80,
+    accuracy: 94,
+    source: "AI forecast",
+    detectionSource: "News/social signals + historic pattern",
+    historicOccurrences: "First Nova Strike launch — no prior data available",
+    weekStart: 1,
+    weekSpan: 1,
+    dayOffset: -158,
+    chartData: [
+      { time: "16:00", base: 40, predicted: 40, actual: 40 },
+      { time: "17:00", base: 41, predicted: 46, actual: 48 },
+      { time: "18:00", base: 40, predicted: 58, actual: 63 },
+      { time: "19:00", base: 41, predicted: 78, actual: 84 },
+      { time: "20:00", base: 40, predicted: 84, actual: 88 },
+      { time: "21:00", base: 41, predicted: 76, actual: 80 },
+      { time: "22:00", base: 40, predicted: 60, actual: 63 },
+      { time: "23:00", base: 41, predicted: 47, actual: 48 },
+      { time: "00:00", base: 40, predicted: 40, actual: 40 },
+    ],
+    overloadStart: "19:00",
+    overloadEnd: "21:00",
+    rcaSummary:
+      "Nova Strike S1 launch — the first in the franchise's launch pattern on this path — peaked at 88% against " +
+      "an 84% forecast, giving MINDR its first calibration point for AS1299 game-release surges.",
+    plannedChanges: [],
+    similarEventIds: [],
+    relatedAlarms: [
+      { ref: "ALM-0280", alertId: "ALT-008", eventLabel: "Nova Strike S1" },
+    ],
   },
 ];
+
+// ── Assistant hand-off ────────────────────────────────────────────────────────
+// Builds the seeded opener for "Discuss with MINDR" — generated from the
+// event's own data so the Assistant's first message is grounded in this
+// specific event, not a generic template.
+
+export function buildEventDiscussPrompt(event: EventFull): string {
+  const ixpNode = event.affectedPath.find((p) => p.type === "ixp");
+  const routerNode = event.affectedPath.find((p) => p.type === "router");
+  const asMatch = routerNode?.detail.match(/AS\d+/)?.[0];
+  const pathLabel = [asMatch, ixpNode?.label].filter(Boolean).join(" / ") || event.affectedScope;
+  const timeRange = event.window.includes(", ") ? event.window.split(", ")[1] : event.window;
+
+  return (
+    `Help me prepare for ${event.id} (${event.name}) — predicted ${event.predictedPeak}% peak on the ` +
+    `${pathLabel} path during ${timeRange}. What should I prioritise?`
+  );
+}

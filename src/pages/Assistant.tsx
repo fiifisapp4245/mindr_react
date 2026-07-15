@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { EVENTS_FULL, buildEventDiscussPrompt } from "../data/events";
 import {
   ChevronRight,
   History,
@@ -32,25 +33,25 @@ const QUICK_PROMPTS = [
 
 export default function Assistant() {
   const { sessions, activeId, setActiveId, activeSession, isTyping, sendMessage } = useAssistant();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
   const prevChartCount = useRef(0);
   const eventContextFired = useRef(false);
 
-  // If navigated here from an event detail page, auto-send one focused opening
-  // message so the conversation starts with context on that specific event.
+  // If navigated here from an event detail page (?context=event:EVT-0091), resolve
+  // the event and auto-send one seeded opening message grounded in its own data,
+  // so the conversation starts straight into follow-up discussion on that event.
   useEffect(() => {
-    const ctx = (location.state as { eventContext?: { id: string; name: string; type: string; severity: string; status: string; confidence: number } } | null)?.eventContext;
-    if (!ctx || eventContextFired.current) return;
+    const ctxParam = searchParams.get("context");
+    if (!ctxParam || eventContextFired.current) return;
+    const [ctxType, ctxId] = ctxParam.split(":");
+    if (ctxType !== "event") return;
+    const event = EVENTS_FULL.find((e) => e.id === ctxId);
+    if (!event) return;
     eventContextFired.current = true;
-    const prompt =
-      `Summarise event ${ctx.id} — "${ctx.name}". ` +
-      `Type: ${ctx.type}. Severity: ${ctx.severity}. Status: ${ctx.status}. ` +
-      `Forecast confidence: ${ctx.confidence}%. ` +
-      `What is the current network impact, likely root cause, and recommended next steps?`;
-    sendMessage(prompt);
+    sendMessage(buildEventDiscussPrompt(event));
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeCharts: ChartCard[] = activeSession.messages
