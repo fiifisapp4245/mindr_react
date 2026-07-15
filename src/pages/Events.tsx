@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Calendar,
-  CheckSquare,
   ChevronDown,
   Wifi,
 } from "lucide-react";
@@ -103,28 +102,16 @@ export default function Events() {
       style={{ backgroundColor: "var(--color-bg-base)", color: "var(--color-text-primary)" }}
     >
       {/* Page header */}
-      <div
-        className="flex items-start justify-between px-6 py-5 shrink-0"
-        style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)" }}
-      >
-        <div>
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-            Events
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            Upcoming mass events — forecast impact on IP peering, up to 4 weeks ahead
-          </p>
-        </div>
-        <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-        >
-          <CheckSquare size={14} strokeWidth={2.2} />
-          Acknowledge &amp; prepare
-        </button>
+      <div className="mb-6 shrink-0">
+        <h1 className="text-2xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          Events
+        </h1>
+        <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+          Upcoming mass events — forecast impact on IP peering, up to 4 weeks ahead
+        </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+      <div className="flex-1 overflow-y-auto space-y-5 pb-6">
 
         {/* 4-week timeline */}
         <div

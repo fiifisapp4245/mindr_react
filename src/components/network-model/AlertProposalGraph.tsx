@@ -99,68 +99,74 @@ function LeftPanel({
 }) {
   return (
     <div
-      className="shrink-0 overflow-y-auto px-4 py-4"
+      className="shrink-0 flex flex-col min-h-0"
       style={{ width: 320, borderRight: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-base)" }}
     >
-      {/* Alert Details */}
-      <div className="flex items-center gap-1.5 mb-3">
-        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "#2DD4BF" }} />
-        <p className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>Alert Details</p>
-      </div>
-      <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <span className="text-sm font-bold font-mono" style={{ color: "var(--color-text-primary)" }}>#{alert.id}</span>
-          <Badge className="text-[9px] font-bold uppercase" style={{ color: "#FFB020", backgroundColor: "rgba(255,176,32,0.12)" }}>
-            {proposalSent ? "Pending" : "Draft"}
-          </Badge>
+      {/* Alert Details (static) */}
+      <div className="shrink-0 px-4 pt-4">
+        <div className="flex items-center gap-1.5 mb-3">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "#2DD4BF" }} />
+          <p className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>Alert Details</p>
         </div>
-        <p className="text-[11px] leading-snug mb-1.5" style={{ color: "var(--color-text-muted)" }}>{alert.title}</p>
-        <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>Raised {alert.raised}</p>
+        <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="text-sm font-bold font-mono" style={{ color: "var(--color-text-primary)" }}>#{alert.id}</span>
+            <Badge className="text-[9px] font-bold uppercase" style={{ color: "#FFB020", backgroundColor: "rgba(255,176,32,0.12)" }}>
+              {proposalSent ? "Pending" : "Draft"}
+            </Badge>
+          </div>
+          <p className="text-[11px] leading-snug mb-1.5" style={{ color: "var(--color-text-muted)" }}>{alert.title}</p>
+          <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>Raised {alert.raised}</p>
+        </div>
       </div>
 
-      {/* Audit Trails */}
-      <p className="text-sm font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Audit Trails</p>
-      <div className="mb-2">
-        {auditTrail.map((entry, i) => (
-          <AuditTrailItem key={entry.id} entry={entry} index={i} isLast={i === auditTrail.length - 1} />
-        ))}
+      {/* Audit Trails (the only scrollable region) */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4">
+        <p className="text-sm font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Audit Trails</p>
+        <div className="mb-2">
+          {auditTrail.map((entry, i) => (
+            <AuditTrailItem key={entry.id} entry={entry} index={i} isLast={i === auditTrail.length - 1} />
+          ))}
+        </div>
       </div>
 
-      {/* Add Comment */}
-      <p className="text-sm font-bold mb-2 mt-2" style={{ color: "var(--color-text-primary)" }}>Add Comment</p>
-      <textarea
-        value={comment}
-        onChange={(e) => onCommentChange(e.target.value)}
-        placeholder="Enter your comment here..."
-        rows={4}
-        className="w-full rounded-lg px-3 py-2 text-xs mb-3 resize-none"
-        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)", outline: "none" }}
-      />
-      <button
-        onClick={onAddComment}
-        disabled={!comment.trim()}
-        className="w-full py-2.5 rounded-lg text-xs font-bold mb-3 transition-opacity hover:opacity-90 disabled:opacity-40"
-        style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-      >
-        Add Comment
-      </button>
-      <div className="flex gap-2">
+      {/* Add Comment + CTAs (static) */}
+      <div className="shrink-0 px-4 pb-4 pt-3" style={{ borderTop: "1px solid var(--color-border)" }}>
+        <p className="text-sm font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>Add Comment</p>
+        <textarea
+          value={comment}
+          onChange={(e) => onCommentChange(e.target.value)}
+          placeholder="Enter your comment here..."
+          rows={4}
+          className="w-full rounded-lg px-3 py-2 text-xs mb-3 resize-none"
+          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)", outline: "none" }}
+        />
         <button
-          onClick={onCancel}
-          className="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-colors hover:bg-white/5"
-          style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
+          onClick={onAddComment}
+          disabled={!comment.trim()}
+          className="w-full py-2.5 rounded-lg text-xs font-bold mb-3 transition-opacity hover:opacity-90 disabled:opacity-40"
+          style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
         >
-          Cancel
+          Add Comment
         </button>
-        <button
-          onClick={onSend}
-          disabled={proposalSent}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: "#2DD4BF", color: "#0A0A0F" }}
-        >
-          <SendIcon size={12} />
-          {proposalSent ? "Sent" : "Send"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-colors hover:bg-white/5"
+            style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSend}
+            disabled={proposalSent}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
+            style={{ backgroundColor: "#2DD4BF", color: "#0A0A0F" }}
+          >
+            <SendIcon size={12} />
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -277,7 +283,7 @@ function AlertProposalGraphInner({ alert }: { alert: Alert }) {
   }
 
   return (
-    <div className="flex" style={{ height: "calc(100vh - 116px)", margin: "-16px -24px" }}>
+    <div className="flex" style={{ height: "calc(100vh - 56px)", margin: "-16px -24px" }}>
       <LeftPanel
         alert={alert}
         auditTrail={auditTrail}
