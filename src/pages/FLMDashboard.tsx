@@ -10,8 +10,6 @@ import { CongestedRoutersChart } from "../components/flm/CongestedRoutersChart";
 import { CapacityRiskPie } from "../components/flm/CapacityRiskPie";
 import { CoordinationDonut } from "../components/flm/CoordinationDonut";
 import { EventMatchPie } from "../components/flm/EventMatchPie";
-// Band 4 — What's coming
-import { LookingAhead } from "../components/flm/LookingAhead";
 // Band 2 — Traffic flow analytics
 import { TrafficFlowAnalytics } from "../components/flm/flow-analytics/TrafficFlowAnalytics";
 
@@ -88,11 +86,6 @@ export default function FLMDashboard() {
           <CoordinationDonut />
           <EventMatchPie />
         </div>
-      </section>
-
-      {/* ── Band 4 — Looking ahead ───────────────────────────────────────────── */}
-      <section>
-        <LookingAhead />
       </section>
 
       {/* ── FAB: Quick Dispatch ──────────────────────────────────────────────── */}

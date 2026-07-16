@@ -26,16 +26,6 @@ export interface PieSlice {
   color: string;
 }
 
-export interface LookingAheadItem {
-  type: 'alert' | 'event';
-  id: string;
-  label: string;
-  detail: string;
-  timeLabel: string;
-  timeUnit: 'MIN' | 'HOURS' | 'DAYS';
-  severity: 'CRITICAL' | 'WARNING' | 'INFO';
-}
-
 import { ACTIVE_ALERTS_COUNT, HIGH_SEVERITY_ALERTS_COUNT, getAlertsByAS } from './alert-store';
 import {
   CONGESTED_PORTS,
@@ -300,38 +290,3 @@ export const eventMatchKpi: KpiEntry = {
   thresholdLabel: 'Healthy >60% · Watch 30–60% · Critical <30%',
   supportText: '55% remain unexplained',
 };
-
-// ── Band 4 — Looking ahead ─────────────────────────────────────────────────────
-// Each card references a REAL record in the shared datasets — an alert in
-// ALERTS (alert-store.ts) or an event in EVENTS_FULL (events.ts) — so the
-// click always lands on that exact record's detail page, never a mock entry.
-
-export const lookingAheadItems: LookingAheadItem[] = [
-  {
-    type: 'alert',
-    id: 'ALT-012', // "Forecast breach — LINX London / AS1299 evening peak" (high/predicted)
-    label: 'Capacity breach predicted',
-    detail: 'AS1299 peering link — trending at 83% utilization',
-    timeLabel: '2',
-    timeUnit: 'HOURS',
-    severity: 'CRITICAL',
-  },
-  {
-    type: 'event',
-    id: 'EVT-0091', // "Nova Strike — S3 launch"
-    label: 'Nova Strike — Gaming Tournament',
-    detail: 'Historic pattern: +34–41 Gbps surge on AMS-IX Amsterdam path',
-    timeLabel: '2',
-    timeUnit: 'DAYS',
-    severity: 'WARNING',
-  },
-  {
-    type: 'event',
-    id: 'EVT-0092', // "SVOD finale drop"
-    label: 'SVOD Platform Release',
-    detail: 'Predicted peak ~78 Gbps via LINX London',
-    timeLabel: '5',
-    timeUnit: 'DAYS',
-    severity: 'INFO',
-  },
-];
