@@ -879,10 +879,12 @@ export const HIGH_SEVERITY_ALERTS_COUNT = ALERTS.filter(isHighSeverityAlert).len
 // page reads, in strict tier order — each tier sorted by recency only:
 //   1. Critical + Active
 //   2. High + Active
-//   3. Predicted (any severity) — fallback, only used if tiers 1+2 total < 5
+//   3. Predicted (any severity) — fallback, only used if tiers 1+2 total < size
 // Medium/Low Active and Mitigating alerts are intentionally NOT surfaced here.
+// Kept small (2, not top-5) — alert frequency is low and operators are
+// assigned/work alerts immediately, so a long list here would mostly show stale rows.
 
-const ATTENTION_LIST_SIZE = 5;
+const ATTENTION_LIST_SIZE = 2;
 
 function parseAgeMinutes(age: string): number {
   const hours = Number(age.match(/(\d+)\s*h/)?.[1] ?? 0);
