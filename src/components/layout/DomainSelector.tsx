@@ -22,7 +22,7 @@ const SITE_MAP: {
       { label: "Dashboard",       href: "/overview"       },
       { label: "Alerts",          href: "/alerts"         },
       { label: "Events",          href: "/events"         },
-      { label: "Network Model",   href: "/network-model"  },
+      { label: "Knowledge Graph", href: "/network-model"  },
       { label: "MINDR Assistant", href: "/assistant"      },
     ],
   },

@@ -886,7 +886,7 @@ export default function Overview() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Network size={13} style={{ color: "var(--color-text-muted)" }} />
-                <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Network Model</span>
+                <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Knowledge Graph</span>
               </div>
               <ChevronRight size={13} style={{ color: "var(--color-text-muted)" }} />
             </div>

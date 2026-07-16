@@ -331,7 +331,7 @@ export default function NetworkModelLeftPanel({
           }}
         >
           <ChevronRight size={13} />
-          Network Model
+          Knowledge Graph
         </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

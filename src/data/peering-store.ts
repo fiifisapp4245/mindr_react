@@ -239,7 +239,7 @@ export const congestedRoutersKpi: KpiEntry = {
   unit: 'ports (max router)',
   source: 'SNMP',
   description:
-    'Number of congested ports (≥90% utilization) per router — same query as the Network Model chat query a bar ' +
+    'Number of congested ports (≥90% utilization) per router — same query as the Knowledge Graph chat query a bar ' +
     'drills into. Hotspot routers require priority attention.',
   thresholds: { t1: 1, t2: 3, direction: 'lower-better' },
   thresholdLabel: 'Low ≤1/router · Moderate 2–3 · Hotspot >3',

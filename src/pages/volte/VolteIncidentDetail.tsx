@@ -111,7 +111,7 @@ export default function VolteIncidentDetail() {
         <button onClick={() => navigate("/volte/network-model")}
           className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold hover:opacity-80 transition-opacity"
           style={{ backgroundColor: "rgba(45,212,191,0.10)", color: "#2DD4BF", border: "1px solid rgba(45,212,191,0.25)" }}>
-          <Network size={12} />View network model
+          <Network size={12} />View knowledge graph
         </button>
       </div>
 

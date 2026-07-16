@@ -19,7 +19,7 @@ interface NavItem {
 
 const GLOBAL_NAV: NavItem[] = [
   { label: "Overview",      href: "/overview",       icon: LayoutDashboard },
-  { label: "Network Model", href: "/network-model",  icon: Network },
+  { label: "Knowledge Graph", href: "/network-model",  icon: Network },
   { label: "Alerts",        href: "/alerts",         icon: Bell },
   { label: "Agent activity",href: "/agents",         icon: Bot },
   { label: "Reports",       href: "/reports",        icon: BarChart2 },

@@ -19,7 +19,7 @@ export default function NetworkModelList() {
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-          Network Model
+          Knowledge Graph
         </h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
           Knowledge graphs and domain-scoped conversation for each operational domain

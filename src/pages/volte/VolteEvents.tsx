@@ -224,7 +224,7 @@ export default function VolteEvents() {
       </div>
 
       <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-        Events are pre-correlated across RAN / EPC / IMS. Segment tagging is consistent with Alarms and the Network Model.
+        Events are pre-correlated across RAN / EPC / IMS. Segment tagging is consistent with Alarms and the Knowledge Graph.
       </p>
 
       <style>{`@keyframes pulse-live { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
