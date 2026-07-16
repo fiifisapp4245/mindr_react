@@ -45,6 +45,12 @@ import {
   BUILDOUT_CRITICAL_WEEKS,
   getPortsByRouter,
 } from './border-ports';
+import { EVENTS_FULL } from './events';
+
+// Same queries as the Events page filters, so the Dashboard cards and the
+// Events page's filtered row counts never diverge.
+const UPCOMING_EVENTS = EVENTS_FULL.filter((e) => e.status === 'upcoming');
+const LIVE_HIGH_SEVERITY_EVENTS = EVENTS_FULL.filter((e) => e.status === 'live' && e.severity === 'high');
 
 export { BUILDOUT_INTERIM_LABEL };
 
@@ -136,15 +142,28 @@ export const kpi: Record<string, KpiEntry> = {
     supportText: 'AS3320 & AS3549 links affected',
   },
 
-  activeChangeTickets: {
-    value: 8,
-    unit: 'tickets',
-    source: 'CASM',
+  upcomingEvents: {
+    value: UPCOMING_EVENTS.length,
+    unit: 'events',
+    source: 'Event Scout',
     description:
-      'Open network change tickets. A high count can delay incident response when tickets conflict with remediation windows.',
-    thresholds: { t1: 5, t2: 18, direction: 'lower-better' },
-    thresholdLabel: 'Healthy ≤5 · Watch 6–18 · Critical >18',
-    supportText: 'CHG-0441 conflicts with peak window',
+      'Count of upcoming events — future traffic surges predicted by MINDR, not yet started — same query as ' +
+      'the Events page "Upcoming" status filter.',
+    thresholds: { t1: 2, t2: 5, direction: 'lower-better' },
+    thresholdLabel: 'Healthy 0–2 · Watch 3–5 · Critical >5',
+    supportText: UPCOMING_EVENTS[0] ? `${UPCOMING_EVENTS[0].shortName} is next up` : 'None scheduled',
+  },
+
+  highSeverityEvents: {
+    value: LIVE_HIGH_SEVERITY_EVENTS.length,
+    unit: 'events',
+    source: 'Event Scout',
+    description:
+      'Count of currently LIVE events at High severity — same query as the Events page "Live" status + "High" ' +
+      'severity filter. Upcoming high-severity events are tracked separately by the Upcoming Events card.',
+    thresholds: { t1: 0, t2: 2, direction: 'lower-better' },
+    thresholdLabel: 'Healthy 0 · Watch 1–2 · Critical ≥3',
+    supportText: LIVE_HIGH_SEVERITY_EVENTS[0] ? `${LIVE_HIGH_SEVERITY_EVENTS[0].shortName} in progress` : 'None in progress',
   },
 };
 

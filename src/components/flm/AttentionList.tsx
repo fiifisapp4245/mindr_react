@@ -66,7 +66,7 @@ export function AttentionList() {
           className="text-xs font-medium uppercase tracking-widest"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          Needs attention now
+          Open Alerts
         </p>
         <Link
           to="/alerts"

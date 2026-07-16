@@ -4,9 +4,6 @@ import { Zap } from "lucide-react";
 // Band 1 — What needs me now
 import { PeeringKpiCard } from "../components/flm/PeeringKpiCard";
 import { AttentionList } from "../components/flm/AttentionList";
-// Band 2 — Is it getting worse?
-import { TrafficTrendChart } from "../components/flm/TrafficTrendChart";
-import { RoutingInstabilityChart } from "../components/flm/RoutingInstabilityChart";
 // Band 3 — Where is it concentrated + what's the mix?
 import { AlertsByASChart } from "../components/flm/AlertsByASChart";
 import { CongestedRoutersChart } from "../components/flm/CongestedRoutersChart";
@@ -15,6 +12,8 @@ import { CoordinationDonut } from "../components/flm/CoordinationDonut";
 import { EventMatchPie } from "../components/flm/EventMatchPie";
 // Band 4 — What's coming
 import { LookingAhead } from "../components/flm/LookingAhead";
+// Band 2 — Traffic flow analytics
+import { TrafficFlowAnalytics } from "../components/flm/flow-analytics/TrafficFlowAnalytics";
 
 import { kpi } from "../data/peering-store";
 
@@ -39,7 +38,8 @@ const BAND1_CARDS: {
   { key: "highSeverityAlerts",    title: "High Severity Alerts",     to: "/alerts?severity=high" },
   { key: "congestedPorts",        title: "Congested Ports",          to: "/network-model/ip-core", navState: { autoQuery: NM_QUERY_CONGESTED_PORTS } },
   { key: "criticalBuildoutPorts", title: "Critical Build-out Ports", to: "/network-model/ip-core", navState: { autoQuery: NM_QUERY_CRITICAL_BUILDOUT } },
-  { key: "activeChangeTickets",   title: "Active Change Tickets",    to: "/alerts?changeTicket=true" },
+  { key: "upcomingEvents",        title: "Upcoming Events",          to: "/events?status=upcoming" },
+  { key: "highSeverityEvents",    title: "High Severity Events",     to: "/events?status=live&severity=high" },
 ];
 
 export default function FLMDashboard() {
@@ -57,13 +57,13 @@ export default function FLMDashboard() {
           Dashboard
         </h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-          Live overview of IP Peering network health — alerts, traffic trends and capacity risk
+          Live overview of IP Peering network health — alerts, events and capacity risk
         </p>
       </div>
 
       {/* ── Band 1 — KPI cards + Attention list ─────────────────────────────── */}
       <section>
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {BAND1_CARDS.map(({ key, title, to, navState }) => (
             <PeeringKpiCard key={key} title={title} entry={kpi[key]} to={to} navState={navState} />
           ))}
@@ -71,12 +71,10 @@ export default function FLMDashboard() {
         <AttentionList />
       </section>
 
-      {/* ── Band 2 — Traffic trend + Routing instability ─────────────────────── */}
+      {/* ── Band 2 — Traffic Flow Analytics (replaces Traffic Trend / Routing
+          Instability) ────────────────────────────────────────────────────── */}
       <section>
-        <div className="grid grid-cols-2 gap-4">
-          <TrafficTrendChart />
-          <RoutingInstabilityChart />
-        </div>
+        <TrafficFlowAnalytics />
       </section>
 
       {/* ── Band 3 — Distribution charts ─────────────────────────────────────── */}

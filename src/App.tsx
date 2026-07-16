@@ -32,6 +32,7 @@ import VolteIncidentDetail from "./pages/volte/VolteIncidentDetail";
 import VolteReports from "./pages/volte/VolteReports";
 import NetworkModelList from "./pages/NetworkModelList";
 import NetworkModelGraph from "./pages/NetworkModelGraph";
+import FlowAnalyticsPage from "./pages/FlowAnalyticsPage";
 
 export default function App() {
   return (
@@ -72,6 +73,7 @@ export default function App() {
                   <Route path="events" element={<Events />} />
                   <Route path="events/:id" element={<EventDetail />} />
                   <Route path="flm-reports" element={<FLMReports />} />
+                  <Route path="flow-analytics" element={<FlowAnalyticsPage />} />
                   <Route path="network-model" element={<NetworkModelList />} />
                   <Route path="network-model/:domainId" element={<NetworkModelGraph />} />
                 </Route>

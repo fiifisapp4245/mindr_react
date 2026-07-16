@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Calendar,
@@ -77,11 +77,26 @@ const WEEKS = [
 
 type FilterTab = "upcoming" | "live" | "historic";
 
+// Deep-link query params are read once on mount (?status=live&severity=high),
+// case-insensitively, so cards/links elsewhere in the app can pre-apply a filter.
+function parseStatusParam(v: string | null): FilterTab {
+  if (v?.toLowerCase() === "live") return "live";
+  if (v?.toLowerCase() === "past" || v?.toLowerCase() === "historic") return "historic";
+  return "upcoming";
+}
+
+function parseSeverityParam(v: string | null): string {
+  const valid = ["critical", "high", "medium", "low"];
+  const lower = v?.toLowerCase() ?? "";
+  return valid.includes(lower) ? lower : "all";
+}
+
 export default function Events() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<FilterTab>("upcoming");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<FilterTab>(() => parseStatusParam(searchParams.get("status")));
   const [typeFilter, setTypeFilter] = useState("all");
-  const [riskFilter, setRiskFilter] = useState("all");
+  const [riskFilter, setRiskFilter] = useState<string>(() => parseSeverityParam(searchParams.get("severity")));
 
   const timelineEvents = EVENTS_FULL.filter(
     (e) => e.dayOffset >= 0 && e.dayOffset <= 27
