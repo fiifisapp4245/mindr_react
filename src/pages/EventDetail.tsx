@@ -26,8 +26,16 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { ALERTS, ALERT_SEV } from "../data/alert-store";
-import { EVENTS_FULL } from "../data/events";
-import type { EventFull, EventStatus } from "../data/events";
+import {
+  EVENTS_FULL,
+  interfacesWorstFirst,
+  worstInterface,
+  eventPredictedPeak,
+  eventActualPeak,
+  eventScopeSummary,
+  getConcurrentEvents,
+} from "../data/events";
+import type { EventFull, EventStatus, AffectedInterface, PathNode, SeriesPoint } from "../data/events";
 import { Breadcrumb } from "../components/shared/Breadcrumb";
 import { ConfirmModal } from "../components/shared/ConfirmModal";
 import { Toast, TOAST_DURATION_MS } from "../components/shared/Toast";
@@ -48,17 +56,17 @@ function severityCfg(s: string) {
   return                         { bg: "rgba(45,212,191,0.12)", color: "#2DD4BF" };
 }
 
-function pathNodeIcon(type: EventFull["affectedPath"][0]["type"]) {
+function pathNodeIcon(type: PathNode["type"]) {
   if (type === "cdn")    return Network;
   if (type === "ixp")    return Radio;
   if (type === "router") return Server;
   return Network;
 }
 
-// CDN operator name derived from the event's own path data (e.g. "EdgeCDN-EU"),
-// used in the Notify CDN confirm dialog and success toast.
+// CDN operator name derived from the event's worst-affected interface's path
+// (e.g. "EdgeCDN-EU"), used in the Notify CDN confirm dialog and success toast.
 function cdnNameOf(event: EventFull): string {
-  const cdnNode = event.affectedPath.find((p) => p.type === "cdn");
+  const cdnNode = worstInterface(event).pathChain.find((p) => p.type === "cdn");
   return cdnNode ? cdnNode.label.replace(/ egress$/i, "") : "the CDN operator";
 }
 
@@ -100,122 +108,127 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   );
 }
 
-// ── Forecast chart ───────────────────────────────────────────────────────────
+// ── Forecast charts (full-size, stacked, independently collapsible — one
+// per affected interface) ───────────────────────────────────────────────
+//
+// Overload assessment is driven by the COMBINED forecast line when this
+// interface has overlapping (concurrent) events, and by this event's own
+// forecast otherwise — matching the "combined load, not one event's forecast
+// alone" requirement for interfaces shared by multiple stacking events.
 
-function ForecastChart({ event }: { event: EventFull }) {
-  const isLive = event.status === "live";
-  const isPast = event.status === "past";
-  const showActual = isLive || isPast;
-  const overloaded = !!event.overloadStart;
+function computeOverloadWindow(series: SeriesPoint[], threshold = 85): { start: string; end: string } | null {
+  const over = series.filter((p) => p.value >= threshold);
+  if (over.length === 0) return null;
+  return { start: over[0].time, end: over[over.length - 1].time };
+}
+
+function buildInterfaceChartData(iface: AffectedInterface, showActual: boolean) {
+  const actualByTime = new Map((iface.actual ?? []).map((p) => [p.time, p.value]));
+  const hasOverlap = iface.overlappingEvents.length > 0;
+  return iface.baseLoad.map((basePt, i) => ({
+    time: basePt.time,
+    base: basePt.value,
+    forecast: iface.eventForecast[i]?.value,
+    combined: hasOverlap ? iface.combinedForecast[i]?.value : undefined,
+    actual: showActual ? actualByTime.get(basePt.time) ?? null : undefined,
+  }));
+}
+
+function InterfaceForecastChart({ iface, eventStatus }: { iface: AffectedInterface; eventStatus: EventStatus }) {
+  const [expanded, setExpanded] = useState(true);
+  const isPast = eventStatus === "past";
+  const isLive = eventStatus === "live";
+  const showActual = (isPast || isLive) && !!iface.actual?.length;
+  const hasOverlap = iface.overlappingEvents.length > 0;
+  const referenceSeries = hasOverlap ? iface.combinedForecast : iface.eventForecast;
+  const overloadWindow = computeOverloadWindow(referenceSeries);
+  const chartData = buildInterfaceChartData(iface, showActual);
+  const seriesMax = Math.max(
+    100,
+    ...referenceSeries.map((p) => p.value),
+    ...iface.baseLoad.map((p) => p.value),
+  );
+  const yMax = Math.ceil((seriesMax * 1.08) / 5) * 5;
+  const peakColor = iface.predictedPeak >= 85 ? "#FF3B3B" : iface.predictedPeak >= 70 ? "#FFB020" : "#2DD4BF";
 
   return (
-    <div>
-      {/* Overload alert badge */}
-      {overloaded && (
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3 text-xs font-semibold"
-          style={{ backgroundColor: "rgba(255,59,59,0.12)", border: "1px solid rgba(255,59,59,0.3)", color: "#FF3B3B" }}
-        >
-          <AlertTriangle size={12} strokeWidth={2.5} />
-          Overload predicted — interface utilization will exceed 85% capacity threshold
-          {isPast && event.actualPeak && (
-            <span className="ml-auto font-normal" style={{ color: "#94a3b8" }}>
-              Actual peak: {event.actualPeak}%
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Live exceeds forecast callout */}
-      {isLive && event.actualPeak && event.actualPeak > event.predictedPeak && (
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3 text-xs font-semibold"
-          style={{ backgroundColor: "rgba(255,176,32,0.10)", border: "1px solid rgba(255,176,32,0.3)", color: "#FFB020" }}
-        >
-          <AlertTriangle size={12} strokeWidth={2.5} />
-          Actual exceeds forecast ({event.actualPeak}% vs {event.predictedPeak}% predicted)
-        </div>
-      )}
-
-      {/* Past accuracy summary */}
-      {isPast && event.accuracy && (
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3 text-xs"
-          style={{ backgroundColor: "rgba(45,212,191,0.08)", border: "1px solid rgba(45,212,191,0.2)", color: "#2DD4BF" }}
-        >
-          <span>Forecast accuracy: <strong>{event.accuracy}%</strong></span>
-          <span style={{ color: "#94a3b8" }}>·</span>
-          <span style={{ color: "#94a3b8" }}>Predicted {event.predictedPeak}% · Actual {event.actualPeak}%</span>
-        </div>
-      )}
-
-      {/* Chart */}
-      <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={event.chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis
-            dataKey="time"
-            tick={{ fontSize: 10, fill: "#5c5c7a" }}
-            axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
-            tickLine={false}
+    <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+      <button
+        onClick={() => setExpanded((e) => !e)}
+        className="flex items-start justify-between gap-2 w-full text-left"
+        style={{ marginBottom: expanded ? 12 : 0 }}
+      >
+        <div className="flex items-start gap-2 min-w-0">
+          <ChevronRight
+            size={14}
+            className="shrink-0 mt-0.5 transition-transform"
+            style={{ color: "var(--color-text-muted)", transform: expanded ? "rotate(90deg)" : "none" }}
           />
-          <YAxis
-            domain={[0, 100]}
-            tick={{ fontSize: 10, fill: "#5c5c7a" }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(v) => `${v}%`}
-          />
-          <Tooltip content={<ChartTooltip />} />
-          <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8, color: "#94a3b8" }} iconType="plainline" iconSize={16} />
-
-          {event.overloadStart && event.overloadEnd && (
-            <ReferenceArea
-              x1={event.overloadStart}
-              x2={event.overloadEnd}
-              fill="rgba(255,59,59,0.08)"
-              stroke="rgba(255,59,59,0.2)"
-              strokeWidth={1}
-            />
-          )}
-
-          <ReferenceLine
-            y={85}
-            stroke="#FF3B3B"
-            strokeDasharray="5 4"
-            strokeWidth={1.5}
-            label={{ value: "85% cap", position: "insideTopRight", fontSize: 10, fill: "#FF3B3B", dy: -4 }}
-          />
-
-          <Line type="monotone" dataKey="base" name="Base load" stroke="#4D9EFF" strokeWidth={1.5} dot={false} strokeDasharray="4 3" strokeOpacity={0.7} />
-          <Line type="monotone" dataKey="predicted" name={isPast ? "Predicted" : "Forecast (event spike)"} stroke="#FFB020" strokeWidth={2} dot={false} />
-          {showActual && (
-            <Line type="monotone" dataKey="actual" name="Actual" stroke="#2DD4BF" strokeWidth={2} dot={false} connectNulls={false} />
-          )}
-        </ComposedChart>
-      </ResponsiveContainer>
-
-      <div className="flex items-center gap-4 mt-1 px-1">
-        <div className="flex items-center gap-1.5">
-          <svg width="20" height="8">
-            <line x1="0" y1="4" x2="20" y2="4" stroke="#FF3B3B" strokeWidth="1.5" strokeDasharray="4 3" />
-          </svg>
-          <span className="text-[10px]" style={{ color: "#94a3b8" }}>85% capacity threshold</span>
-        </div>
-        {event.overloadStart && (
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm inline-block" style={{ backgroundColor: "rgba(255,59,59,0.25)" }} />
-            <span className="text-[10px]" style={{ color: "#94a3b8" }}>Overload zone</span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{iface.name}</p>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+              {hasOverlap ? "Combined" : "Predicted"} peak{" "}
+              <span className="font-bold" style={{ color: peakColor }}>{iface.predictedPeak}%</span>
+              {iface.actualPeak != null && (
+                <span> · actual {iface.actualPeak}%</span>
+              )}
+              {hasOverlap && (
+                <span style={{ color: "#FF3B3B" }}> · {iface.overlappingEvents.length} concurrent event{iface.overlappingEvents.length !== 1 ? "s" : ""}</span>
+              )}
+            </p>
           </div>
+        </div>
+        {overloadWindow && (
+          <Badge className="text-[9px] font-bold uppercase shrink-0" style={{ backgroundColor: "rgba(255,59,59,0.12)", color: "#FF3B3B" }}>
+            Overload
+          </Badge>
         )}
-      </div>
+      </button>
+
+      {expanded && (
+        <>
+          {hasOverlap && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg mb-3 text-[11px]"
+              style={{ backgroundColor: "rgba(255,59,59,0.06)", border: "1px solid rgba(255,59,59,0.2)", color: "#FF3B3B" }}
+            >
+              <AlertTriangle size={11} className="shrink-0" />
+              {iface.overlappingEvents.length} concurrent event{iface.overlappingEvents.length !== 1 ? "s" : ""} stacking on this interface
+            </div>
+          )}
+
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="time" tick={{ fontSize: 11, fill: "#5c5c7a" }} axisLine={{ stroke: "rgba(255,255,255,0.06)" }} tickLine={false} />
+              <YAxis domain={[0, yMax]} tick={{ fontSize: 11, fill: "#5c5c7a" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={40} />
+              <Tooltip content={<ChartTooltip />} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8, color: "#94a3b8" }} iconType="plainline" iconSize={16} />
+
+              {overloadWindow && (
+                <ReferenceArea x1={overloadWindow.start} x2={overloadWindow.end} fill="rgba(255,59,59,0.08)" stroke="rgba(255,59,59,0.2)" strokeWidth={1} />
+              )}
+              <ReferenceLine y={85} stroke="#FF3B3B" strokeDasharray="5 4" strokeWidth={1.5} label={{ value: "85% cap", position: "insideTopRight", fontSize: 10, fill: "#FF3B3B", dy: -4 }} />
+
+              <Line type="monotone" dataKey="base" name="Base load" stroke="#4D9EFF" strokeWidth={1.5} dot={false} strokeDasharray="4 3" strokeOpacity={0.7} />
+              <Line type="monotone" dataKey="forecast" name="This event" stroke="#FFB020" strokeWidth={2} dot={false} />
+              {hasOverlap && (
+                <Line type="monotone" dataKey="combined" name="Combined (concurrent events)" stroke="#FF3B3B" strokeWidth={2.4} strokeDasharray="2 2" dot={false} />
+              )}
+              {showActual && (
+                <Line type="monotone" dataKey="actual" name="Actual" stroke="#2DD4BF" strokeWidth={2} dot={false} connectNulls={false} />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </>
+      )}
     </div>
   );
 }
 
 // ── Affected path strip ──────────────────────────────────────────────────────
 
-function PathStrip({ nodes }: { nodes: EventFull["affectedPath"] }) {
+function PathStrip({ nodes }: { nodes: PathNode[] }) {
   return (
     <div className="flex items-center gap-0 overflow-x-auto">
       {nodes.map((node, i) => {
@@ -301,6 +314,10 @@ function Card({ title, sub, children }: { title: string; sub?: string; children:
 // ── Evidence tab — the forecast and its basis ─────────────────────────────────
 
 function EvidenceTab({ event }: { event: EventFull }) {
+  const interfaces = interfacesWorstFirst(event);
+  const peak = eventPredictedPeak(event);
+  const actualPeak = eventActualPeak(event);
+
   return (
     <div className="space-y-4">
       <Card title="Event metadata">
@@ -317,12 +334,12 @@ function EvidenceTab({ event }: { event: EventFull }) {
             <p className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>Predicted peak load</p>
             <p
               className="text-base font-bold tabular-nums"
-              style={{ color: event.predictedPeak >= 85 ? "#FF3B3B" : event.predictedPeak >= 70 ? "#FFB020" : "#2DD4BF" }}
+              style={{ color: peak >= 85 ? "#FF3B3B" : peak >= 70 ? "#FFB020" : "#2DD4BF" }}
             >
-              {event.predictedPeak}%
-              {event.actualPeak && (
+              {peak}%
+              {actualPeak != null && (
                 <span className="text-xs font-medium ml-2" style={{ color: "var(--color-text-muted)" }}>
-                  actual {event.actualPeak}%
+                  actual {actualPeak}%
                 </span>
               )}
             </p>
@@ -330,26 +347,45 @@ function EvidenceTab({ event }: { event: EventFull }) {
         </div>
       </Card>
 
-      <Card title="Affected scope — traffic path">
-        <PathStrip nodes={event.affectedPath} />
+      <Card
+        title="Affected scope — traffic paths"
+        sub={`${interfaces.length} interface${interfaces.length !== 1 ? "s" : ""} affected · worst peak first`}
+      >
+        <div className="space-y-4">
+          {interfaces.map((iface) => {
+            const ifacePeakColor = iface.predictedPeak >= 85 ? "#FF3B3B" : iface.predictedPeak >= 70 ? "#FFB020" : "#2DD4BF";
+            return (
+              <div key={iface.name}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-primary)" }}>{iface.name}</p>
+                  <span className="text-[10px] font-bold" style={{ color: ifacePeakColor }}>{iface.predictedPeak}% peak</span>
+                </div>
+                <PathStrip nodes={iface.pathChain} />
+              </div>
+            );
+          })}
+        </div>
       </Card>
 
-      <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
-              Interface utilization forecast
-            </p>
-            <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-              {event.status === "live"
-                ? "Live: actual vs predicted — updating every 2 min"
-                : event.status === "past"
-                ? "Post-event: predicted vs actual outcome"
-                : "Predicted load through event window · 85% capacity threshold"}
-            </p>
-          </div>
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: "var(--color-text-muted)" }}>
+          Interface utilization forecast
+        </p>
+        <p className="text-[11px] mb-3" style={{ color: "var(--color-text-muted)" }}>
+          {event.status === "live"
+            ? "Live: actual vs predicted per interface — updating every 2 min"
+            : event.status === "past"
+            ? "Post-event: predicted vs actual outcome per interface"
+            : "Predicted load per interface through event window · 85% capacity threshold"}
+          {" · worst peak first · click a chart to collapse it"}
+        </p>
+
+        {/* Full-size stacked charts — each independently collapsible */}
+        <div className="space-y-4">
+          {interfaces.map((iface) => (
+            <InterfaceForecastChart key={iface.name} iface={iface} eventStatus={event.status} />
+          ))}
         </div>
-        <ForecastChart event={event} />
       </div>
     </div>
   );
@@ -358,10 +394,46 @@ function EvidenceTab({ event }: { event: EventFull }) {
 // ── Root Cause Analysis tab — why this event threatens the network ───────────
 
 function RcaTab({ event }: { event: EventFull }) {
+  const concurrentEvents = getConcurrentEvents(event);
+
   return (
     <div className="space-y-4">
       <Card title="MINDR analysis" sub={`${event.confidence}% confidence forecast`}>
         <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-text-primary)" }}>{event.rcaSummary}</p>
+      </Card>
+
+      <Card title="Concurrent events on shared interfaces" sub="Same overlap data driving the combined-load lines in Evidence">
+        {concurrentEvents.length === 0 ? (
+          <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>No concurrent events on affected interfaces.</p>
+        ) : (
+          <div className="space-y-2">
+            {concurrentEvents.map((ce) => (
+              <Link
+                key={ce.eventId}
+                to={`/events/${ce.eventId}`}
+                className="block rounded-lg px-3 py-2.5 hover:bg-white/5 transition-colors"
+                style={{ backgroundColor: "rgba(255,59,59,0.06)", border: "1px solid rgba(255,59,59,0.2)" }}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                    {ce.eventName}{" "}
+                    <span className="font-mono font-normal" style={{ color: "var(--color-text-muted)" }}>({ce.eventId})</span>
+                  </p>
+                  <ChevronRight size={11} style={{ color: "var(--color-text-muted)", marginTop: 2, flexShrink: 0 }} />
+                </div>
+                <p className="text-[10px] mb-1" style={{ color: "#FF3B3B" }}>Overlapping window · {ce.window}</p>
+                <div className="space-y-0.5">
+                  {ce.interfaces.map((i) => (
+                    <p key={i.name} className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                      {i.name}: combined forecast <strong style={{ color: i.combinedPeak >= 85 ? "#FF3B3B" : "var(--color-text-muted)" }}>{i.combinedPeak}%</strong>
+                      {i.combinedPeak >= 85 ? " — exceeds 85% capacity" : ""}
+                    </p>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card title="Planned changes in window">
@@ -414,10 +486,10 @@ function RcaTab({ event }: { event: EventFull }) {
                   </div>
                   <div className="flex items-center gap-3 mt-1.5">
                     <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                      P: <span style={{ color: "#FFB020" }}>{past.predictedPeak}%</span>
+                      P: <span style={{ color: "#FFB020" }}>{eventPredictedPeak(past)}%</span>
                     </div>
                     <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                      A: <span style={{ color: "#2DD4BF" }}>{past.actualPeak ?? "—"}%</span>
+                      A: <span style={{ color: "#2DD4BF" }}>{eventActualPeak(past) ?? "—"}%</span>
                     </div>
                     <div className="ml-auto text-[10px] font-semibold px-1.5 py-px rounded" style={{ backgroundColor: "rgba(45,212,191,0.1)", color: "#2DD4BF" }}>
                       {past.accuracy ?? "—"}% acc
@@ -472,9 +544,11 @@ function RemediationTab({ event, notifyCdnSent, onNotifyCdn }: {
   notifyCdnSent: boolean;
   onNotifyCdn: () => void;
 }) {
+  const worst = worstInterface(event);
+  const asMatch = worst.pathChain.find((p) => p.type === "router")?.detail.match(/AS\d+/)?.[0] ?? "peering";
   const rows = [
     { tag: "Capacity", tagColor: "#4D9EFF", label: "Pre-provision capacity on parallel path" },
-    { tag: "Routing",  tagColor: "#FFB020", label: `Pre-stage policy-based reroute on ${event.affectedScope.match(/AS\d+/)?.[0] ?? "peering"} peering interface` },
+    { tag: "Routing",  tagColor: "#FFB020", label: `Pre-stage policy-based reroute on ${asMatch} peering interface` },
   ];
 
   return (
@@ -717,8 +791,8 @@ export default function EventDetail() {
           {[
             { label: "Type",                 value: event.type },
             { label: "Window",                value: event.windowUTC },
-            { label: "Scope",                 value: event.affectedScope, mono: true },
-            { label: "Predicted peak load",   value: `${event.predictedPeak}%`, color: event.predictedPeak >= 85 ? "#FF3B3B" : event.predictedPeak >= 70 ? "#FFB020" : "#2DD4BF" },
+            { label: "Scope",                 value: eventScopeSummary(event), mono: true },
+            { label: "Predicted peak load",   value: `${eventPredictedPeak(event)}%`, color: eventPredictedPeak(event) >= 85 ? "#FF3B3B" : eventPredictedPeak(event) >= 70 ? "#FFB020" : "#2DD4BF" },
           ].map(({ label, value, color, mono }) => (
             <div key={label}>
               <p className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-muted)" }}>

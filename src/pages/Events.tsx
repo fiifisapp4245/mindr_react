@@ -6,7 +6,7 @@ import {
   ChevronDown,
   Wifi,
 } from "lucide-react";
-import { EVENTS_FULL } from "../data/events";
+import { EVENTS_FULL, eventPredictedPeak, eventActualPeak, eventScopeSummary } from "../data/events";
 import type { EventStatus, EventSeverity } from "../data/events";
 import { Badge } from "@/components/ui/badge";
 
@@ -194,7 +194,8 @@ export default function Events() {
             {timelineEvents.map((evt, idx) => {
               const startFrac = evt.dayOffset / 28;
               const widthFrac = (evt.weekSpan * 7) / 28;
-              const color = evt.status === "live" ? "#2DD4BF" : peakColor(evt.predictedPeak);
+              const peak = eventPredictedPeak(evt);
+              const color = evt.status === "live" ? "#2DD4BF" : peakColor(peak);
               const row = idx % 3;
               return (
                 <button
@@ -213,7 +214,7 @@ export default function Events() {
                   }}
                 >
                   <span className="font-bold">
-                    {evt.status === "live" ? `↑${evt.actualPeak}%` : `${evt.predictedPeak}%`}
+                    {evt.status === "live" ? `↑${eventActualPeak(evt)}%` : `${peak}%`}
                   </span>{" "}
                   {evt.shortName}
                 </button>
@@ -322,7 +323,9 @@ export default function Events() {
           {filtered.map((evt, i) => {
             const sev = SEVERITY_CFG[evt.severity];
             const TypeIcon = evt.typeIcon;
-            const isOverload = evt.predictedPeak >= 85;
+            const peak = eventPredictedPeak(evt);
+            const actualPeak = eventActualPeak(evt);
+            const isOverload = peak >= 85;
             return (
               <button
                 key={evt.id}
@@ -372,7 +375,7 @@ export default function Events() {
                 <div className="flex items-start gap-1.5">
                   <Wifi size={11} className="mt-0.5 shrink-0" style={{ color: "var(--color-text-muted)" }} />
                   <span className="text-[12px] leading-snug" style={{ color: "var(--color-text-muted)" }}>
-                    {evt.affectedScope}
+                    {eventScopeSummary(evt)}
                   </span>
                 </div>
 
@@ -381,9 +384,9 @@ export default function Events() {
                   <div className="flex items-center gap-1">
                     <span
                       className="text-sm font-bold tabular-nums"
-                      style={{ color: evt.status === "live" ? "#2DD4BF" : peakColor(evt.predictedPeak) }}
+                      style={{ color: evt.status === "live" ? "#2DD4BF" : peakColor(peak) }}
                     >
-                      {evt.status === "live" && evt.actualPeak ? `${evt.actualPeak}%` : `${evt.predictedPeak}%`}
+                      {evt.status === "live" && actualPeak ? `${actualPeak}%` : `${peak}%`}
                     </span>
                     {isOverload && evt.status !== "past" && (
                       <AlertTriangle size={10} style={{ color: "#FF3B3B" }} />
@@ -391,19 +394,19 @@ export default function Events() {
                   </div>
                   {evt.status === "live" && (
                     <div className="text-[9px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                      pred {evt.predictedPeak}%
+                      pred {peak}%
                     </div>
                   )}
-                  {evt.status === "past" && evt.actualPeak && (
+                  {evt.status === "past" && actualPeak && (
                     <div className="text-[9px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                      act {evt.actualPeak}%
+                      act {actualPeak}%
                     </div>
                   )}
                   {evt.status === "upcoming" && (
                     <div className="h-1 rounded-full overflow-hidden mt-1" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
                       <div
                         className="h-full rounded-full"
-                        style={{ width: `${evt.predictedPeak}%`, backgroundColor: peakColor(evt.predictedPeak) }}
+                        style={{ width: `${peak}%`, backgroundColor: peakColor(peak) }}
                       />
                     </div>
                   )}
