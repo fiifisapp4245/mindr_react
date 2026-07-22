@@ -81,7 +81,7 @@ export function buildAlertSubgraph(alert: Alert): AlertSubgraph {
       nodeType: "Router",
       description:
         `Primary router handling this alert's traffic — ${alert.severity} severity, ` +
-        `${alert.sources.snmp.utilization}% utilisation on ${alert.sources.snmp.iface}.`,
+        `${alert.sources.snmp.ports[0].utilization}% utilisation on ${alert.sources.snmp.ports[0].port}.`,
       role: "primary",
       status: severityToStatus(alert.severity),
       x: 50,

@@ -1,15 +1,23 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, ChevronRight, Lock, Star, Zap } from "lucide-react";
+import { useParams } from "react-router-dom";
 import {
-  ALERTS, ALERT_SEV, ALERT_STATUS, confirmAction, isConfirmed,
+  AlertTriangle, ArrowRight, CheckCircle2, ChevronRight, Lock, Network, Radio, Server, Star,
+} from "lucide-react";
+import {
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine, ReferenceArea, Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
+import {
+  ALERTS, ALERT_SEV, ALERT_STATUS, confirmAction, isConfirmed, getTakenAt,
+  alertInterfacesWorstFirst, alertPeakUtilization,
   FEEDBACK_QUESTIONS, FEEDBACK_SCALE_HELP, setFeedbackRating, getFeedbackRating,
   type Alert, type AlertAction, type AlarmRecord, type TicketRecord, type BuildoutFlag, type FeedbackQuestionKey,
+  type AlertInterface, type PathNode, type SeriesPoint, type SnmpPort,
 } from "../data/alert-store";
 import { Breadcrumb } from "../components/shared/Breadcrumb";
 import { ConfirmModal } from "../components/shared/ConfirmModal";
 import { DetailModal } from "../components/shared/DetailModal";
 import { Badge } from "../components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 // ── Design helpers ────────────────────────────────────────────────────────────
 
@@ -35,7 +43,7 @@ const RISK_BG: Record<string, string> = {
   HIGH:   "rgba(255,59,59,0.12)",
 };
 
-type BadgeVariant = "destructive" | "warning" | "info" | "success";
+type BadgeVariant = "destructive" | "warning" | "info" | "success" | "secondary";
 
 const BUILDOUT_VARIANT: Record<BuildoutFlag, BadgeVariant> = {
   CRITICAL: "destructive",
@@ -57,41 +65,189 @@ const SEV_VARIANT: Record<string, BadgeVariant> = {
 };
 
 const STATUS_VARIANT: Record<string, BadgeVariant> = {
-  active:     "destructive",
-  predicted:  "warning",
-  mitigating: "info",
-  resolved:   "success",
+  open:         "destructive",
+  "acted-upon": "info",
+  resolved:     "success",
+  closed:       "secondary",
 };
 
-const SEV_DOT_COLOR: Record<string, string> = {
-  critical: "#FF3B3B",
-  high:     "#FFB020",
-  medium:   "#4D9EFF",
-  low:      "#2DD4BF",
-};
+function formatTakenAt(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
 
-const TICKET_STATUS_LABEL: Record<TicketRecord["status"], string> = {
-  open:        "OPEN",
-  in_progress: "IN PROGRESS",
-  resolved:    "RESOLVED",
-};
+function pathNodeIcon(type: PathNode["type"]) {
+  if (type === "cdn")    return Network;
+  if (type === "ixp")    return Radio;
+  if (type === "router") return Server;
+  return Network;
+}
+
+// ── Affected path strip — identical component to the Event detail page's,
+// reused here so multi-router path chains render the same way in both places. ─
+
+function PathStrip({ nodes }: { nodes: PathNode[] }) {
+  return (
+    <div className="flex items-center gap-0 overflow-x-auto">
+      {nodes.map((node, i) => {
+        const Icon = pathNodeIcon(node.type);
+        const isLast = i === nodes.length - 1;
+        return (
+          <div key={i} className="flex items-center gap-0 shrink-0">
+            <div
+              className="flex flex-col items-center px-3 py-2.5 rounded-lg"
+              style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", minWidth: 120 }}
+            >
+              <Icon size={13} style={{ color: "#4D9EFF" }} strokeWidth={1.8} />
+              <div className="text-[11px] font-semibold mt-1 text-center leading-tight" style={{ color: "var(--color-text-primary)" }}>
+                {node.label}
+              </div>
+              <div className="text-[9px] mt-0.5 text-center leading-tight" style={{ color: "var(--color-text-muted)" }}>
+                {node.detail}
+              </div>
+            </div>
+            {!isLast && (
+              <div className="flex items-center px-1">
+                <ArrowRight size={12} style={{ color: "#94a3b8" }} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Interface utilization chart — same summary-list + stacked-full-size-chart
+// pattern as the Event detail page's Evidence tab, adapted for OBSERVED (not
+// forecast) data: base load (dotted), current utilization (solid), 85% cap
+// line + overload shading, and a combined line + concurrent-alert callout
+// only where another alert overlaps this interface. ──────────────────────────
+
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div
+      className="rounded-lg px-3 py-2 text-xs space-y-1"
+      style={{ backgroundColor: "#1E1E2A", border: "1px solid rgba(255,255,255,0.10)", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}
+    >
+      <div className="font-semibold mb-1" style={{ color: "#94a3b8" }}>{label}</div>
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: p.color }} />
+          <span style={{ color: "#c8c8d0" }}>{p.name}</span>
+          <span className="font-bold tabular-nums ml-auto pl-3" style={{ color: p.color }}>{p.value}%</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function computeOverloadWindow(series: SeriesPoint[], threshold = 85): { start: string; end: string } | null {
+  const over = series.filter((p) => p.value >= threshold);
+  if (over.length === 0) return null;
+  return { start: over[0].time, end: over[over.length - 1].time };
+}
+
+function buildInterfaceChartData(iface: AlertInterface) {
+  const hasOverlap = iface.overlappingAlerts.length > 0;
+  return iface.baseLoad.map((basePt, i) => ({
+    time: basePt.time,
+    base: basePt.value,
+    current: iface.currentUtilization[i]?.value,
+    combined: hasOverlap ? iface.combinedUtilization[i]?.value : undefined,
+  }));
+}
+
+function AlertInterfaceChart({ iface }: { iface: AlertInterface }) {
+  const [expanded, setExpanded] = useState(true);
+  const hasOverlap = iface.overlappingAlerts.length > 0;
+  const referenceSeries = hasOverlap ? iface.combinedUtilization : iface.currentUtilization;
+  const overloadWindow = computeOverloadWindow(referenceSeries);
+  const chartData = buildInterfaceChartData(iface);
+  const seriesMax = Math.max(100, ...referenceSeries.map((p) => p.value), ...iface.baseLoad.map((p) => p.value));
+  const yMax = Math.ceil((seriesMax * 1.08) / 5) * 5;
+  const peakColor = iface.peakUtilization >= 85 ? "#FF3B3B" : iface.peakUtilization >= 70 ? "#FFB020" : "#2DD4BF";
+
+  return (
+    <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+      <button onClick={() => setExpanded((e) => !e)} className="flex items-start justify-between gap-2 w-full text-left" style={{ marginBottom: expanded ? 12 : 0 }}>
+        <div className="flex items-start gap-2 min-w-0">
+          <ChevronRight
+            size={14}
+            className="shrink-0 mt-0.5 transition-transform"
+            style={{ color: "var(--color-text-muted)", transform: expanded ? "rotate(90deg)" : "none" }}
+          />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{iface.name}</p>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+              {hasOverlap ? "Combined" : "Current"} peak{" "}
+              <span className="font-bold" style={{ color: peakColor }}>{iface.peakUtilization}%</span>
+              {hasOverlap && (
+                <span style={{ color: "#FF3B3B" }}> · {iface.overlappingAlerts.length} concurrent alert{iface.overlappingAlerts.length !== 1 ? "s" : ""}</span>
+              )}
+            </p>
+          </div>
+        </div>
+        {overloadWindow && (
+          <Badge className="text-[9px] font-bold uppercase shrink-0" style={{ backgroundColor: "rgba(255,59,59,0.12)", color: "#FF3B3B" }}>
+            Overload
+          </Badge>
+        )}
+      </button>
+
+      {expanded && (
+        <>
+          {hasOverlap && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg mb-3 text-[11px]"
+              style={{ backgroundColor: "rgba(255,59,59,0.06)", border: "1px solid rgba(255,59,59,0.2)", color: "#FF3B3B" }}
+            >
+              <AlertTriangle size={11} className="shrink-0" />
+              {iface.overlappingAlerts.length} concurrent alert{iface.overlappingAlerts.length !== 1 ? "s" : ""} stacking on this interface
+            </div>
+          )}
+
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="time" tick={{ fontSize: 11, fill: "#5c5c7a" }} axisLine={{ stroke: "rgba(255,255,255,0.06)" }} tickLine={false} />
+              <YAxis domain={[0, yMax]} tick={{ fontSize: 11, fill: "#5c5c7a" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={40} />
+              <Tooltip content={<ChartTooltip />} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8, color: "#94a3b8" }} iconType="plainline" iconSize={16} />
+
+              {overloadWindow && (
+                <ReferenceArea x1={overloadWindow.start} x2={overloadWindow.end} fill="rgba(255,59,59,0.08)" stroke="rgba(255,59,59,0.2)" strokeWidth={1} />
+              )}
+              <ReferenceLine y={85} stroke="#FF3B3B" strokeDasharray="5 4" strokeWidth={1.5} label={{ value: "85% cap", position: "insideTopRight", fontSize: 10, fill: "#FF3B3B", dy: -4 }} />
+
+              <Line type="monotone" dataKey="base" name="Base load" stroke="#4D9EFF" strokeWidth={1.5} dot={false} strokeDasharray="4 3" strokeOpacity={0.7} />
+              <Line type="monotone" dataKey="current" name="Current utilization" stroke="#FFB020" strokeWidth={2} dot={false} />
+              {hasOverlap && (
+                <Line type="monotone" dataKey="combined" name="Combined (concurrent alerts)" stroke="#FF3B3B" strokeWidth={2.4} strokeDasharray="2 2" dot={false} />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </>
+      )}
+    </div>
+  );
+}
 
 // ── List drill-down modal (Alarms / Tickets) ──────────────────────────────────
+// Trimmed to the minimum vendor data can actually support: vendor alarm
+// severity/type cannot be shown, so Alarms keep only ID/Description/Time; the
+// Tickets popup keeps only a description of the routing change and its time.
 
 function AlarmListModal({ alarms, onClose }: { alarms: AlarmRecord[]; onClose: () => void }) {
   return (
     <DetailModal title={`Linked alarms (${alarms.length})`} onClose={onClose} maxWidth={512}>
       {alarms.map(a => (
-        <div key={a.ref} className="rounded-lg p-3 flex items-start gap-3" style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid var(--color-border)" }}>
-          <span className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: SEV_DOT_COLOR[a.severity] }} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-0.5">
-              <Badge variant="warning" className="font-mono" style={{ backgroundColor: "rgba(255,176,32,0.10)", color: "#FFB020" }}>{a.ref}</Badge>
-              <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: SEV_DOT_COLOR[a.severity] }}>{a.severity}</span>
-            </div>
-            <p className="text-[12px] leading-snug" style={{ color: "var(--color-text-primary)" }}>{a.message}</p>
-            <p className="text-[10px] mt-1" style={{ color: "var(--color-text-muted)" }}>{a.raised}</p>
+        <div key={a.ref} className="rounded-lg p-3" style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid var(--color-border)" }}>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <Badge variant="warning" className="font-mono" style={{ backgroundColor: "rgba(255,176,32,0.10)", color: "#FFB020" }}>{a.ref}</Badge>
+            <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{a.raised}</span>
           </div>
+          <p className="text-[12px] leading-snug" style={{ color: "var(--color-text-primary)" }}>{a.message}</p>
         </div>
       ))}
     </DetailModal>
@@ -103,18 +259,10 @@ function TicketListModal({ tickets, onClose }: { tickets: TicketRecord[]; onClos
     <DetailModal title={`Linked tickets (${tickets.length})`} onClose={onClose} maxWidth={512}>
       {tickets.map((t, i) => (
         <div key={i} className="rounded-lg p-3" style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid var(--color-border)" }}>
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <Badge variant="info" className="font-bold uppercase tracking-wide" style={{ color: "#4D9EFF", backgroundColor: "rgba(77,158,255,0.12)" }}>
-              {TICKET_STATUS_LABEL[t.status]}
-            </Badge>
-            <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{t.raised}</span>
-          </div>
-          <p className="text-[12px] leading-snug" style={{ color: "var(--color-text-primary)" }}>{t.description}</p>
+          <p className="text-[12px] leading-snug mb-1" style={{ color: "var(--color-text-primary)" }}>{t.description}</p>
+          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{t.raised}</span>
         </div>
       ))}
-      <p className="text-[9px] italic pt-1" style={{ color: "var(--color-text-muted)", opacity: 0.6 }}>
-        Ticket IDs hidden — external CASM system
-      </p>
     </DetailModal>
   );
 }
@@ -224,39 +372,169 @@ function UtilBar({ label, value, threshold }: { label: string; value: number; th
   );
 }
 
+// ── Anodot widget — restructured: a "Critical" tab (absorbing the escalation
+// narrative that used to live in the now-removed Network Load Monitor widget),
+// the 4 KPIs (handover AS / anomaly score / router / IXP) always visible in a
+// bottom grid regardless of tab, and severity shown ONLY as a corner tag —
+// never as loose inline text. ─────────────────────────────────────────────────
+
+function AnodotWidget({ alert }: { alert: Alert }) {
+  const { anodot, networkLoadMonitor } = alert.sources;
+  const [tab, setTab] = useState<"overview" | "critical">("overview");
+  const sev = ALERT_SEV[alert.severity];
+
+  return (
+    <div className="rounded-xl p-4 relative" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+      <Badge
+        variant={SEV_VARIANT[alert.severity]}
+        className="absolute top-4 right-4 font-bold uppercase tracking-wide"
+        style={{ color: sev.color, backgroundColor: sev.bg }}
+      >
+        {sev.label}
+      </Badge>
+
+      <div className="flex items-center gap-2.5 mb-3 pr-20">
+        <span
+          className="text-[11px] font-bold w-5 h-5 rounded flex items-center justify-center shrink-0"
+          style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }}
+        >
+          1
+        </span>
+        <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>Anodot — Alert Trigger</span>
+        <span className="text-[10px] font-mono ml-auto shrink-0" style={{ color: "var(--color-text-muted)" }}>
+          anomaly feed / peering-AS-{anodot.handoverAS}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-4 mb-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
+        {(["overview", "critical"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className="pb-2 text-[12px] font-semibold transition-colors"
+            style={{
+              color: tab === t ? "var(--color-brand)" : "var(--color-text-muted)",
+              borderBottom: tab === t ? "2px solid var(--color-brand)" : "2px solid transparent",
+            }}
+          >
+            {t === "overview" ? "Overview" : "Critical"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" ? (
+        <p className="text-[12px] leading-relaxed mb-3" style={{ color: "var(--color-text-muted)" }}>
+          Anomaly detected on {anodot.router} ({anodot.ixp}) — handover {anodot.handoverAS}.
+        </p>
+      ) : (
+        <p className="text-[12px] leading-relaxed mb-3" style={{ color: "var(--color-text-muted)" }}>
+          {networkLoadMonitor.reason} Current {networkLoadMonitor.currentGbps} Gbps vs {networkLoadMonitor.thresholdGbps} Gbps threshold.
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <StatBlock label="Handover AS" value={anodot.handoverAS} />
+        <StatBlock label="Anomaly Score" value={anodot.score} color="#FF3B3B" />
+        <StatBlock label="Router" value={anodot.router} />
+        <StatBlock label="IXP" value={anodot.ixp} />
+      </div>
+    </div>
+  );
+}
+
+// ── SNMP widget — restructured for 3-4 ports with a select-to-drill-down
+// dropdown (instead of scrolling through every port's row); shows only
+// Utilization %, Capacity, and Router for the selected port. Threshold is a
+// fixed 90% default baked into the color logic, never displayed. ────────────
+
+function SnmpWidget({ ports }: { ports: SnmpPort[] }) {
+  const [selected, setSelected] = useState(ports[0].port);
+  const port = ports.find(p => p.port === selected) ?? ports[0];
+  const color = port.utilization >= 90 ? "#FF3B3B" : port.utilization >= 80 ? "#FFB020" : "#2DD4BF";
+
+  return (
+    <EvidenceCard number="3" title="SNMP — Port Utilization" sourceTag={`snmp-agent / ${port.router}`}>
+      <div className="mb-3">
+        <Select value={selected} onValueChange={setSelected}>
+          <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {ports.map(p => (
+              <SelectItem key={p.port} value={p.port}>
+                <span className="font-mono">{p.port}</span> — {p.utilization}%
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <UtilBar label={port.port} value={port.utilization} threshold={90} />
+      <div className="grid grid-cols-3 gap-2.5">
+        <StatBlock label="Utilization" value={`${port.utilization}%`} color={color} />
+        <StatBlock label="Capacity" value={port.capacity} />
+        <StatBlock label="Router" value={port.router} />
+      </div>
+    </EvidenceCard>
+  );
+}
+
 // ── Evidence tab ───────────────────────────────────────────────────────────────
-// Shows 7 of the alert's 9 data sources (matches the design brief). `benocsRca`
-// moved to the Root Cause Analysis tab; `eventScout` isn't part of this pass —
-// both are still in alert-store.ts and easy to re-surface if wanted.
+// Shows 6 of the alert's 9 OBSERVE-phase data sources as numbered cards
+// (matches the design brief). `benocsRca` moved to the Root Cause Analysis
+// tab; `eventScout` and `networkLoadMonitor` aren't surfaced as standalone
+// cards in this pass — networkLoadMonitor's escalation narrative now lives in
+// the Anodot widget's "Critical" tab instead. Both remain in alert-store.ts
+// and are easy to re-surface if wanted.
 
 function EvidenceTab({ alert }: { alert: Alert }) {
-  const { anodot, networkLoadMonitor, benocs, snmp, borderPlanner, caemCasm, rex } = alert.sources;
+  const { benocs, snmp, borderPlanner, caemCasm, rex } = alert.sources;
   const flagColor = BUILDOUT_COLOR[borderPlanner.buildoutFlag];
   const [openList, setOpenList] = useState<"alarms" | "tickets" | null>(null);
+  const interfaces = alertInterfacesWorstFirst(alert);
+  const peak = alertPeakUtilization(alert);
+  const peakColor = peak >= 85 ? "#FF3B3B" : peak >= 70 ? "#FFB020" : "#2DD4BF";
 
   return (
     <div className="space-y-4">
-      <EvidenceCard number="1" title="Anodot — Alert Trigger" sourceTag={`anomaly feed / peering-AS-${anodot.handoverAS}`}>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-          <StatBlock label="Severity" value={anodot.severity} color="#FF3B3B" />
-          <StatBlock label="Handover AS" value={anodot.handoverAS} />
-          <StatBlock label="Anomaly Score" value={anodot.score} color="#FF3B3B" />
-          <StatBlock label="Router" value={anodot.router} />
-          <StatBlock label="IXP" value={anodot.ixp} />
-        </div>
-      </EvidenceCard>
+      <AnodotWidget alert={alert} />
 
-      <EvidenceCard number="2" title="Network Load Monitor — Triage" sourceTag={`ingress-monitor / threshold=${networkLoadMonitor.thresholdGbps} Gbps`}>
-        <p className="text-[12px] leading-relaxed mb-3" style={{ color: "var(--color-text-muted)" }}>
-          {networkLoadMonitor.reason}
+      <div className="rounded-xl p-4" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>Affected Scope — traffic paths</span>
+          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+            {interfaces.length} interfaces · worst peak first
+          </span>
+        </div>
+        <div className="space-y-4">
+          {interfaces.map((iface) => {
+            const ifacePeakColor = iface.peakUtilization >= 85 ? "#FF3B3B" : iface.peakUtilization >= 70 ? "#FFB020" : "#2DD4BF";
+            return (
+              <div key={iface.name}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-primary)" }}>{iface.name}</p>
+                  <span className="text-[10px] font-bold" style={{ color: ifacePeakColor }}>{iface.peakUtilization}% peak</span>
+                </div>
+                <PathStrip nodes={iface.pathChain} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-0.5">
+          <p className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>Interface Utilization</p>
+          <span className="text-[11px] font-bold" style={{ color: peakColor }}>{peak}% worst peak</span>
+        </div>
+        <p className="text-[11px] mb-3" style={{ color: "var(--color-text-muted)" }}>
+          Observed utilization per congested interface, worst peak first · 85% capacity threshold · click a chart to collapse it
         </p>
-        <div className="grid grid-cols-2 gap-2.5">
-          <StatBlock label="Current" value={`${networkLoadMonitor.currentGbps} Gbps`} color="#FF3B3B" />
-          <StatBlock label="Threshold" value={`${networkLoadMonitor.thresholdGbps} Gbps`} />
+        <div className="space-y-4">
+          {interfaces.map((iface) => (
+            <AlertInterfaceChart key={iface.name} iface={iface} />
+          ))}
         </div>
-      </EvidenceCard>
+      </div>
 
-      <EvidenceCard number="3" title="Bendos RCA — Traffic Flows" sourceTag={`traffic-flow-api / source-AS-${benocs.sourceAS}`}>
+      <EvidenceCard number="2" title="Bendos RCA — Traffic Flows" sourceTag={`traffic-flow-api / source-AS-${benocs.sourceAS}`}>
         <p className="text-[11px] font-mono mb-3" style={{ color: "var(--color-text-muted)" }}>
           Direction: {benocs.direction}
         </p>
@@ -268,16 +546,9 @@ function EvidenceTab({ alert }: { alert: Alert }) {
         </div>
       </EvidenceCard>
 
-      <EvidenceCard number="4" title="SNMP — Port Utilization" sourceTag={`snmp-agent / ${snmp.router} / ${snmp.iface}`}>
-        <UtilBar label={snmp.iface} value={snmp.utilization} threshold={snmp.threshold} />
-        <div className="grid grid-cols-3 gap-2.5">
-          <StatBlock label="Threshold" value={`${snmp.threshold}%`} />
-          <StatBlock label="Capacity" value={snmp.capacity} />
-          <StatBlock label="Route" value={snmp.router} />
-        </div>
-      </EvidenceCard>
+      <SnmpWidget ports={snmp.ports} />
 
-      <EvidenceCard number="5" title="Border Planner — Capacity & ASN Mix" sourceTag="border-planner-api / all-peering-ports">
+      <EvidenceCard number="4" title="Border Planner — Capacity & ASN Mix" sourceTag="border-planner-api / all-peering-ports">
         <div className="grid grid-cols-3 gap-2.5 mb-3">
           <StatBlock label="Congested Ports" value={borderPlanner.congestedPorts} color="#FF3B3B" />
           <StatBlock label="Build-out Flag" value={borderPlanner.buildoutFlag} color={flagColor} badge />
@@ -319,7 +590,7 @@ function EvidenceTab({ alert }: { alert: Alert }) {
         </div>
       </EvidenceCard>
 
-      <EvidenceCard number="6" title="CAEM / CASM — Alarms & Tickets" sourceTag="caem-api + casm-api / scope=this-alert">
+      <EvidenceCard number="5" title="CAEM / CASM — Alarms & Tickets" sourceTag="caem-api + casm-api / scope=this-alert">
         <button
           onClick={() => setOpenList("alarms")}
           className="w-full flex items-center justify-between mb-2 group"
@@ -361,7 +632,7 @@ function EvidenceTab({ alert }: { alert: Alert }) {
       {openList === "alarms" && <AlarmListModal alarms={caemCasm.alarmDetails} onClose={() => setOpenList(null)} />}
       {openList === "tickets" && <TicketListModal tickets={caemCasm.ticketDetails} onClose={() => setOpenList(null)} />}
 
-      <EvidenceCard number="7" title="Rex — Routing Analysis" sourceTag="rex-routing-api / full-path">
+      <EvidenceCard number="6" title="Rex — Routing Analysis" sourceTag="rex-routing-api / full-path">
         <div className="grid grid-cols-3 gap-2.5 mb-3">
           <StatBlock label="Link Flap" value={rex.linkFlap ? "Detected" : "None detected"} color={rex.linkFlap ? "#FF3B3B" : "#2DD4BF"} />
           <StatBlock label="IGP Metric Change" value={rex.igpMetricChange} />
@@ -374,65 +645,19 @@ function EvidenceTab({ alert }: { alert: Alert }) {
 }
 
 // ── Root Cause Analysis tab ───────────────────────────────────────────────────
+// Stripped down to exactly one thing: the agent's storyline — what happened,
+// where, and why. No evidence chain, no classification grid, no change/impact
+// callouts — those live on the Evidence tab or aren't shown at all.
 
 function RcaTab({ alert }: { alert: Alert }) {
-  const { predict, sources } = alert;
-  const { benocsRca } = sources;
-  const matchedClass = benocsRca.classifications.find(c => c.matches);
-
   return (
-    <div className="space-y-4">
-      <EvidenceCard number="1" title="Root Cause" sourceTag="anomaly feed / peering-AS-analysis">
-        <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-text-primary)" }}>{predict.narrative}</p>
-      </EvidenceCard>
-
-      {predict.changeInFlight && (
-        <div
-          className="rounded-xl p-4 flex items-start gap-3"
-          style={{ background: "linear-gradient(135deg, rgba(255,176,32,0.10), rgba(255,176,32,0.04))", border: "1px solid rgba(255,176,32,0.3)" }}
-        >
-          <Zap size={13} style={{ color: "#FFB020", flexShrink: 0, marginTop: 1 }} strokeWidth={2.5} />
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: "#FFB020" }}>Change already in flight</p>
-            <p className="text-[12px] leading-snug" style={{ color: "var(--color-text-primary)" }}>{predict.changeInFlight}</p>
-          </div>
-        </div>
-      )}
-
-      <div
-        className="rounded-xl p-4"
-        style={{ background: "linear-gradient(135deg, rgba(255,59,59,0.08), rgba(255,59,59,0.03))", border: "1px solid rgba(255,59,59,0.25)" }}
-      >
-        <p className="text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#FF3B3B" }}>If unmitigated</p>
-        <p className="text-[12px] leading-snug" style={{ color: "var(--color-text-primary)" }}>{predict.ifUnmitigated}</p>
-      </div>
-
-      <EvidenceCard number="2" title="Bendos RCA — Independent Classification" sourceTag="bendos-rca-api / radio-independent">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-3">
-          {benocsRca.classifications.map(cls => (
-            <StatBlock
-              key={cls.name}
-              label={cls.name}
-              value={cls.matches ? "ON" : "No"}
-              color={cls.matches ? "#2DD4BF" : "var(--color-text-muted)"}
-              badge={cls.matches}
-            />
-          ))}
-        </div>
-        {matchedClass?.confirms && (
-          <p className="text-[11px] leading-relaxed" style={{ color: "#2DD4BF" }}>{matchedClass.confirms}</p>
-        )}
-      </EvidenceCard>
-
-      <EvidenceCard number="3" title="Evidence chain" sourceTag="rex-routing-api / full-path">
-        <div className="space-y-2">
-          {predict.evidenceChain.map((e, i) => (
-            <div key={i} className="rounded-lg px-3 py-2.5" style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid var(--color-border)" }}>
-              <p className="text-[11px] leading-snug" style={{ color: "var(--color-text-primary)" }}>{e}</p>
-            </div>
-          ))}
-        </div>
-      </EvidenceCard>
+    <div className="rounded-xl p-5" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+      <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--color-text-muted)" }}>
+        Root cause hypothesis
+      </p>
+      <p className="text-[13px] leading-relaxed whitespace-pre-line" style={{ color: "var(--color-text-primary)" }}>
+        {alert.predict.narrative}
+      </p>
     </div>
   );
 }
@@ -454,10 +679,16 @@ function RemediationTab({ alertId, actions, onConfirmed }: {
 
   return (
     <div className="space-y-3">
+      <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+        Take actions one at a time — if the network hasn't stabilised after the first, take the next.
+        Each action you take is recorded with its own timestamp.
+      </p>
+
       {actions.map((action, i) => {
-        const done  = isConfirmed(alertId, action.id);
-        const color = RISK_COLOR[action.risk];
-        const bg    = RISK_BG[action.risk];
+        const done    = isConfirmed(alertId, action.id);
+        const takenAt = getTakenAt(alertId, action.id);
+        const color   = RISK_COLOR[action.risk];
+        const bg      = RISK_BG[action.risk];
 
         return (
           <div
@@ -491,8 +722,13 @@ function RemediationTab({ alertId, actions, onConfirmed }: {
                   )}
                   {done && (
                     <Badge variant="success" className="gap-1 font-bold uppercase" style={{ color: "#2DD4BF", backgroundColor: "rgba(45,212,191,0.12)" }}>
-                      <CheckCircle2 size={8} /> CONFIRMED
+                      <CheckCircle2 size={8} /> TAKEN
                     </Badge>
+                  )}
+                  {done && takenAt && (
+                    <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                      at {formatTakenAt(takenAt)}
+                    </span>
                   )}
                 </div>
                 {action.hold && action.holdReason && (
@@ -581,7 +817,6 @@ function FeedbackTab({ alertId }: { alertId: string }) {
 
 export default function AlertDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const alert = ALERTS.find(a => a.id === id);
 
   const [activeTab, setActiveTab]     = useState<TabKey>("evidence");
@@ -647,11 +882,20 @@ export default function AlertDetail() {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
           {[
-            { label: "Confidence", value: `${alert.confidence}%`, color: alert.confidence >= 90 ? "#2DD4BF" : "#FFB020" },
-            { label: "Impact",     value: `${alert.impact.baseline} → ${alert.impact.peak} ${alert.impact.unit}`, color: "#FF3B3B" },
-            { label: "Affected",   value: alert.affected, color: "var(--color-text-primary)", mono: true },
-            { label: "ETA",        value: alert.eta, color: "#FF6B4A" },
-          ].map(({ label, value, color, mono }) => (
+            // Confidence only for Resolved — before that, the alert hasn't
+            // been confirmed against an outcome yet.
+            alert.status === "resolved" &&
+              { label: "Confidence", value: `${alert.confidence}%`, color: alert.confidence >= 90 ? "#2DD4BF" : "#FFB020" },
+            // Impact stays hidden while Open — the lifecycle hasn't progressed
+            // far enough to know the real impact yet; shown from Acted upon onward.
+            alert.status !== "open" &&
+              { label: "Impact", value: `${alert.impact.baseline} → ${alert.impact.peak} ${alert.impact.unit}`, color: "#FF3B3B" },
+            { label: "Affected", value: alert.affected, color: "var(--color-text-primary)", mono: true },
+            // ETA only while unresolved — nothing left to estimate once acted upon completes.
+            (alert.status === "open" || alert.status === "acted-upon") &&
+              { label: "ETA", value: alert.eta, color: "#FF6B4A" },
+          ].filter((s): s is { label: string; value: string; color: string; mono?: boolean } => !!s)
+            .map(({ label, value, color, mono }) => (
             <div key={label}>
               <p className="text-[9px] font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-muted)" }}>
                 {label}
@@ -678,13 +922,6 @@ export default function AlertDetail() {
           </p>
 
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => navigate(`/network-model?alert=${alert.id}`)}
-              className="text-[12px] font-semibold px-4 py-2 rounded-lg transition-colors hover:bg-white/5"
-              style={{ border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
-            >
-              Send Proposal
-            </button>
             {notifyAction && (
               <button
                 onClick={() => setHeaderAction(notifyAction)}

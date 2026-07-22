@@ -32,7 +32,7 @@ const BAND1_CARDS: {
   to: string;
   navState?: { autoQuery: string };
 }[] = [
-  { key: "activeSC1Alerts",       title: "Active Alerts",            to: "/alerts?status=active" },
+  { key: "activeSC1Alerts",       title: "Open SC-1 Alerts",         to: "/alerts?status=open" },
   { key: "highSeverityAlerts",    title: "High Severity Alerts",     to: "/alerts?severity=high" },
   { key: "congestedPorts",        title: "Congested Ports",          to: "/network-model/ip-core", navState: { autoQuery: NM_QUERY_CONGESTED_PORTS } },
   { key: "criticalBuildoutPorts", title: "Critical Build-out Ports", to: "/network-model/ip-core", navState: { autoQuery: NM_QUERY_CRITICAL_BUILDOUT } },

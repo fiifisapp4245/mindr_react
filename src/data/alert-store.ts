@@ -10,10 +10,21 @@
 // Alarm refs (ALM-xxxx) are OK to show.
 
 import { BORDER_PORTS, type BorderPort, type BuildoutFlag } from "./border-ports";
+import {
+  generatePorts,
+  generateAlertInterfaces,
+  interfacesWorstFirst,
+  applyOverlap,
+  type AlertInterface,
+  type SnmpPort,
+} from "./alert-topology";
 
 export type { BorderPort, BuildoutFlag };
+export type { AlertInterface, SnmpPort, OverlappingAlertContribution, PathNode, SeriesPoint } from "./alert-topology";
 export type AlertSeverity = "critical" | "high" | "medium" | "low";
-export type AlertStatus   = "active" | "predicted" | "mitigating" | "resolved";
+// Four-stage handling lifecycle. Predicted is NOT a status — it's the
+// separate `isPredicted` flag below, orthogonal to where an alert sits here.
+export type AlertStatus   = "open" | "acted-upon" | "resolved" | "closed";
 export type RiskLevel     = "LOW" | "MEDIUM" | "HIGH";
 export type RcaClass = "Indirect Overflow" | "Handover Shift" | "Router Shift" | "Interface Shift" | "Organic-Event";
 
@@ -42,12 +53,10 @@ export interface BenocsSource {
   direction: string;
 }
 
+// Threshold is always 90% by default and isn't stored per-port — the SNMP
+// widget bakes that constant in rather than displaying a redundant field.
 export interface SnmpSource {
-  utilization: number;  // %
-  threshold: number;    // %
-  capacity: string;
-  router: string;
-  iface: string;
+  ports: SnmpPort[]; // 3-4 ports; port[0] is the primary port this alert fired on
 }
 
 export interface BorderPlannerSource {
@@ -149,6 +158,7 @@ export interface Alert {
   severity: AlertSeverity;
   confidence: number;
   status: AlertStatus;
+  isPredicted: boolean;     // forecast that hasn't fired yet — orthogonal to `status`
   impact: { baseline: number; peak: number; unit: "Gbps" };
   affected: string;         // handover AS / router — display label
   affectedAS: string;       // handover AS number (e.g. "AS6453") — single source for AS grouping/filtering
@@ -164,6 +174,8 @@ export interface Alert {
   raised: string;
   region: string;
   sources: AlertSources;
+  affectedInterfaces: AlertInterface[]; // 8-10 congested interfaces across 2-3 routers — single source for
+                                         // Affected Scope + Interface Utilization on the Evidence tab
   predict: AlertPredict;
   actions: AlertAction[];
 }
@@ -191,14 +203,19 @@ export const ALERT_SEV: Record<AlertSeverity, { label: string; color: string; bg
 };
 
 export const ALERT_STATUS: Record<AlertStatus, { label: string; color: string; bg: string }> = {
-  active:    { label: "ACTIVE",     color: "#FF3B3B", bg: "rgba(255,59,59,0.12)"   },
-  predicted: { label: "PREDICTED",  color: "#FFB020", bg: "rgba(255,176,32,0.12)"  },
-  mitigating:{ label: "MITIGATING", color: "#4D9EFF", bg: "rgba(77,158,255,0.12)"  },
-  resolved:  { label: "RESOLVED",   color: "#2DD4BF", bg: "rgba(45,212,191,0.12)"  },
+  open:         { label: "OPEN",        color: "#FF3B3B", bg: "rgba(255,59,59,0.12)"   },
+  "acted-upon": { label: "ACTED UPON",  color: "#4D9EFF", bg: "rgba(77,158,255,0.12)"  },
+  resolved:     { label: "RESOLVED",    color: "#2DD4BF", bg: "rgba(45,212,191,0.12)"  },
+  closed:       { label: "CLOSED",      color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
 };
 
+// Predicted is a separate TYPE flag (Alert.isPredicted), not a lifecycle status —
+// this is the single design token for that flag's chip, reused wherever a
+// predicted alert needs to be visually flagged alongside its (independent) status.
+export const PREDICTED_BADGE = { label: "PREDICTED", color: "#FFB020", bg: "rgba(255,176,32,0.12)" };
+
 // ── Mock data ─────────────────────────────────────────────────────────────────
-// peering-store.ts KPI values are computed from these records (ACTIVE_ALERTS_COUNT,
+// peering-store.ts KPI values are computed from these records (OPEN_ALERTS_COUNT,
 // HIGH_SEVERITY_ALERTS_COUNT below) and from border-ports.ts (congested/build-out
 // ports), so the Dashboard cards and the Alerts page filters never diverge.
 // ALERTS = HAND_ALERTS (4 fully hand-authored records) + GENERATED_ALERTS (built
@@ -212,7 +229,8 @@ const HAND_ALERTS: Alert[] = [
     title: "Handover surge — AMS-SC1 / AS3320 overflow",
     severity: "critical",
     confidence: 91,
-    status: "active",
+    status: "open",
+    isPredicted: false,
     impact: { baseline: 7.1, peak: 9.4, unit: "Gbps" },
     affected: "AMS-SC1 / ams-ix-rtr-01",
     affectedAS: "AS3320",
@@ -227,6 +245,11 @@ const HAND_ALERTS: Alert[] = [
     age: "14m",
     raised: "14:23 UTC",
     region: "AMS-EU-WEST",
+
+    affectedInterfaces: generateAlertInterfaces({
+      idNum: 1, router: "ams-ix-rtr-01", ixp: "AMS-IX Amsterdam", region: "AMS-EU-WEST",
+      affectedAS: "AS3320", primaryUtilization: 94,
+    }),
 
     sources: {
       anodot: {
@@ -249,13 +272,7 @@ const HAND_ALERTS: Alert[] = [
         spikePercent: 32,
         direction: "AMS-SC1 → EU-CORE-01",
       },
-      snmp: {
-        utilization: 94,
-        threshold: 85,
-        capacity: "10 Gbps",
-        router: "ams-ix-rtr-01",
-        iface: "xe-0/0/0",
-      },
+      snmp: { ports: generatePorts("ams-ix-rtr-01", "xe-0/0/0", 94) },
       borderPlanner: {
         congestedPorts: 7,
         buildoutFlag: "CRITICAL",
@@ -396,7 +413,8 @@ const HAND_ALERTS: Alert[] = [
     title: "Transit congestion — DE-CIX Frankfurt / AS6453",
     severity: "high",
     confidence: 84,
-    status: "active",
+    status: "open",
+    isPredicted: false,
     impact: { baseline: 6.2, peak: 8.1, unit: "Gbps" },
     affected: "FRA-RTR-01 / fra-rtr-01",
     affectedAS: "AS6453",
@@ -411,11 +429,17 @@ const HAND_ALERTS: Alert[] = [
     age: "31m",
     raised: "14:06 UTC",
     region: "FRA-EU-CENTRAL",
+
+    affectedInterfaces: generateAlertInterfaces({
+      idNum: 2, router: "fra-rtr-01", ixp: "DE-CIX Frankfurt", region: "FRA-EU-CENTRAL",
+      affectedAS: "AS6453", primaryUtilization: 91,
+    }),
+
     sources: {
       anodot: { severity: "HIGH", handoverAS: "AS6453", score: 87.4, router: "fra-rtr-01", ixp: "DE-CIX Frankfurt" },
       networkLoadMonitor: { decision: "escalate", reason: "Sustained ingress above 80% threshold for 28+ minutes", currentGbps: 8.1, thresholdGbps: 7.4 },
       benocs: { sourceAS: "AS6453", baseline: 6.2, peak: 8.1, spikePercent: 31, direction: "DE-CIX Frankfurt → EU-CORE-02" },
-      snmp: { utilization: 91, threshold: 85, capacity: "10 Gbps", router: "fra-rtr-01", iface: "xe-0/0/0" },
+      snmp: { ports: generatePorts("fra-rtr-01", "xe-0/0/0", 91) },
       borderPlanner: { congestedPorts: 3, buildoutFlag: "CRITICAL", worstPort: "fra-rtr-01 xe-0/0/0", ports: BORDER_PORTS.filter(p => p.port.startsWith("fra")) },
       caemCasm: {
         alarmCount: 4, ticketCount: 2,
@@ -471,7 +495,8 @@ const HAND_ALERTS: Alert[] = [
     title: "Capacity breach forecast — AMS-RTR-02 peak overflow",
     severity: "high",
     confidence: 87,
-    status: "predicted",
+    status: "open",
+    isPredicted: true,
     impact: { baseline: 5.8, peak: 9.1, unit: "Gbps" },
     affected: "AMS-RTR-02 / ams-ix-rtr-02",
     affectedAS: "AS6453",
@@ -486,11 +511,17 @@ const HAND_ALERTS: Alert[] = [
     age: "2h 14m",
     raised: "12:23 UTC",
     region: "AMS-EU-WEST",
+
+    affectedInterfaces: generateAlertInterfaces({
+      idNum: 3, router: "ams-ix-rtr-02", ixp: "AMS-IX Amsterdam", region: "AMS-EU-WEST",
+      affectedAS: "AS6453", primaryUtilization: 85,
+    }),
+
     sources: {
       anodot: { severity: "HIGH", handoverAS: "AS6453", score: 81.0, router: "ams-ix-rtr-02", ixp: "AMS-IX Amsterdam" },
       networkLoadMonitor: { decision: "escalate", reason: "Forecast model projects breach in 3 hours based on SVOD event traffic pattern", currentGbps: 5.8, thresholdGbps: 8.5 },
       benocs: { sourceAS: "AS6453", baseline: 5.8, peak: 9.1, spikePercent: 57, direction: "AMS-IX → EU-CORE-01" },
-      snmp: { utilization: 85, threshold: 85, capacity: "10 Gbps", router: "ams-ix-rtr-02", iface: "xe-1/0/0" },
+      snmp: { ports: generatePorts("ams-ix-rtr-02", "xe-1/0/0", 85) },
       borderPlanner: { congestedPorts: 2, buildoutFlag: "SOON", worstPort: "ams-ix-rtr-02 xe-1/0/0", ports: BORDER_PORTS.filter(p => p.port.startsWith("ams-ix-rtr-02")) },
       caemCasm: {
         alarmCount: 3, ticketCount: 1,
@@ -543,7 +574,8 @@ const HAND_ALERTS: Alert[] = [
     title: "BGP flap stabilising — Tele Italia peering link",
     severity: "medium",
     confidence: 78,
-    status: "mitigating",
+    status: "acted-upon",
+    isPredicted: false,
     impact: { baseline: 3.1, peak: 4.8, unit: "Gbps" },
     affected: "EU-CORE-01 / AS6762",
     affectedAS: "AS6762",
@@ -558,11 +590,17 @@ const HAND_ALERTS: Alert[] = [
     age: "47m",
     raised: "13:50 UTC",
     region: "EU-CENTRAL",
+
+    affectedInterfaces: generateAlertInterfaces({
+      idNum: 4, router: "eu-core-01", ixp: "DE-CIX Frankfurt", region: "EU-CENTRAL",
+      affectedAS: "AS6762", primaryUtilization: 62,
+    }),
+
     sources: {
       anodot: { severity: "MEDIUM", handoverAS: "AS6762", score: 72.1, router: "eu-core-01", ixp: "DE-CIX Frankfurt" },
       networkLoadMonitor: { decision: "resolve", reason: "BGP session re-established; traffic recovering. Monitoring only.", currentGbps: 4.1, thresholdGbps: 5.0 },
       benocs: { sourceAS: "AS6762", baseline: 3.1, peak: 4.8, spikePercent: 55, direction: "DE-CIX → EU-CORE-01" },
-      snmp: { utilization: 62, threshold: 85, capacity: "10 Gbps", router: "eu-core-01", iface: "xe-2/0/0" },
+      snmp: { ports: generatePorts("eu-core-01", "xe-2/0/0", 62) },
       borderPlanner: { congestedPorts: 0, buildoutFlag: "OK", worstPort: "—", ports: [] },
       caemCasm: {
         alarmCount: 2, ticketCount: 1,
@@ -629,6 +667,7 @@ interface GeneratedAlertSpec {
   title: string;
   severity: AlertSeverity;
   status: AlertStatus;
+  isPredicted: boolean;
   confidence: number;
   affectedAS: string;
   affected: string;
@@ -719,6 +758,7 @@ function makeAlert(spec: GeneratedAlertSpec): Alert {
     severity: spec.severity,
     confidence: spec.confidence,
     status: spec.status,
+    isPredicted: spec.isPredicted,
     impact: { baseline: spec.baseline, peak: spec.peak, unit: "Gbps" },
     affected: spec.affected,
     affectedAS: spec.affectedAS,
@@ -734,6 +774,11 @@ function makeAlert(spec: GeneratedAlertSpec): Alert {
     raised: spec.raised,
     region: spec.region,
 
+    affectedInterfaces: generateAlertInterfaces({
+      idNum, router: spec.router, ixp: spec.ixp, region: spec.region,
+      affectedAS: spec.affectedAS, primaryUtilization: spec.utilization,
+    }),
+
     sources: {
       anodot: {
         severity: sevLabel,
@@ -743,10 +788,10 @@ function makeAlert(spec: GeneratedAlertSpec): Alert {
         ixp: spec.ixp,
       },
       networkLoadMonitor: {
-        decision: spec.status === "mitigating" ? "resolve" : "escalate",
-        reason: spec.status === "predicted"
+        decision: spec.status === "acted-upon" ? "resolve" : "escalate",
+        reason: spec.isPredicted
           ? `Forecast model projects breach based on recent ${spec.affectedAS} traffic growth pattern`
-          : `Ingress ${spec.status === "mitigating" ? "recovering toward" : "trending toward"} the ${threshold}% threshold on ${spec.router}`,
+          : `Ingress ${spec.status === "acted-upon" ? "recovering toward" : "trending toward"} the ${threshold}% threshold on ${spec.router}`,
         currentGbps: spec.peak,
         thresholdGbps: Math.round(spec.baseline * 1.15 * 10) / 10,
       },
@@ -757,13 +802,7 @@ function makeAlert(spec: GeneratedAlertSpec): Alert {
         spikePercent,
         direction: `${spec.ixp} → ${spec.region}`,
       },
-      snmp: {
-        utilization: spec.utilization,
-        threshold,
-        capacity: "10 Gbps",
-        router: spec.router,
-        iface: spec.iface,
-      },
+      snmp: { ports: generatePorts(spec.router, spec.iface, spec.utilization) },
       borderPlanner: {
         congestedPorts: 0,
         buildoutFlag: "OK",
@@ -806,14 +845,14 @@ function makeAlert(spec: GeneratedAlertSpec): Alert {
         `${spec.affectedAS} ${phrasing.verb} ${spec.router} (${spec.ixp}). BENOCS attributes the change to ${phrasing.note}. ` +
         `Current utilisation on ${spec.router} ${spec.iface} is ${spec.utilization}% against a baseline of ${spec.baseline} Gbps and a peak of ${spec.peak} Gbps (+${spikePercent}%).`,
       changeInFlight: spec.changeTicket
-        ? `${spec.changeTicket} — change window covering ${spec.router}. ${spec.status === "mitigating" ? "Auto-resolving." : "In progress."}`
+        ? `${spec.changeTicket} — change window covering ${spec.router}. ${spec.status === "acted-upon" ? "Auto-resolving." : "In progress."}`
         : null,
       evidenceChain: [
         `Anodot ${sevLabel} anomaly at ${spec.raised}: ${spec.affectedAS} handover activity on ${spec.router}`,
         `BENOCS: ${spikePercent}% ingress change sourced from ${spec.affectedAS}, direction ${spec.ixp} → ${spec.region}`,
         `BENOCS RCA: ${spec.rcaClass} classification (only match) — ${phrasing.note}`,
       ],
-      ifUnmitigated: spec.status === "predicted"
+      ifUnmitigated: spec.isPredicted
         ? `Forecast model projects the ${threshold}% threshold will be breached on ${spec.router} ${spec.iface} at current growth — plan capacity or rerouting ahead of the window.`
         : `At current growth, ${spec.router} ${spec.iface} risks exceeding the ${threshold}% threshold, raising packet-loss/SLA-breach risk for ${spec.affectedAS} and co-located peers.`,
       confidence: spec.confidence,
@@ -824,23 +863,43 @@ function makeAlert(spec: GeneratedAlertSpec): Alert {
 }
 
 const GENERATED_ALERT_SPECS: GeneratedAlertSpec[] = [
-  { id: "ALT-005", title: "Elevated ingress — DE-CIX Frankfurt / AS6453 secondary", severity: "medium", status: "active", confidence: 74, affectedAS: "AS6453", affected: "FRA-RTR-02 / fra-rtr-02", region: "FRA-EU-CENTRAL", router: "fra-rtr-02", ixp: "DE-CIX Frankfurt", iface: "xe-0/1/0", baseline: 4.5, peak: 5.9, utilization: 78, age: "9m", raised: "14:28 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Indirect Overflow" },
-  { id: "ALT-006", title: "Peering link congestion — DE-CIX Frankfurt / AS6453 tertiary", severity: "high", status: "mitigating", confidence: 82, affectedAS: "AS6453", affected: "FRA-RTR-03 / fra-rtr-03", region: "FRA-EU-CENTRAL", router: "fra-rtr-03", ixp: "DE-CIX Frankfurt", iface: "xe-1/0/0", baseline: 6.8, peak: 8.5, utilization: 88, age: "22m", raised: "14:15 UTC", eta: "Resolving — ETA 15:00 UTC", changeTicket: "CHG-0503", rcaClass: "Router Shift" },
-  { id: "ALT-007", title: "Forecast overflow — AMS-IX Amsterdam / AS6453 evening peak", severity: "low", status: "predicted", confidence: 63, affectedAS: "AS6453", affected: "AMS-RTR-03 / ams-ix-rtr-03", region: "AMS-EU-WEST", router: "ams-ix-rtr-03", ixp: "AMS-IX Amsterdam", iface: "xe-2/0/0", baseline: 3.2, peak: 4.1, utilization: 58, age: "1h 5m", raised: "13:32 UTC", eta: "Breach in ~5 hrs", changeTicket: null, rcaClass: "Organic-Event" },
-  { id: "ALT-008", title: "Handover surge — AMS-IX Amsterdam / AS3320 secondary path", severity: "high", status: "active", confidence: 83, affectedAS: "AS3320", affected: "AMS-RTR-04 / ams-ix-rtr-04", region: "AMS-EU-WEST", router: "ams-ix-rtr-04", ixp: "AMS-IX Amsterdam", iface: "xe-0/0/2", baseline: 5.5, peak: 7.2, utilization: 82, age: "26m", raised: "14:11 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Handover Shift" },
-  { id: "ALT-009", title: "Capacity trending high — DE-CIX Frankfurt / AS6762 secondary", severity: "medium", status: "predicted", confidence: 71, affectedAS: "AS6762", affected: "EU-CORE-02B / eu-core-02b", region: "FRA-EU-CENTRAL", router: "eu-core-02b", ixp: "DE-CIX Frankfurt", iface: "xe-3/0/0", baseline: 4.0, peak: 5.6, utilization: 74, age: "1h 40m", raised: "12:55 UTC", eta: "Breach in ~4 hrs", changeTicket: null, rcaClass: "Organic-Event" },
-  { id: "ALT-010", title: "Micro-outage recovered — LINX London / AS6762 backup", severity: "low", status: "active", confidence: 59, affectedAS: "AS6762", affected: "LINX-RTR-02 / linx-rtr-02", region: "LON-EU-WEST", router: "linx-rtr-02", ixp: "LINX London", iface: "xe-0/2/0", baseline: 2.1, peak: 2.6, utilization: 41, age: "6m", raised: "14:31 UTC", eta: "Monitor only", changeTicket: null, rcaClass: "Interface Shift" },
-  { id: "ALT-011", title: "Handover instability — LINX London / AS1299 (Telia) surge", severity: "critical", status: "active", confidence: 95, affectedAS: "AS1299", affected: "LINX-RTR-01 / linx-rtr-01", region: "LON-EU-WEST", router: "linx-rtr-01", ixp: "LINX London", iface: "xe-0/0/0", baseline: 8.0, peak: 10.6, utilization: 96, age: "4m", raised: "14:33 UTC", eta: "Immediate operator review", changeTicket: "CHG-0512", rcaClass: "Handover Shift" },
-  { id: "ALT-012", title: "Forecast breach — LINX London / AS1299 evening peak", severity: "high", status: "predicted", confidence: 86, affectedAS: "AS1299", affected: "LINX-RTR-03 / linx-rtr-03", region: "LON-EU-WEST", router: "linx-rtr-03", ixp: "LINX London", iface: "xe-1/0/1", baseline: 5.9, peak: 8.8, utilization: 83, age: "1h 12m", raised: "13:25 UTC", eta: "Breach in ~2 hrs", changeTicket: null, rcaClass: "Organic-Event" },
-  { id: "ALT-013", title: "BGP session flap stabilising — LINX London / AS1299 backup path", severity: "medium", status: "mitigating", confidence: 76, affectedAS: "AS1299", affected: "LINX-RTR-04 / linx-rtr-04", region: "LON-EU-WEST", router: "linx-rtr-04", ixp: "LINX London", iface: "xe-2/0/1", baseline: 3.4, peak: 4.6, utilization: 63, age: "38m", raised: "13:59 UTC", eta: "Resolving — ETA 14:45 UTC", changeTicket: "CHG-0498", rcaClass: "Router Shift" },
-  { id: "ALT-014", title: "Transit congestion — Milan IX / AS3356 (Lumen) ingress spike", severity: "medium", status: "active", confidence: 73, affectedAS: "AS3356", affected: "MIL-RTR-01 / mil-rtr-01", region: "MIL-EU-SOUTH", router: "mil-rtr-01", ixp: "Milan IX", iface: "xe-0/1/1", baseline: 4.4, peak: 5.7, utilization: 76, age: "17m", raised: "14:20 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Indirect Overflow" },
-  { id: "ALT-015", title: "Handover surge — Milan IX / AS3356 (Lumen) secondary port", severity: "high", status: "active", confidence: 85, affectedAS: "AS3356", affected: "MIL-RTR-02 / mil-rtr-02", region: "MIL-EU-SOUTH", router: "mil-rtr-02", ixp: "Milan IX", iface: "xe-1/1/0", baseline: 6.1, peak: 7.9, utilization: 86, age: "11m", raised: "14:26 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Handover Shift" },
-  { id: "ALT-016", title: "Capacity forecast — Brussels peer / AS5511 (Orange) evening ramp", severity: "medium", status: "predicted", confidence: 70, affectedAS: "AS5511", affected: "BRU-PEER-02 / bru-peer-02", region: "BRU-EU-WEST", router: "bru-peer-02", ixp: "Brussels Peering", iface: "ge-0/1/0", baseline: 2.8, peak: 3.9, utilization: 68, age: "2h 5m", raised: "12:32 UTC", eta: "Breach in ~5 hrs", changeTicket: null, rcaClass: "Organic-Event" },
+  { id: "ALT-005", title: "Elevated ingress — DE-CIX Frankfurt / AS6453 secondary", severity: "medium", status: "open", isPredicted: false, confidence: 74, affectedAS: "AS6453", affected: "FRA-RTR-02 / fra-rtr-02", region: "FRA-EU-CENTRAL", router: "fra-rtr-02", ixp: "DE-CIX Frankfurt", iface: "xe-0/1/0", baseline: 4.5, peak: 5.9, utilization: 78, age: "9m", raised: "14:28 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Indirect Overflow" },
+  { id: "ALT-006", title: "Peering link congestion — DE-CIX Frankfurt / AS6453 tertiary", severity: "high", status: "acted-upon", isPredicted: false, confidence: 82, affectedAS: "AS6453", affected: "FRA-RTR-03 / fra-rtr-03", region: "FRA-EU-CENTRAL", router: "fra-rtr-03", ixp: "DE-CIX Frankfurt", iface: "xe-1/0/0", baseline: 6.8, peak: 8.5, utilization: 88, age: "22m", raised: "14:15 UTC", eta: "Resolving — ETA 15:00 UTC", changeTicket: "CHG-0503", rcaClass: "Router Shift" },
+  { id: "ALT-007", title: "Forecast overflow — AMS-IX Amsterdam / AS6453 evening peak", severity: "low", status: "closed", isPredicted: true, confidence: 63, affectedAS: "AS6453", affected: "AMS-RTR-03 / ams-ix-rtr-03", region: "AMS-EU-WEST", router: "ams-ix-rtr-03", ixp: "AMS-IX Amsterdam", iface: "xe-2/0/0", baseline: 3.2, peak: 4.1, utilization: 58, age: "1h 5m", raised: "13:32 UTC", eta: "Closed — reviewed, no action needed", changeTicket: null, rcaClass: "Organic-Event" },
+  { id: "ALT-008", title: "Handover surge — AMS-IX Amsterdam / AS3320 secondary path", severity: "high", status: "open", isPredicted: false, confidence: 83, affectedAS: "AS3320", affected: "AMS-RTR-04 / ams-ix-rtr-04", region: "AMS-EU-WEST", router: "ams-ix-rtr-04", ixp: "AMS-IX Amsterdam", iface: "xe-0/0/2", baseline: 5.5, peak: 7.2, utilization: 82, age: "26m", raised: "14:11 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Handover Shift" },
+  { id: "ALT-009", title: "Capacity trending high — DE-CIX Frankfurt / AS6762 secondary", severity: "medium", status: "open", isPredicted: true, confidence: 71, affectedAS: "AS6762", affected: "EU-CORE-02B / eu-core-02b", region: "FRA-EU-CENTRAL", router: "eu-core-02b", ixp: "DE-CIX Frankfurt", iface: "xe-3/0/0", baseline: 4.0, peak: 5.6, utilization: 74, age: "1h 40m", raised: "12:55 UTC", eta: "Breach in ~4 hrs", changeTicket: null, rcaClass: "Organic-Event" },
+  { id: "ALT-010", title: "Micro-outage recovered — LINX London / AS6762 backup", severity: "low", status: "resolved", isPredicted: false, confidence: 59, affectedAS: "AS6762", affected: "LINX-RTR-02 / linx-rtr-02", region: "LON-EU-WEST", router: "linx-rtr-02", ixp: "LINX London", iface: "xe-0/2/0", baseline: 2.1, peak: 2.6, utilization: 41, age: "6m", raised: "14:31 UTC", eta: "Monitor only", changeTicket: null, rcaClass: "Interface Shift" },
+  { id: "ALT-011", title: "Handover instability — LINX London / AS1299 (Telia) surge", severity: "critical", status: "open", isPredicted: false, confidence: 95, affectedAS: "AS1299", affected: "LINX-RTR-01 / linx-rtr-01", region: "LON-EU-WEST", router: "linx-rtr-01", ixp: "LINX London", iface: "xe-0/0/0", baseline: 8.0, peak: 10.6, utilization: 96, age: "4m", raised: "14:33 UTC", eta: "Immediate operator review", changeTicket: "CHG-0512", rcaClass: "Handover Shift" },
+  { id: "ALT-012", title: "Forecast breach — LINX London / AS1299 evening peak", severity: "high", status: "open", isPredicted: true, confidence: 86, affectedAS: "AS1299", affected: "LINX-RTR-03 / linx-rtr-03", region: "LON-EU-WEST", router: "linx-rtr-03", ixp: "LINX London", iface: "xe-1/0/1", baseline: 5.9, peak: 8.8, utilization: 83, age: "1h 12m", raised: "13:25 UTC", eta: "Breach in ~2 hrs", changeTicket: null, rcaClass: "Organic-Event" },
+  { id: "ALT-013", title: "BGP session flap stabilising — LINX London / AS1299 backup path", severity: "medium", status: "acted-upon", isPredicted: false, confidence: 76, affectedAS: "AS1299", affected: "LINX-RTR-04 / linx-rtr-04", region: "LON-EU-WEST", router: "linx-rtr-04", ixp: "LINX London", iface: "xe-2/0/1", baseline: 3.4, peak: 4.6, utilization: 63, age: "38m", raised: "13:59 UTC", eta: "Resolving — ETA 14:45 UTC", changeTicket: "CHG-0498", rcaClass: "Router Shift" },
+  { id: "ALT-014", title: "Transit congestion — Milan IX / AS3356 (Lumen) ingress spike", severity: "medium", status: "open", isPredicted: false, confidence: 73, affectedAS: "AS3356", affected: "MIL-RTR-01 / mil-rtr-01", region: "MIL-EU-SOUTH", router: "mil-rtr-01", ixp: "Milan IX", iface: "xe-0/1/1", baseline: 4.4, peak: 5.7, utilization: 76, age: "17m", raised: "14:20 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Indirect Overflow" },
+  { id: "ALT-015", title: "Handover surge — Milan IX / AS3356 (Lumen) secondary port", severity: "high", status: "open", isPredicted: false, confidence: 85, affectedAS: "AS3356", affected: "MIL-RTR-02 / mil-rtr-02", region: "MIL-EU-SOUTH", router: "mil-rtr-02", ixp: "Milan IX", iface: "xe-1/1/0", baseline: 6.1, peak: 7.9, utilization: 86, age: "11m", raised: "14:26 UTC", eta: "Review within 30 min", changeTicket: null, rcaClass: "Handover Shift" },
+  { id: "ALT-016", title: "Capacity forecast — Brussels peer / AS5511 (Orange) evening ramp", severity: "medium", status: "open", isPredicted: true, confidence: 70, affectedAS: "AS5511", affected: "BRU-PEER-02 / bru-peer-02", region: "BRU-EU-WEST", router: "bru-peer-02", ixp: "Brussels Peering", iface: "ge-0/1/0", baseline: 2.8, peak: 3.9, utilization: 68, age: "2h 5m", raised: "12:32 UTC", eta: "Breach in ~5 hrs", changeTicket: null, rcaClass: "Organic-Event" },
 ];
 
 const GENERATED_ALERTS: Alert[] = GENERATED_ALERT_SPECS.map(makeAlert);
 
 export const ALERTS: Alert[] = [...HAND_ALERTS, ...GENERATED_ALERTS];
+
+// ── Concurrent-alert overlap ───────────────────────────────────────────────────
+// Curated pairs that share a handover AS (and therefore plausibly the same
+// physical interface) — one demonstrable overlap per AS cluster, not every
+// possible pair, matching how only one of EVT-0091's three interfaces (in
+// events.ts) carried an overlap. Applied post-construction so both sides of
+// each pair mutate to identical combinedUtilization/peakUtilization values.
+const OVERLAP_PAIRS: [string, string][] = [
+  ["ALT-001", "ALT-008"], // AS3320 — AMS-IX Amsterdam
+  ["ALT-002", "ALT-006"], // AS6453 — DE-CIX Frankfurt
+  ["ALT-004", "ALT-009"], // AS6762 — EU-CORE / DE-CIX Frankfurt
+  ["ALT-011", "ALT-012"], // AS1299 — LINX London
+  ["ALT-014", "ALT-015"], // AS3356 — Milan IX
+];
+
+for (const [idA, idB] of OVERLAP_PAIRS) {
+  const a = ALERTS.find(x => x.id === idA)!;
+  const b = ALERTS.find(x => x.id === idB)!;
+  applyOverlap(a.affectedInterfaces[0], { id: a.id, title: a.title }, b.affectedInterfaces[0], { id: b.id, title: b.title });
+}
 
 // ── AS grouping (single source for the "Alerts by Handover AS" chart AND the
 // Alerts page's AS filter — same query, so bar height always equals filtered
@@ -852,14 +911,43 @@ export function getAlertsByAS(alerts: Alert[] = ALERTS): { as: string; count: nu
   return Array.from(counts, ([as, count]) => ({ as, count })).sort((a, b) => b.count - a.count);
 }
 
+// ── Affected-interface helpers (mirror events.ts's worstInterface/interfacesWorstFirst) ─
+
+export function alertInterfacesWorstFirst(alert: Alert): AlertInterface[] {
+  return interfacesWorstFirst(alert.affectedInterfaces);
+}
+
+export function alertWorstInterface(alert: Alert): AlertInterface {
+  return alertInterfacesWorstFirst(alert)[0];
+}
+
+export function alertPeakUtilization(alert: Alert): number {
+  return alertWorstInterface(alert)?.peakUtilization ?? 0;
+}
+
+// Distinct routers referenced across an alert's affected interfaces (2-3 per
+// alert) — derived, not stored, so it can never drift from the interfaces themselves.
+export function alertRouters(alert: Alert): string[] {
+  const routers = new Set<string>();
+  for (const iface of alert.affectedInterfaces) {
+    const routerNode = iface.pathChain.find(p => p.type === "router");
+    if (routerNode) routers.add(routerNode.label);
+  }
+  return Array.from(routers);
+}
+
 // ── KPI helpers (reconcile with peering-store) ────────────────────────────────
 
+// `open` excludes Predicted alerts on purpose — this KPI means "ongoing
+// reactive incidents", and a forecast that hasn't fired yet isn't one.
+// Predicted alerts get their own count below.
 export const ALERT_KPIS = {
-  total:        ALERTS.length,                                                       // 4
-  critical:     ALERTS.filter(a => a.severity === "critical").length,               // 1
-  predicted:    ALERTS.filter(a => a.status === "predicted").length,                // 1
-  avgConfidence: Math.round(ALERTS.reduce((s, a) => s + a.confidence, 0) / ALERTS.length), // 85
-  needsReview:  ALERTS.filter(a => (a.status === "active" && (a.severity === "critical" || a.severity === "high"))).length, // 2
+  total:         ALERTS.length,
+  open:          ALERTS.filter(a => a.status === "open" && !a.isPredicted).length,
+  critical:      ALERTS.filter(a => a.severity === "critical").length,
+  predicted:     ALERTS.filter(a => a.isPredicted).length,
+  avgConfidence: Math.round(ALERTS.reduce((s, a) => s + a.confidence, 0) / ALERTS.length),
+  needsReview:   ALERTS.filter(a => (a.status === "open" && !a.isPredicted && (a.severity === "critical" || a.severity === "high"))).length,
 };
 
 // ── Shared alert queries ───────────────────────────────────────────────────────
@@ -867,22 +955,24 @@ export const ALERT_KPIS = {
 // page's filtered row count are always the same query run twice, never two
 // hand-maintained numbers that can drift apart.
 
-export const isActiveAlert       = (a: Alert): boolean => a.status === "active";
-export const isHighSeverityAlert = (a: Alert): boolean => a.severity === "high";
-export const hasChangeTicket     = (a: Alert): boolean => a.changeTicket !== null;
+export const isOpenAlert          = (a: Alert): boolean => a.status === "open" && !a.isPredicted;
+export const isHighSeverityAlert  = (a: Alert): boolean => a.severity === "high";
+export const hasChangeTicket      = (a: Alert): boolean => a.changeTicket !== null;
 
-export const ACTIVE_ALERTS_COUNT        = ALERTS.filter(isActiveAlert).length;
+export const OPEN_ALERTS_COUNT          = ALERTS.filter(isOpenAlert).length;
 export const HIGH_SEVERITY_ALERTS_COUNT = ALERTS.filter(isHighSeverityAlert).length;
 
 // ── "Open Alerts" selection ────────────────────────────────────────────────────
 // Fills up to ATTENTION_LIST_SIZE rows from the same ALERTS array the Alerts
 // page reads, in strict tier order — each tier sorted by recency only:
-//   1. Critical + Active
-//   2. High + Active
-//   3. Predicted (any severity) — fallback, only used if tiers 1+2 total < size
-// Medium/Low Active and Mitigating alerts are intentionally NOT surfaced here.
-// Kept small (2, not top-5) — alert frequency is low and operators are
-// assigned/work alerts immediately, so a long list here would mostly show stale rows.
+//   1. Critical + Open
+//   2. High + Open
+//   3. Predicted (any severity, any status) — fallback, only used if tiers 1+2
+//      total < size, and excluding anything already picked in tiers 1/2
+//      (a Predicted alert can itself be Critical/High + Open and land there first)
+// Medium/Low Open and Acted-upon/Resolved/Closed alerts are intentionally NOT
+// surfaced here. Kept small (2, not top-5) — alert frequency is low and operators
+// are assigned/work alerts immediately, so a long list here would mostly show stale rows.
 
 const ATTENTION_LIST_SIZE = 2;
 
@@ -897,28 +987,56 @@ function byRecency(a: Alert, b: Alert): number {
 }
 
 export function getAttentionAlerts(alerts: Alert[] = ALERTS): Alert[] {
-  const criticalActive = alerts
-    .filter(a => a.severity === "critical" && a.status === "active")
+  const criticalOpen = alerts
+    .filter(a => a.severity === "critical" && a.status === "open")
     .sort(byRecency);
-  const highActive = alerts
-    .filter(a => a.severity === "high" && a.status === "active")
+  const highOpen = alerts
+    .filter(a => a.severity === "high" && a.status === "open")
     .sort(byRecency);
-  const predicted = alerts
-    .filter(a => a.status === "predicted")
+  const alreadyPicked = new Set([...criticalOpen, ...highOpen].map(a => a.id));
+  const predictedFallback = alerts
+    .filter(a => a.isPredicted && !alreadyPicked.has(a.id))
     .sort(byRecency);
-  return [...criticalActive, ...highActive, ...predicted].slice(0, ATTENTION_LIST_SIZE);
+  return [...criticalOpen, ...highOpen, ...predictedFallback].slice(0, ATTENTION_LIST_SIZE);
 }
 
 // ── Mutable state (mirrors alarms context pattern) ────────────────────────────
 
-let _actions: Record<string, boolean> = {};
+// Multiple actions can be taken sequentially on the same alert (take action 1;
+// if unresolved, take 2; then 3; ...) — each is recorded independently with its
+// own taken timestamp, rather than a single alert-wide "confirmed" flag. A
+// later "one action only" rule would just cap how many callers allow, not
+// change this storage shape.
+interface TakenAction {
+  actionId: string;
+  takenAt: string; // ISO timestamp, real interaction time (not mocked scenario time)
+}
+
+let _actions: Record<string, TakenAction> = {};
 
 export function confirmAction(alertId: string, actionId: string): void {
-  _actions[`${alertId}:${actionId}`] = true;
+  _actions[`${alertId}:${actionId}`] = { actionId, takenAt: new Date().toISOString() };
 }
 
 export function isConfirmed(alertId: string, actionId: string): boolean {
   return !!_actions[`${alertId}:${actionId}`];
+}
+
+export function getTakenAt(alertId: string, actionId: string): string | undefined {
+  return _actions[`${alertId}:${actionId}`]?.takenAt;
+}
+
+// Ordered (by when taken) list of this alert's actions that have been taken —
+// single source for both the Remediation tab's own display and the Feedback
+// tab's "which resolution actually worked?" selector, so the two never drift.
+export function getTakenActions(alertId: string, actions: AlertAction[]): { action: AlertAction; takenAt: string }[] {
+  return actions
+    .map(action => {
+      const entry = _actions[`${alertId}:${action.id}`];
+      return entry ? { action, takenAt: entry.takenAt } : null;
+    })
+    .filter((x): x is { action: AlertAction; takenAt: string } => x !== null)
+    .sort((a, b) => a.takenAt.localeCompare(b.takenAt));
 }
 
 let _feedback: Record<string, Partial<Record<FeedbackQuestionKey, number>>> = {};

@@ -3,6 +3,7 @@ import {
   getAttentionAlerts,
   ALERT_SEV,
   ALERT_STATUS,
+  PREDICTED_BADGE,
   type AlertSeverity,
   type AlertStatus,
 } from '../../data/alert-store';
@@ -17,11 +18,11 @@ const SEV_VARIANT: Record<AlertSeverity, "destructive" | "warning" | "info" | "s
   low:      "success",
 };
 
-const STATUS_VARIANT: Record<AlertStatus, "destructive" | "warning" | "info" | "success"> = {
-  active:     "destructive",
-  predicted:  "warning",
-  mitigating: "info",
-  resolved:   "success",
+const STATUS_VARIANT: Record<AlertStatus, "destructive" | "warning" | "info" | "success" | "secondary"> = {
+  open:         "destructive",
+  "acted-upon": "info",
+  resolved:     "success",
+  closed:       "secondary",
 };
 
 function SevBadge({ severity }: { severity: AlertSeverity }) {
@@ -46,6 +47,17 @@ function StatusBadge({ status }: { status: AlertStatus }) {
       style={{ color: cfg.color, backgroundColor: cfg.bg }}
     >
       {cfg.label}
+    </Badge>
+  );
+}
+
+function PredictedChip() {
+  return (
+    <Badge
+      className="text-[10px] shrink-0 uppercase tracking-wide"
+      style={{ color: PREDICTED_BADGE.color, backgroundColor: PREDICTED_BADGE.bg }}
+    >
+      {PREDICTED_BADGE.label}
     </Badge>
   );
 }
@@ -105,6 +117,7 @@ export function AttentionList() {
                   </span>
                   <SevBadge severity={alert.severity} />
                   <StatusBadge status={alert.status} />
+                  {alert.isPredicted && <PredictedChip />}
                 </div>
                 <p
                   className="text-[11px] mt-0.5"

@@ -3,10 +3,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Bell,
+  ChevronDown,
   ChevronRight,
   Clock,
   TrendingUp,
   Users,
+  X,
   Zap,
 } from "lucide-react";
 import {
@@ -14,6 +16,7 @@ import {
   ALERT_KPIS,
   ALERT_SEV,
   ALERT_STATUS,
+  PREDICTED_BADGE,
   hasChangeTicket,
   getAlertsByAS,
   type Alert,
@@ -21,6 +24,7 @@ import {
   type AlertStatus,
 } from "../data/alert-store";
 import { Badge } from "../components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,14 +34,14 @@ type TicketFilter = "all" | "with" | "without";
 type AsFilter     = "all" | string;
 
 const SEVERITIES: AlertSeverity[] = ["critical", "high", "medium", "low"];
-const STATUSES:   AlertStatus[]   = ["active", "predicted", "mitigating", "resolved"];
+const STATUSES:   AlertStatus[]   = ["open", "acted-upon", "resolved", "closed"];
 
 // Same query that backs the "Alerts by Handover AS" dashboard chart, so a bar's
 // height always equals this page's filtered row count for that AS.
 const ALERTS_BY_AS = getAlertsByAS(ALERTS);
 const KNOWN_AS = new Set(ALERTS_BY_AS.map(a => a.as));
 
-// Deep-link query params are read once on mount (?severity=high&status=active&changeTicket=true&affectedAS=AS6453),
+// Deep-link query params are read once on mount (?severity=high&status=open&predicted=true&changeTicket=true&affectedAS=AS6453),
 // case-insensitively, so cards/links elsewhere in the app can pre-apply a filter.
 function parseSevParam(v: string | null): SevFilter {
   const lower = v?.toLowerCase() ?? "";
@@ -47,6 +51,11 @@ function parseSevParam(v: string | null): SevFilter {
 function parseStatusParam(v: string | null): StatusFilter {
   const lower = v?.toLowerCase() ?? "";
   return (STATUSES as string[]).includes(lower) ? (lower as AlertStatus) : "all";
+}
+
+// Predicted is a separate TYPE filter, not a status value — its own boolean param.
+function parsePredictedParam(v: string | null): boolean {
+  return v?.toLowerCase() === "true";
 }
 
 function parseTicketParam(v: string | null): TicketFilter {
@@ -67,11 +76,11 @@ const SEV_VARIANT: Record<AlertSeverity, "destructive" | "warning" | "info" | "s
   low:      "success",
 };
 
-const STATUS_VARIANT: Record<AlertStatus, "destructive" | "warning" | "info" | "success"> = {
-  active:     "destructive",
-  predicted:  "warning",
-  mitigating: "info",
-  resolved:   "success",
+const STATUS_VARIANT: Record<AlertStatus, "destructive" | "warning" | "info" | "success" | "secondary"> = {
+  open:         "destructive",
+  "acted-upon": "info",
+  resolved:     "success",
+  closed:       "secondary",
 };
 
 function SevBadge({ severity }: { severity: AlertSeverity }) {
@@ -98,23 +107,6 @@ function StatusBadge({ status }: { status: AlertStatus }) {
       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.color }} />
       {cfg.label}
     </Badge>
-  );
-}
-
-function ConfidenceBar({ value }: { value: number }) {
-  const color = value >= 90 ? "#2DD4BF" : value >= 75 ? "#FFB020" : "#4D9EFF";
-  return (
-    <div className="flex items-center gap-2">
-      <div
-        className="h-1.5 rounded-full overflow-hidden"
-        style={{ width: 48, backgroundColor: "rgba(255,255,255,0.08)" }}
-      >
-        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
-      </div>
-      <span className="text-[11px] tabular-nums font-medium" style={{ color }}>
-        {value}%
-      </span>
-    </div>
   );
 }
 
@@ -184,24 +176,6 @@ function AlertRow({ alert, onClick }: { alert: Alert; onClick: () => void }) {
         </div>
       </td>
 
-      {/* Severity */}
-      <td className="px-4 py-3">
-        <SevBadge severity={alert.severity} />
-      </td>
-
-      {/* Confidence */}
-      <td className="px-4 py-3">
-        <ConfidenceBar value={alert.confidence} />
-      </td>
-
-      {/* Impact */}
-      <td className="px-4 py-3 whitespace-nowrap">
-        <span className="text-sm tabular-nums" style={{ color: "var(--color-text-primary)" }}>
-          {alert.impact.baseline} → {alert.impact.peak}{" "}
-          <span style={{ color: "var(--color-text-muted)" }}>{alert.impact.unit}</span>
-        </span>
-      </td>
-
       {/* Affected */}
       <td className="px-4 py-3">
         <span className="text-[12px] font-mono" style={{ color: "var(--color-text-muted)" }}>
@@ -216,16 +190,9 @@ function AlertRow({ alert, onClick }: { alert: Alert; onClick: () => void }) {
         </span>
       </td>
 
-      {/* ETA / Age */}
+      {/* Severity */}
       <td className="px-4 py-3">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[11px] font-medium" style={{ color: "var(--color-text-primary)" }}>
-            {alert.eta}
-          </span>
-          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-            {alert.age} ago
-          </span>
-        </div>
+        <SevBadge severity={alert.severity} />
       </td>
 
       {/* Status */}
@@ -245,19 +212,108 @@ function AlertRow({ alert, onClick }: { alert: Alert; onClick: () => void }) {
   );
 }
 
+// ── Handover AS dropdown — searchable/scrollable, since there can be 50s–100s
+// of AS values (a plain pill row doesn't scale). Clearable via the "All AS"
+// row or the inline × button. ─────────────────────────────────────────────────
+
+function HandoverAsDropdown({ value, onChange, options }: {
+  value: AsFilter;
+  onChange: (v: AsFilter) => void;
+  options: { as: string; count: number }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const isActive = value !== "all";
+  const filteredOptions = options.filter((o) => o.as.toLowerCase().includes(query.toLowerCase()));
+
+  function select(as: AsFilter) {
+    onChange(as);
+    setOpen(false);
+    setQuery("");
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold font-mono transition-colors"
+            style={{
+              backgroundColor: isActive ? "rgba(233,24,124,0.12)" : "transparent",
+              color: isActive ? "var(--color-brand)" : "var(--color-text-muted)",
+              border: `1px solid ${isActive ? "var(--color-brand)" : "var(--color-border)"}`,
+            }}
+          >
+            {value === "all" ? "All AS" : value}
+            <ChevronDown size={11} style={{ opacity: 0.7 }} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-2">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search AS…"
+            autoFocus
+            className="w-full mb-2 rounded-lg px-2.5 py-1.5 text-xs"
+            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)", outline: "none" }}
+          />
+          <div className="max-h-56 overflow-y-auto space-y-0.5">
+            <button
+              onClick={() => select("all")}
+              className="w-full flex items-center px-2 py-1.5 rounded-lg text-xs font-semibold text-left transition-colors hover:bg-white/5"
+              style={{ color: value === "all" ? "var(--color-brand)" : "var(--color-text-primary)" }}
+            >
+              All AS
+            </button>
+            {filteredOptions.map(({ as, count }) => (
+              <button
+                key={as}
+                onClick={() => select(as)}
+                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-mono font-semibold text-left transition-colors hover:bg-white/5"
+                style={{ color: value === as ? "var(--color-brand)" : "var(--color-text-primary)" }}
+              >
+                {as}
+                <span className="text-[10px] font-sans opacity-70">{count}</span>
+              </button>
+            ))}
+            {filteredOptions.length === 0 && (
+              <p className="text-[11px] text-center py-3" style={{ color: "var(--color-text-muted)" }}>
+                No matching AS
+              </p>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+      {isActive && (
+        <button
+          onClick={() => select("all")}
+          className="p-1 rounded-lg transition-colors hover:bg-white/5"
+          style={{ color: "var(--color-text-muted)" }}
+          aria-label="Clear Handover AS filter"
+        >
+          <X size={12} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Alerts() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [sevFilter,    setSevFilter]    = useState<SevFilter>(() => parseSevParam(searchParams.get("severity")));
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => parseStatusParam(searchParams.get("status")));
-  const [ticketFilter, setTicketFilter] = useState<TicketFilter>(() => parseTicketParam(searchParams.get("changeTicket")));
-  const [asFilter,     setAsFilter]     = useState<AsFilter>(() => parseAsParam(searchParams.get("affectedAS")));
+  const [sevFilter,      setSevFilter]      = useState<SevFilter>(() => parseSevParam(searchParams.get("severity")));
+  const [statusFilter,   setStatusFilter]   = useState<StatusFilter>(() => parseStatusParam(searchParams.get("status")));
+  const [predictedOnly,  setPredictedOnly]  = useState<boolean>(() => parsePredictedParam(searchParams.get("predicted")));
+  const [ticketFilter,   setTicketFilter]   = useState<TicketFilter>(() => parseTicketParam(searchParams.get("changeTicket")));
+  const [asFilter,       setAsFilter]       = useState<AsFilter>(() => parseAsParam(searchParams.get("affectedAS")));
 
   const filtered = ALERTS.filter((a) => {
     if (sevFilter    !== "all" && a.severity   !== sevFilter)    return false;
     if (statusFilter !== "all" && a.status     !== statusFilter) return false;
+    if (predictedOnly && !a.isPredicted)                         return false;
     if (ticketFilter === "with" && !hasChangeTicket(a))          return false;
     if (asFilter     !== "all" && a.affectedAS !== asFilter)     return false;
     return true;
@@ -287,9 +343,9 @@ export default function Alerts() {
       {/* ── KPI cards ───────────────────────────────────────────────────────── */}
       <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
         <KpiCard
-          label="Active Alerts"
-          value={ALERT_KPIS.total}
-          sub="across IP Peering estate"
+          label="Open Alerts"
+          value={ALERT_KPIS.open}
+          sub="reactive, currently open"
           icon={Bell}
           color="#FF3B3B"
           bg="rgba(255,59,59,0.12)"
@@ -321,7 +377,7 @@ export default function Alerts() {
         <KpiCard
           label="Needs Operator Review"
           value={ALERT_KPIS.needsReview}
-          sub="critical or high — active"
+          sub="critical or high — open"
           icon={Users}
           color="#4D9EFF"
           bg="rgba(77,158,255,0.12)"
@@ -369,24 +425,48 @@ export default function Alerts() {
           <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
             Status
           </span>
-          {(["all", "active", "predicted", "mitigating"] as (StatusFilter)[]).map((s) => {
+          {(["all", ...STATUSES] as StatusFilter[]).map((s) => {
             const active = statusFilter === s;
             const cfg    = s !== "all" ? ALERT_STATUS[s as AlertStatus] : null;
             return (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s as StatusFilter)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors capitalize"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
                 style={{
                   backgroundColor: active ? (cfg ? cfg.bg : "rgba(255,255,255,0.08)") : "transparent",
                   color: active ? (cfg ? cfg.color : "var(--color-text-primary)") : "var(--color-text-muted)",
                   border: active ? `1px solid ${cfg ? cfg.color : "var(--color-border)"}` : "1px solid transparent",
                 }}
               >
-                {s === "all" ? "All" : s}
+                {s === "all" ? "All" : cfg!.label}
               </button>
             );
           })}
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-5 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
+
+        {/* Predicted filter — a separate TYPE flag, not a status chip. Filtering
+            Predicted works independently of whatever Status is selected. */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
+            Type
+          </span>
+          <button
+            onClick={() => setPredictedOnly((p) => !p)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
+            style={{
+              backgroundColor: predictedOnly ? PREDICTED_BADGE.bg : "transparent",
+              color: predictedOnly ? PREDICTED_BADGE.color : "var(--color-text-muted)",
+              border: `1px solid ${predictedOnly ? PREDICTED_BADGE.color : "var(--color-border)"}`,
+            }}
+          >
+            <TrendingUp size={11} />
+            Predicted
+            <span className="text-[10px] opacity-70">({ALERT_KPIS.predicted})</span>
+          </button>
         </div>
 
         {/* Divider */}
@@ -422,40 +502,14 @@ export default function Alerts() {
         {/* Divider */}
         <div className="w-px h-5 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
 
-        {/* Handover AS filter */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Handover AS filter — searchable/scrollable dropdown (50s–100s of AS
+            possible), reusing the same affectedAS param the dashboard's
+            "Alerts by Handover AS" chart drill-down navigates to. */}
+        <div className="flex items-center gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
             Handover AS
           </span>
-          <button
-            onClick={() => setAsFilter("all")}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
-            style={{
-              backgroundColor: asFilter === "all" ? "rgba(255,255,255,0.08)" : "transparent",
-              color: asFilter === "all" ? "var(--color-text-primary)" : "var(--color-text-muted)",
-              border: `1px solid ${asFilter === "all" ? "var(--color-border)" : "transparent"}`,
-            }}
-          >
-            All
-          </button>
-          {ALERTS_BY_AS.map(({ as, count }) => {
-            const active = asFilter === as;
-            return (
-              <button
-                key={as}
-                onClick={() => setAsFilter(as)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold font-mono transition-colors"
-                style={{
-                  backgroundColor: active ? "rgba(233,24,124,0.12)" : "transparent",
-                  color: active ? "var(--color-brand)" : "var(--color-text-muted)",
-                  border: `1px solid ${active ? "var(--color-brand)" : "transparent"}`,
-                }}
-              >
-                {as}
-                <span className="text-[10px] opacity-70">({count})</span>
-              </button>
-            );
-          })}
+          <HandoverAsDropdown value={asFilter} onChange={setAsFilter} options={ALERTS_BY_AS} />
         </div>
 
         {/* Result count */}
@@ -474,7 +528,7 @@ export default function Alerts() {
         <table className="w-full">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-              {["Alert", "Severity", "Confidence", "Impact", "Affected", "Linked", "ETA / Age", "Status", ""].map((h) => (
+              {["Alert", "Affected", "Linked", "Severity", "Status", ""].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap"
@@ -488,7 +542,7 @@ export default function Alerts() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center">
+                <td colSpan={6} className="px-4 py-12 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <Bell size={24} style={{ color: "var(--color-text-muted)", opacity: 0.4 }} />
                     <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>

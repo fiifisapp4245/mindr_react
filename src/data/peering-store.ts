@@ -26,7 +26,7 @@ export interface PieSlice {
   color: string;
 }
 
-import { ACTIVE_ALERTS_COUNT, HIGH_SEVERITY_ALERTS_COUNT, getAlertsByAS } from './alert-store';
+import { OPEN_ALERTS_COUNT, HIGH_SEVERITY_ALERTS_COUNT, getAlertsByAS } from './alert-store';
 import {
   CONGESTED_PORTS,
   CRITICAL_BUILDOUT_PORTS,
@@ -79,18 +79,19 @@ export function bandLabel(band: Band): string {
 }
 
 // ── Band 1 KPIs ────────────────────────────────────────────────────────────────
-// "Active SC-1 Alerts" = ongoing SC-1 incidents in the IP peering domain (Anodot).
+// "Open SC-1 Alerts" = ongoing SC-1 incidents in the IP peering domain (Anodot).
 // The global "Active P1" in the top bar spans ALL domains (CXI, FLM, peering) — they are
 // different scopes and should not be compared directly.
 
 export const kpi: Record<string, KpiEntry> = {
   activeSC1Alerts: {
-    value: ACTIVE_ALERTS_COUNT,
+    value: OPEN_ALERTS_COUNT,
     unit: 'incidents',
     source: 'Anodot',
     description:
-      'Count of ongoing SC-1 (Priority-1) incidents active in the IP peering domain — same query as the ' +
-      'Alerts page "Active" status filter. Distinct from the global "Active P1" in the top bar, which spans all domains.',
+      'Count of ongoing SC-1 (Priority-1) incidents open in the IP peering domain — same query as the ' +
+      'Alerts page "Open" status filter, excluding forecast-only Predicted alerts. Distinct from the global ' +
+      '"Active P1" in the top bar, which spans all domains.',
     thresholds: { t1: 2, t2: 5, direction: 'lower-better' },
     thresholdLabel: 'Healthy 0–2 · Watch 3–5 · Critical >5',
     supportText: 'INC-3021 is current top trigger',
