@@ -212,6 +212,86 @@ function AlertRow({ alert, onClick }: { alert: Alert; onClick: () => void }) {
   );
 }
 
+// ── Generic filter dropdown — condenses a small fixed-option filter (Severity,
+// Status, Type, Change Ticket) into the same Popover-button pattern as the
+// Handover AS dropdown below, instead of a pill row. Clearable via the "All"
+// row or the inline × button. ─────────────────────────────────────────────────
+
+function FilterDropdown<V extends string>({ label, value, allValue, allLabel, options, onChange }: {
+  label: string;
+  value: V;
+  allValue: V;
+  allLabel: string;
+  options: { value: V; label: string; color?: string }[];
+  onChange: (v: V) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const isActive = value !== allValue;
+  const selected = options.find((o) => o.value === value);
+  const activeColor = selected?.color ?? "var(--color-brand)";
+
+  function select(v: V) {
+    onChange(v);
+    setOpen(false);
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+        {label}
+      </span>
+      <div className="flex items-center gap-1">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
+              style={{
+                backgroundColor: isActive ? `${activeColor}20` : "transparent",
+                color: isActive ? activeColor : "var(--color-text-muted)",
+                border: `1px solid ${isActive ? activeColor : "var(--color-border)"}`,
+              }}
+            >
+              {selected ? selected.label : allLabel}
+              <ChevronDown size={11} style={{ opacity: 0.7 }} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-1.5">
+            <div className="space-y-0.5">
+              <button
+                onClick={() => select(allValue)}
+                className="w-full flex items-center px-2 py-1.5 rounded-lg text-xs font-semibold text-left transition-colors hover:bg-white/5"
+                style={{ color: value === allValue ? "var(--color-brand)" : "var(--color-text-primary)" }}
+              >
+                {allLabel}
+              </button>
+              {options.map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => select(o.value)}
+                  className="w-full flex items-center px-2 py-1.5 rounded-lg text-xs font-semibold text-left transition-colors hover:bg-white/5"
+                  style={{ color: value === o.value ? (o.color ?? "var(--color-brand)") : "var(--color-text-primary)" }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+        {isActive && (
+          <button
+            onClick={() => select(allValue)}
+            className="p-1 rounded-lg transition-colors hover:bg-white/5"
+            style={{ color: "var(--color-text-muted)" }}
+            aria-label={`Clear ${label} filter`}
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Handover AS dropdown — searchable/scrollable, since there can be 50s–100s
 // of AS values (a plain pill row doesn't scale). Clearable via the "All AS"
 // row or the inline × button. ─────────────────────────────────────────────────
@@ -390,114 +470,54 @@ export default function Alerts() {
         style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
       >
         {/* Severity filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
-            Severity
-          </span>
-          {(["all", "critical", "high", "medium", "low"] as SevFilter[]).map((s) => {
-            const active = sevFilter === s;
-            const color  = s === "all" ? "var(--color-text-muted)" : ALERT_SEV[s].color;
-            return (
-              <button
-                key={s}
-                onClick={() => setSevFilter(s)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors capitalize"
-                style={{
-                  backgroundColor: active ? (s === "all" ? "rgba(255,255,255,0.08)" : ALERT_SEV[s as AlertSeverity]?.bg ?? "rgba(255,255,255,0.08)") : "transparent",
-                  color: active ? (s === "all" ? "var(--color-text-primary)" : color) : "var(--color-text-muted)",
-                  border: active ? `1px solid ${s === "all" ? "var(--color-border)" : color}` : "1px solid transparent",
-                }}
-              >
-                {s === "all" ? "All" : s}
-                <span className="text-[10px] opacity-70">
-                  ({sevCounts[s]})
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <FilterDropdown
+          label="Severity"
+          value={sevFilter}
+          allValue="all"
+          allLabel={`All (${sevCounts.all})`}
+          onChange={setSevFilter}
+          options={SEVERITIES.map((s) => ({ value: s, label: `${ALERT_SEV[s].label} (${sevCounts[s]})`, color: ALERT_SEV[s].color }))}
+        />
 
         {/* Divider */}
         <div className="w-px h-5 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
 
         {/* Status filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
-            Status
-          </span>
-          {(["all", ...STATUSES] as StatusFilter[]).map((s) => {
-            const active = statusFilter === s;
-            const cfg    = s !== "all" ? ALERT_STATUS[s as AlertStatus] : null;
-            return (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s as StatusFilter)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
-                style={{
-                  backgroundColor: active ? (cfg ? cfg.bg : "rgba(255,255,255,0.08)") : "transparent",
-                  color: active ? (cfg ? cfg.color : "var(--color-text-primary)") : "var(--color-text-muted)",
-                  border: active ? `1px solid ${cfg ? cfg.color : "var(--color-border)"}` : "1px solid transparent",
-                }}
-              >
-                {s === "all" ? "All" : cfg!.label}
-              </button>
-            );
-          })}
-        </div>
+        <FilterDropdown
+          label="Status"
+          value={statusFilter}
+          allValue="all"
+          allLabel="All"
+          onChange={setStatusFilter}
+          options={STATUSES.map((s) => ({ value: s, label: ALERT_STATUS[s].label, color: ALERT_STATUS[s].color }))}
+        />
 
         {/* Divider */}
         <div className="w-px h-5 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
 
         {/* Predicted filter — a separate TYPE flag, not a status chip. Filtering
             Predicted works independently of whatever Status is selected. */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
-            Type
-          </span>
-          <button
-            onClick={() => setPredictedOnly((p) => !p)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
-            style={{
-              backgroundColor: predictedOnly ? PREDICTED_BADGE.bg : "transparent",
-              color: predictedOnly ? PREDICTED_BADGE.color : "var(--color-text-muted)",
-              border: `1px solid ${predictedOnly ? PREDICTED_BADGE.color : "var(--color-border)"}`,
-            }}
-          >
-            <TrendingUp size={11} />
-            Predicted
-            <span className="text-[10px] opacity-70">({ALERT_KPIS.predicted})</span>
-          </button>
-        </div>
+        <FilterDropdown
+          label="Type"
+          value={predictedOnly ? "predicted" : "all"}
+          allValue="all"
+          allLabel="All"
+          onChange={(v) => setPredictedOnly(v === "predicted")}
+          options={[{ value: "predicted", label: `Predicted (${ALERT_KPIS.predicted})`, color: PREDICTED_BADGE.color }]}
+        />
 
         {/* Divider */}
         <div className="w-px h-5 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />
 
         {/* Change ticket filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--color-text-muted)" }}>
-            Change Ticket
-          </span>
-          {([
-            { key: "all",  label: "All" },
-            { key: "with", label: "With Ticket" },
-          ] as { key: TicketFilter; label: string }[]).map(({ key, label }) => {
-            const active = ticketFilter === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setTicketFilter(key)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
-                style={{
-                  backgroundColor: active ? "rgba(255,255,255,0.08)" : "transparent",
-                  color: active ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                  border: active ? "1px solid var(--color-border)" : "1px solid transparent",
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        <FilterDropdown
+          label="Change Ticket"
+          value={ticketFilter}
+          allValue="all"
+          allLabel="All"
+          onChange={setTicketFilter}
+          options={[{ value: "with", label: "With Ticket" }]}
+        />
 
         {/* Divider */}
         <div className="w-px h-5 shrink-0" style={{ backgroundColor: "var(--color-border)" }} />

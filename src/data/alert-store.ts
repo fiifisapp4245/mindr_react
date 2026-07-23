@@ -1048,3 +1048,17 @@ export function setFeedbackRating(alertId: string, key: FeedbackQuestionKey, rat
 export function getFeedbackRating(alertId: string, key: FeedbackQuestionKey): number {
   return _feedback[alertId]?.[key] ?? 0;
 }
+
+// Free-text elaboration (what resolution actually worked, problem-solving
+// approach) — enriches MINDR's knowledge base beyond the 1-5 star ratings
+// above. Mock persistence for the prototype (module-level, same as the rest
+// of this file); a real backend would write this to the actual DB record.
+let _feedbackComments: Record<string, string> = {};
+
+export function setFeedbackComment(alertId: string, comment: string): void {
+  _feedbackComments[alertId] = comment;
+}
+
+export function getFeedbackComment(alertId: string): string {
+  return _feedbackComments[alertId] ?? "";
+}

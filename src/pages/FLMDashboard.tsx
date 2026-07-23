@@ -15,29 +15,21 @@ import { TrafficFlowAnalytics } from "../components/flm/flow-analytics/TrafficFl
 
 import { kpi } from "../data/peering-store";
 
-// Fixed, auto-submitted Network Model queries — parameterised (not free-form) so
-// results stay reproducible and match each card's definition.
-const NM_QUERY_CONGESTED_PORTS =
-  "What are the currently congested ports on the IP Peering network?";
-const NM_QUERY_CRITICAL_BUILDOUT =
-  "Which ports are at Critical build-out status on the IP Peering network?";
-
 // Band 1 card definitions — maps store key → display title → nav destination.
-// Alerts cards deep-link with a pre-applied, editable filter (Pattern 1);
-// port cards deep-link into the Network Model chat with an auto-submitted
-// query (Pattern 2) since ports aren't alerts and have no Alerts-page filter.
+// Alerts/Events cards deep-link with a pre-applied, editable filter.
+// Congested Ports / Critical Build-out Ports were removed from this grid
+// after stakeholder review — Congested Ports still surfaces in Band 3's
+// "Congested Routers" chart, and both remain queryable via Network Model.
 const BAND1_CARDS: {
   key: keyof typeof kpi;
   title: string;
   to: string;
   navState?: { autoQuery: string };
 }[] = [
-  { key: "activeSC1Alerts",       title: "Open SC-1 Alerts",         to: "/alerts?status=open" },
-  { key: "highSeverityAlerts",    title: "High Severity Alerts",     to: "/alerts?severity=high" },
-  { key: "congestedPorts",        title: "Congested Ports",          to: "/network-model/ip-core", navState: { autoQuery: NM_QUERY_CONGESTED_PORTS } },
-  { key: "criticalBuildoutPorts", title: "Critical Build-out Ports", to: "/network-model/ip-core", navState: { autoQuery: NM_QUERY_CRITICAL_BUILDOUT } },
-  { key: "upcomingEvents",        title: "Upcoming Events",          to: "/events?status=upcoming" },
-  { key: "highSeverityEvents",    title: "High Severity Events",     to: "/events?status=live&severity=high" },
+  { key: "activeSC1Alerts",    title: "Open SC-1 Alerts",     to: "/alerts?status=open" },
+  { key: "highSeverityAlerts", title: "High Severity Alerts", to: "/alerts?severity=high" },
+  { key: "upcomingEvents",     title: "Upcoming Events",      to: "/events?status=upcoming" },
+  { key: "highSeverityEvents", title: "High Severity Events", to: "/events?status=live&severity=high" },
 ];
 
 export default function FLMDashboard() {
@@ -61,7 +53,7 @@ export default function FLMDashboard() {
 
       {/* ── Band 1 — KPI cards + Attention list ─────────────────────────────── */}
       <section>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           {BAND1_CARDS.map(({ key, title, to, navState }) => (
             <PeeringKpiCard key={key} title={title} entry={kpi[key]} to={to} navState={navState} />
           ))}

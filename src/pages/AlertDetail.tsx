@@ -10,6 +10,7 @@ import {
   ALERTS, ALERT_SEV, ALERT_STATUS, confirmAction, isConfirmed, getTakenAt,
   alertInterfacesWorstFirst, alertPeakUtilization,
   FEEDBACK_QUESTIONS, FEEDBACK_SCALE_HELP, setFeedbackRating, getFeedbackRating,
+  setFeedbackComment, getFeedbackComment,
   type Alert, type AlertAction, type AlarmRecord, type TicketRecord, type BuildoutFlag, type FeedbackQuestionKey,
   type AlertInterface, type PathNode, type SeriesPoint, type SnmpPort,
 } from "../data/alert-store";
@@ -306,25 +307,21 @@ function AlertTabBar({ active, onChange }: { active: TabKey; onChange: (t: TabKe
 
 // ── Shared card primitives ────────────────────────────────────────────────────
 
-function EvidenceCard({ number, title, sourceTag, children }: {
+function EvidenceCard({ number, title, children }: {
   number: string;
   title: string;
-  sourceTag: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-xl p-4" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <div className="flex items-center gap-2.5">
-          <span
-            className="text-[11px] font-bold w-5 h-5 rounded flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }}
-          >
-            {number}
-          </span>
-          <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>{title}</span>
-        </div>
-        <span className="text-[10px] font-mono shrink-0" style={{ color: "var(--color-text-muted)" }}>{sourceTag}</span>
+      <div className="flex items-center gap-2.5 mb-3">
+        <span
+          className="text-[11px] font-bold w-5 h-5 rounded flex items-center justify-center shrink-0"
+          style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)", border: "1px solid var(--color-border)" }}
+        >
+          {number}
+        </span>
+        <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>{title}</span>
       </div>
       {children}
     </div>
@@ -353,21 +350,6 @@ function StatBlock({ label, value, color, badge }: {
       ) : (
         <p className="text-sm font-bold" style={{ color: color ?? "var(--color-text-primary)" }}>{value}</p>
       )}
-    </div>
-  );
-}
-
-function UtilBar({ label, value, threshold }: { label: string; value: number; threshold: number }) {
-  const color = value >= threshold ? "#FF3B3B" : value >= threshold - 10 ? "#FFB020" : "#2DD4BF";
-  return (
-    <div className="mb-3">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] font-medium" style={{ color: "var(--color-text-primary)" }}>{label} utilization</span>
-        <span className="text-[12px] font-bold" style={{ color }}>{value}%</span>
-      </div>
-      <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-        <div className="h-full rounded-full" style={{ width: `${Math.min(value, 100)}%`, backgroundColor: color }} />
-      </div>
     </div>
   );
 }
@@ -401,9 +383,6 @@ function AnodotWidget({ alert }: { alert: Alert }) {
           1
         </span>
         <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>Anodot — Alert Trigger</span>
-        <span className="text-[10px] font-mono ml-auto shrink-0" style={{ color: "var(--color-text-muted)" }}>
-          anomaly feed / peering-AS-{anodot.handoverAS}
-        </span>
       </div>
 
       <div className="flex items-center gap-4 mb-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
@@ -453,7 +432,7 @@ function SnmpWidget({ ports }: { ports: SnmpPort[] }) {
   const color = port.utilization >= 90 ? "#FF3B3B" : port.utilization >= 80 ? "#FFB020" : "#2DD4BF";
 
   return (
-    <EvidenceCard number="3" title="SNMP — Port Utilization" sourceTag={`snmp-agent / ${port.router}`}>
+    <EvidenceCard number="3" title="SNMP — Port Utilization">
       <div className="mb-3">
         <Select value={selected} onValueChange={setSelected}>
           <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
@@ -466,7 +445,6 @@ function SnmpWidget({ ports }: { ports: SnmpPort[] }) {
           </SelectContent>
         </Select>
       </div>
-      <UtilBar label={port.port} value={port.utilization} threshold={90} />
       <div className="grid grid-cols-3 gap-2.5">
         <StatBlock label="Utilization" value={`${port.utilization}%`} color={color} />
         <StatBlock label="Capacity" value={port.capacity} />
@@ -534,7 +512,7 @@ function EvidenceTab({ alert }: { alert: Alert }) {
         </div>
       </div>
 
-      <EvidenceCard number="2" title="Bendos RCA — Traffic Flows" sourceTag={`traffic-flow-api / source-AS-${benocs.sourceAS}`}>
+      <EvidenceCard number="2" title="Bendos RCA — Traffic Flows">
         <p className="text-[11px] font-mono mb-3" style={{ color: "var(--color-text-muted)" }}>
           Direction: {benocs.direction}
         </p>
@@ -548,7 +526,7 @@ function EvidenceTab({ alert }: { alert: Alert }) {
 
       <SnmpWidget ports={snmp.ports} />
 
-      <EvidenceCard number="4" title="Border Planner — Capacity & ASN Mix" sourceTag="border-planner-api / all-peering-ports">
+      <EvidenceCard number="4" title="Border Planner — Capacity & ASN Mix">
         <div className="grid grid-cols-3 gap-2.5 mb-3">
           <StatBlock label="Congested Ports" value={borderPlanner.congestedPorts} color="#FF3B3B" />
           <StatBlock label="Build-out Flag" value={borderPlanner.buildoutFlag} color={flagColor} badge />
@@ -590,7 +568,7 @@ function EvidenceTab({ alert }: { alert: Alert }) {
         </div>
       </EvidenceCard>
 
-      <EvidenceCard number="5" title="CAEM / CASM — Alarms & Tickets" sourceTag="caem-api + casm-api / scope=this-alert">
+      <EvidenceCard number="5" title="CAEM / CASM — Alarms & Tickets">
         <button
           onClick={() => setOpenList("alarms")}
           className="w-full flex items-center justify-between mb-2 group"
@@ -632,7 +610,7 @@ function EvidenceTab({ alert }: { alert: Alert }) {
       {openList === "alarms" && <AlarmListModal alarms={caemCasm.alarmDetails} onClose={() => setOpenList(null)} />}
       {openList === "tickets" && <TicketListModal tickets={caemCasm.ticketDetails} onClose={() => setOpenList(null)} />}
 
-      <EvidenceCard number="6" title="Rex — Routing Analysis" sourceTag="rex-routing-api / full-path">
+      <EvidenceCard number="6" title="Rex — Routing Analysis">
         <div className="grid grid-cols-3 gap-2.5 mb-3">
           <StatBlock label="Link Flap" value={rex.linkFlap ? "Detected" : "None detected"} color={rex.linkFlap ? "#FF3B3B" : "#2DD4BF"} />
           <StatBlock label="IGP Metric Change" value={rex.igpMetricChange} />
@@ -803,12 +781,61 @@ function StarRating({ alertId, qkey, question }: { alertId: string; qkey: Feedba
   );
 }
 
+function FeedbackComment({ alertId }: { alertId: string }) {
+  const [comment, setComment] = useState(() => getFeedbackComment(alertId));
+  const [saved, setSaved] = useState(() => getFeedbackComment(alertId).length > 0);
+
+  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setComment(e.target.value);
+    setSaved(false);
+  }
+
+  function handleSave() {
+    setFeedbackComment(alertId, comment.trim());
+    setSaved(true);
+  }
+
+  return (
+    <div className="rounded-xl p-4" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+      <p className="text-[13px] font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>
+        Add context for MINDR's knowledge base
+      </p>
+      <p className="text-[11px] mb-3 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+        Elaborate on what resolution actually worked and your problem-solving approach — this
+        enriches MINDR's history for similar future alerts.
+      </p>
+      <textarea
+        value={comment}
+        onChange={handleChange}
+        rows={5}
+        placeholder="e.g. Rebalancing via the DE-CIX secondary path resolved this within 10 minutes; root cause was a stale BGP local-pref left over from last week's maintenance window..."
+        className="w-full rounded-lg px-3 py-2.5 text-[12px] leading-relaxed resize-y"
+        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)", outline: "none" }}
+      />
+      <div className="flex items-center justify-between mt-2">
+        <span className="text-[10px]" style={{ color: saved ? "#2DD4BF" : "var(--color-text-muted)" }}>
+          {saved ? "Saved to MINDR history" : "Not yet saved"}
+        </span>
+        <button
+          onClick={handleSave}
+          disabled={comment.trim().length === 0}
+          className="text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90 disabled:opacity-40"
+          style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
+        >
+          Save comment
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function FeedbackTab({ alertId }: { alertId: string }) {
   return (
     <div className="space-y-4">
       {FEEDBACK_QUESTIONS.map(q => (
         <StarRating key={q.key} alertId={alertId} qkey={q.key} question={q.question} />
       ))}
+      <FeedbackComment alertId={alertId} />
     </div>
   );
 }
@@ -821,7 +848,6 @@ export default function AlertDetail() {
 
   const [activeTab, setActiveTab]     = useState<TabKey>("evidence");
   const [actionVersion, bumpVersion]  = useState(0);
-  const [headerAction, setHeaderAction] = useState<AlertAction | null>(null);
 
   if (!alert) {
     return (
@@ -839,7 +865,6 @@ export default function AlertDetail() {
 
   const sev    = ALERT_SEV[alert.severity];
   const status = ALERT_STATUS[alert.status];
-  const notifyAction = alert.actions.find(a => a.id.includes("notify"));
 
   return (
     <div className="space-y-5 pb-8 mx-auto" style={{ maxWidth: "78%", minWidth: 0 }}>
@@ -920,18 +945,6 @@ export default function AlertDetail() {
               <> · <span style={{ color: "#4D9EFF", fontWeight: 600 }}>Voice channel designated</span></>
             )}
           </p>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {notifyAction && (
-              <button
-                onClick={() => setHeaderAction(notifyAction)}
-                className="text-[12px] font-semibold px-4 py-2 rounded-lg transition-opacity hover:opacity-90"
-                style={{ backgroundColor: "var(--color-brand)", color: "#fff" }}
-              >
-                Notify CDN
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -946,22 +959,6 @@ export default function AlertDetail() {
         )}
         {activeTab === "feedback"    && <FeedbackTab alertId={alert.id} />}
       </div>
-
-      {/* Header "Notify CDN" confirmation modal */}
-      {headerAction && (
-        <ConfirmModal
-          title={headerAction.modalTitle}
-          body={headerAction.modalBody}
-          confirmLabel={headerAction.confirmLabel}
-          confirmColor={headerAction.confirmColor}
-          onConfirm={() => {
-            confirmAction(alert.id, headerAction.id);
-            setHeaderAction(null);
-            bumpVersion(v => v + 1);
-          }}
-          onClose={() => setHeaderAction(null)}
-        />
-      )}
     </div>
   );
 }

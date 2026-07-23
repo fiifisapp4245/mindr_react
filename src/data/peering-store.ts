@@ -27,22 +27,13 @@ export interface PieSlice {
 }
 
 import { OPEN_ALERTS_COUNT, HIGH_SEVERITY_ALERTS_COUNT, getAlertsByAS } from './alert-store';
-import {
-  CONGESTED_PORTS,
-  CRITICAL_BUILDOUT_PORTS,
-  BUILDOUT_INTERIM_LABEL,
-  BUILDOUT_EXHAUSTION_PCT,
-  BUILDOUT_CRITICAL_WEEKS,
-  getPortsByRouter,
-} from './border-ports';
+import { CONGESTED_PORTS, getPortsByRouter } from './border-ports';
 import { EVENTS_FULL } from './events';
 
 // Same queries as the Events page filters, so the Dashboard cards and the
 // Events page's filtered row counts never diverge.
 const UPCOMING_EVENTS = EVENTS_FULL.filter((e) => e.status === 'upcoming');
 const LIVE_HIGH_SEVERITY_EVENTS = EVENTS_FULL.filter((e) => e.status === 'live' && e.severity === 'high');
-
-export { BUILDOUT_INTERIM_LABEL };
 
 // ── Threshold engine ───────────────────────────────────────────────────────────
 
@@ -107,30 +98,6 @@ export const kpi: Record<string, KpiEntry> = {
     thresholds: { t1: 0, t2: 2, direction: 'lower-better' },
     thresholdLabel: 'Healthy 0 · Watch 1–2 · Critical ≥3',
     supportText: 'Both elevated above normal baseline',
-  },
-
-  congestedPorts: {
-    value: CONGESTED_PORTS.length,
-    unit: 'ports',
-    source: 'SNMP',
-    description:
-      'Ports running at 90%+ instantaneous utilization (max of ingress/egress) at the current SNMP polling ' +
-      'interval — no sustained window. High counts risk packet loss and SLA breaches. Count may flicker between polls.',
-    thresholds: { t1: 3, t2: 10, direction: 'lower-better' },
-    thresholdLabel: 'Healthy 0–3 · Watch 4–10 · Critical >10',
-    supportText: 'FRA-RTR-01 has 2 affected ports',
-  },
-
-  criticalBuildoutPorts: {
-    value: CRITICAL_BUILDOUT_PORTS.length,
-    unit: 'ports',
-    source: 'Border Planner',
-    description:
-      `Ports projected to reach ${BUILDOUT_EXHAUSTION_PCT}% utilization within ${BUILDOUT_CRITICAL_WEEKS} weeks ` +
-      `at current growth. ${BUILDOUT_INTERIM_LABEL} Require capacity expansion — cannot be resolved by re-routing alone.`,
-    thresholds: { t1: 0, t2: 3, direction: 'lower-better' },
-    thresholdLabel: 'Healthy 0 · Watch 1–3 · Critical >3',
-    supportText: 'AS3320 & AS3549 links affected',
   },
 
   upcomingEvents: {
